@@ -4,6 +4,7 @@ resource "azurerm_resource_group" "TODO" {
   name     = var.name # calling code must supply the name
   tags     = var.tags
 }
+# hello world
 
 # required AVM resources interfaces
 resource "azurerm_management_lock" "this" {
