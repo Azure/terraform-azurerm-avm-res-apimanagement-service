@@ -1,7 +1,7 @@
 <!-- BEGIN_TF_DOCS -->
 # Default example
 
-This deploys the module in its simplest form.
+This deploys the module with system assigned managed identity enabled.
 
 ```hcl
 terraform {
@@ -64,7 +64,7 @@ module "naming" {
 
 # This is required for resource modules
 resource "azurerm_resource_group" "this" {
-  location = module.regions.regions[random_integer.region_index.result].name
+  location = "eastus2" # module.regions.regions[random_integer.region_index.result].name
   name     = module.naming.resource_group.name_unique
 }
 
@@ -87,6 +87,9 @@ module "test" {
     cost_center = "test"
   }
   enable_telemetry = var.enable_telemetry # see variables.tf
+  managed_identities = {
+    system_assigned = true
+  }
 }
 ```
 
@@ -139,7 +142,11 @@ Default: `true`
 
 ## Outputs
 
-No outputs.
+The following outputs are exported:
+
+### <a name="output_workspace_identity"></a> [workspace\_identity](#output\_workspace\_identity)
+
+Description: The identity for the created workspace.
 
 ## Modules
 

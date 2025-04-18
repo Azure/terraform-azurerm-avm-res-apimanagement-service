@@ -12,6 +12,13 @@ Things to do:
 1. Configure federated identity credentials on the user assigned managed identity. Use the GitHub environment.
 1. Search and update TODOs within the code and remove the TODO comments once complete.
 
+> [!IMPORTANT]
+> As the overall AVM framework is not GA (generally available) yet - the CI framework and test automation is not fully functional and implemented across all supported languages yet - breaking changes are expected, and additional customer feedback is yet to be gathered and incorporated. Hence, modules **MUST NOT** be published at version `1.0.0` or higher at this time.
+>
+> All module **MUST** be published as a pre-release version (e.g., `0.1.0`, `0.1.1`, `0.2.0`, etc.) until the AVM framework becomes GA.
+>
+> However, it is important to note that this **DOES NOT** mean that the modules cannot be consumed and utilized. They **CAN** be leveraged in all types of environments (dev, test, prod etc.). Consumers can treat them just like any other IaC module and raise issues or feature requests against them as they learn from the usage of the module. Consumers should also read the release notes for each version, if considering updating to a more recent version of a module to see if there are any considerations or breaking changes etc.
+
 <!-- markdownlint-disable MD033 -->
 ## Requirements
 
@@ -19,26 +26,28 @@ The following requirements are needed by this module:
 
 - <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) (>= 1.9, < 2.0)
 
+- <a name="requirement_azapi"></a> [azapi](#requirement\_azapi) (~> 2.0)
+
 - <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) (~> 4.0)
 
-- <a name="requirement_modtm"></a> [modtm](#requirement\_modtm) (~> 0.3)
+- <a name="requirement_modtm"></a> [modtm](#requirement\_modtm) (0.3.2)
 
-- <a name="requirement_random"></a> [random](#requirement\_random) (~> 3.5)
+- <a name="requirement_random"></a> [random](#requirement\_random) (3.6.2)
 
 ## Resources
 
 The following resources are used by this module:
 
+- [azurerm_api_management.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/api_management) (resource)
 - [azurerm_management_lock.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/management_lock) (resource)
-- [azurerm_private_endpoint.this_managed_dns_zone_groups](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/private_endpoint) (resource)
-- [azurerm_private_endpoint.this_unmanaged_dns_zone_groups](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/private_endpoint) (resource)
+- [azurerm_monitor_diagnostic_setting.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/monitor_diagnostic_setting) (resource)
+- [azurerm_private_endpoint.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/private_endpoint) (resource)
 - [azurerm_private_endpoint_application_security_group_association.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/private_endpoint_application_security_group_association) (resource)
-- [azurerm_resource_group.TODO](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/resource_group) (resource)
 - [azurerm_role_assignment.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment) (resource)
-- [modtm_telemetry.telemetry](https://registry.terraform.io/providers/azure/modtm/latest/docs/resources/telemetry) (resource)
-- [random_uuid.telemetry](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/uuid) (resource)
+- [modtm_telemetry.telemetry](https://registry.terraform.io/providers/Azure/modtm/0.3.2/docs/resources/telemetry) (resource)
+- [random_uuid.telemetry](https://registry.terraform.io/providers/hashicorp/random/3.6.2/docs/resources/uuid) (resource)
 - [azurerm_client_config.telemetry](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/client_config) (data source)
-- [modtm_module_source.telemetry](https://registry.terraform.io/providers/azure/modtm/latest/docs/data-sources/module_source) (data source)
+- [modtm_module_source.telemetry](https://registry.terraform.io/providers/Azure/modtm/0.3.2/docs/data-sources/module_source) (data source)
 
 <!-- markdownlint-disable MD013 -->
 ## Required Inputs
@@ -67,25 +76,63 @@ Type: `string`
 
 The following input variables are optional (have default values):
 
-### <a name="input_customer_managed_key"></a> [customer\_managed\_key](#input\_customer\_managed\_key)
+### <a name="input_additional_location"></a> [additional\_location](#input\_additional\_location)
 
-Description: A map describing customer-managed keys to associate with the resource. This includes the following properties:
-- `key_vault_resource_id` - The resource ID of the Key Vault where the key is stored.
-- `key_name` - The name of the key.
-- `key_version` - (Optional) The version of the key. If not specified, the latest version is used.
-- `user_assigned_identity` - (Optional) An object representing a user-assigned identity with the following properties:
-  - `resource_id` - The resource ID of the user-assigned identity.
+Description: Additional datacenter locations where the API Management service should be provisioned.
+
+Type:
+
+```hcl
+list(object({
+    location             = string
+    capacity             = optional(number, null)
+    zones                = optional(list(string), null)
+    public_ip_address_id = optional(string, null)
+    gateway_disabled     = optional(bool, null)
+    virtual_network_configuration = optional(object({
+      subnet_id = string
+    }), null)
+  }))
+```
+
+Default: `[]`
+
+### <a name="input_certificate"></a> [certificate](#input\_certificate)
+
+Description: Certificate configurations for the API Management service.
+
+Type:
+
+```hcl
+list(object({
+    encoded_certificate  = string
+    store_name           = string
+    certificate_password = optional(string, null)
+  }))
+```
+
+Default: `[]`
+
+### <a name="input_client_certificate_enabled"></a> [client\_certificate\_enabled](#input\_client\_certificate\_enabled)
+
+Description: Enforce a client certificate to be presented on each request to the gateway. This is only supported when SKU type is Consumption.
+
+Type: `bool`
+
+Default: `false`
+
+### <a name="input_delegation"></a> [delegation](#input\_delegation)
+
+Description: Delegation settings for the API Management service.
 
 Type:
 
 ```hcl
 object({
-    key_vault_resource_id = string
-    key_name              = string
-    key_version           = optional(string, null)
-    user_assigned_identity = optional(object({
-      resource_id = string
-    }), null)
+    subscriptions_enabled     = optional(bool, false)
+    user_registration_enabled = optional(bool, false)
+    url                       = optional(string, null)
+    validation_key            = optional(string, null)
   })
 ```
 
@@ -135,6 +182,68 @@ Type: `bool`
 
 Default: `true`
 
+### <a name="input_gateway_disabled"></a> [gateway\_disabled](#input\_gateway\_disabled)
+
+Description: Disable the gateway in the main region? This is only supported when additional\_location is set.
+
+Type: `bool`
+
+Default: `false`
+
+### <a name="input_hostname_configuration"></a> [hostname\_configuration](#input\_hostname\_configuration)
+
+Description: Hostname configuration for the API Management service.
+
+Type:
+
+```hcl
+object({
+    management = optional(list(object({
+      host_name                       = string
+      key_vault_id                    = optional(string, null)
+      certificate                     = optional(string, null)
+      certificate_password            = optional(string, null)
+      negotiate_client_certificate    = optional(bool, false)
+      ssl_keyvault_identity_client_id = optional(string, null)
+    })), [])
+    portal = optional(list(object({
+      host_name                       = string
+      key_vault_id                    = optional(string, null)
+      certificate                     = optional(string, null)
+      certificate_password            = optional(string, null)
+      negotiate_client_certificate    = optional(bool, false)
+      ssl_keyvault_identity_client_id = optional(string, null)
+    })), [])
+    developer_portal = optional(list(object({
+      host_name                       = string
+      key_vault_id                    = optional(string, null)
+      certificate                     = optional(string, null)
+      certificate_password            = optional(string, null)
+      negotiate_client_certificate    = optional(bool, false)
+      ssl_keyvault_identity_client_id = optional(string, null)
+    })), [])
+    proxy = optional(list(object({
+      host_name                       = string
+      default_ssl_binding             = optional(bool, false)
+      key_vault_id                    = optional(string, null)
+      certificate                     = optional(string, null)
+      certificate_password            = optional(string, null)
+      negotiate_client_certificate    = optional(bool, false)
+      ssl_keyvault_identity_client_id = optional(string, null)
+    })), [])
+    scm = optional(list(object({
+      host_name                       = string
+      key_vault_id                    = optional(string, null)
+      certificate                     = optional(string, null)
+      certificate_password            = optional(string, null)
+      negotiate_client_certificate    = optional(bool, false)
+      ssl_keyvault_identity_client_id = optional(string, null)
+    })), [])
+  })
+```
+
+Default: `null`
+
 ### <a name="input_lock"></a> [lock](#input\_lock)
 
 Description: Controls the Resource Lock configuration for this resource. The following properties can be specified:
@@ -170,6 +279,22 @@ object({
 ```
 
 Default: `{}`
+
+### <a name="input_min_api_version"></a> [min\_api\_version](#input\_min\_api\_version)
+
+Description: The version which the control plane API calls to API Management service are limited with version equal to or newer than.
+
+Type: `string`
+
+Default: `null`
+
+### <a name="input_notification_sender_email"></a> [notification\_sender\_email](#input\_notification\_sender\_email)
+
+Description: Email address from which the notification will be sent.
+
+Type: `string`
+
+Default: `null`
 
 ### <a name="input_private_endpoints"></a> [private\_endpoints](#input\_private\_endpoints)
 
@@ -235,6 +360,52 @@ Type: `bool`
 
 Default: `true`
 
+### <a name="input_protocols"></a> [protocols](#input\_protocols)
+
+Description: Protocol settings for the API Management service.
+
+Type:
+
+```hcl
+object({
+    enable_http2 = optional(bool, false)
+  })
+```
+
+Default: `null`
+
+### <a name="input_public_ip_address_id"></a> [public\_ip\_address\_id](#input\_public\_ip\_address\_id)
+
+Description: ID of a standard SKU IPv4 Public IP. Only supported on Premium and Developer tiers when deployed in a virtual network.
+
+Type: `string`
+
+Default: `null`
+
+### <a name="input_public_network_access_enabled"></a> [public\_network\_access\_enabled](#input\_public\_network\_access\_enabled)
+
+Description: Is public access to the API Management service allowed? This only applies to the Management plane, not the API gateway or Developer portal.
+
+Type: `bool`
+
+Default: `true`
+
+### <a name="input_publisher_email"></a> [publisher\_email](#input\_publisher\_email)
+
+Description: The email of the API Management service publisher.
+
+Type: `string`
+
+Default: `""`
+
+### <a name="input_publisher_name"></a> [publisher\_name](#input\_publisher\_name)
+
+Description: The name of the API Management service publisher.
+
+Type: `string`
+
+Default: `"Apim Example Publisher"`
+
 ### <a name="input_role_assignments"></a> [role\_assignments](#input\_role\_assignments)
 
 Description: A map of role assignments to create on this resource. The map key is deliberately arbitrary to avoid issues where map keys maybe unknown at plan time.
@@ -264,6 +435,77 @@ map(object({
 
 Default: `{}`
 
+### <a name="input_security"></a> [security](#input\_security)
+
+Description: Security settings for the API Management service.
+
+Type:
+
+```hcl
+object({
+    enable_backend_ssl30                                = optional(bool, false)
+    enable_backend_tls10                                = optional(bool, false)
+    enable_backend_tls11                                = optional(bool, false)
+    enable_frontend_ssl30                               = optional(bool, false)
+    enable_frontend_tls10                               = optional(bool, false)
+    enable_frontend_tls11                               = optional(bool, false)
+    tls_ecdhe_ecdsa_with_aes128_cbc_sha_ciphers_enabled = optional(bool, false)
+    tls_ecdhe_ecdsa_with_aes256_cbc_sha_ciphers_enabled = optional(bool, false)
+    tls_ecdhe_rsa_with_aes128_cbc_sha_ciphers_enabled   = optional(bool, false)
+    tls_ecdhe_rsa_with_aes256_cbc_sha_ciphers_enabled   = optional(bool, false)
+    tls_rsa_with_aes128_cbc_sha256_ciphers_enabled      = optional(bool, false)
+    tls_rsa_with_aes128_cbc_sha_ciphers_enabled         = optional(bool, false)
+    tls_rsa_with_aes128_gcm_sha256_ciphers_enabled      = optional(bool, false)
+    tls_rsa_with_aes256_gcm_sha384_ciphers_enabled      = optional(bool, false)
+    tls_rsa_with_aes256_cbc_sha256_ciphers_enabled      = optional(bool, false)
+    tls_rsa_with_aes256_cbc_sha_ciphers_enabled         = optional(bool, false)
+    triple_des_ciphers_enabled                          = optional(bool, false)
+  })
+```
+
+Default: `null`
+
+### <a name="input_sign_in"></a> [sign\_in](#input\_sign\_in)
+
+Description: Sign-in settings for the API Management service. When enabled, anonymous users will be redirected to the sign-in page.
+
+Type:
+
+```hcl
+object({
+    enabled = bool
+  })
+```
+
+Default: `null`
+
+### <a name="input_sign_up"></a> [sign\_up](#input\_sign\_up)
+
+Description: Sign-up settings for the API Management service.
+
+Type:
+
+```hcl
+object({
+    enabled = bool
+    terms_of_service = object({
+      consent_required = bool
+      enabled          = bool
+      text             = optional(string, null)
+    })
+  })
+```
+
+Default: `null`
+
+### <a name="input_sku_name"></a> [sku\_name](#input\_sku\_name)
+
+Description: The SKU name of the API Management service.
+
+Type: `string`
+
+Default: `"Developer_1"`
+
 ### <a name="input_tags"></a> [tags](#input\_tags)
 
 Description: (Optional) Tags of the resource.
@@ -272,13 +514,115 @@ Type: `map(string)`
 
 Default: `null`
 
+### <a name="input_tenant_access"></a> [tenant\_access](#input\_tenant\_access)
+
+Description: Controls whether access to the management API is enabled. When enabled, the primary/secondary keys provide access to this API.
+
+Type:
+
+```hcl
+object({
+    enabled = bool
+  })
+```
+
+Default: `null`
+
+### <a name="input_virtual_network_subnet_id"></a> [virtual\_network\_subnet\_id](#input\_virtual\_network\_subnet\_id)
+
+Description: The ID of the subnet in the virtual network where the API Management service will be deployed.
+
+Type: `string`
+
+Default: `null`
+
+### <a name="input_virtual_network_type"></a> [virtual\_network\_type](#input\_virtual\_network\_type)
+
+Description: The type of virtual network configuration for the API Management service.
+
+Type: `string`
+
+Default: `"None"`
+
+### <a name="input_zones"></a> [zones](#input\_zones)
+
+Description: Specifies a list of Availability Zones in which this API Management service should be located. Only supported in the Premium tier.
+
+Type: `list(string)`
+
+Default: `null`
+
 ## Outputs
 
 The following outputs are exported:
 
+### <a name="output_additional_locations"></a> [additional\_locations](#output\_additional\_locations)
+
+Description: Information about additional locations for the API Management Service.
+
+### <a name="output_apim_gateway_url"></a> [apim\_gateway\_url](#output\_apim\_gateway\_url)
+
+Description: The gateway URL of the API Management service.
+
+### <a name="output_apim_management_url"></a> [apim\_management\_url](#output\_apim\_management\_url)
+
+Description: The management URL of the API Management service.
+
+### <a name="output_certificates"></a> [certificates](#output\_certificates)
+
+Description: Certificate information for the API Management Service.
+
+### <a name="output_developer_portal_url"></a> [developer\_portal\_url](#output\_developer\_portal\_url)
+
+Description: The publisher URL of the API Management service.
+
+### <a name="output_gateway_regional_url"></a> [gateway\_regional\_url](#output\_gateway\_regional\_url)
+
+Description: The Region URL for the Gateway of the API Management Service.
+
+### <a name="output_hostname_configuration"></a> [hostname\_configuration](#output\_hostname\_configuration)
+
+Description: The hostname configuration for the API Management Service.
+
+### <a name="output_id"></a> [id](#output\_id)
+
+Description: The ID of the API Management service.
+
+### <a name="output_name"></a> [name](#output\_name)
+
+Description: The name of the API Management service.
+
+### <a name="output_portal_url"></a> [portal\_url](#output\_portal\_url)
+
+Description: The URL for the Publisher Portal associated with this API Management service.
+
 ### <a name="output_private_endpoints"></a> [private\_endpoints](#output\_private\_endpoints)
 
-Description:   A map of the private endpoints created.
+Description: A map of the private endpoints created.
+
+### <a name="output_private_ip_addresses"></a> [private\_ip\_addresses](#output\_private\_ip\_addresses)
+
+Description: The private IP addresses of the private endpoints created by this module
+
+### <a name="output_public_ip_addresses"></a> [public\_ip\_addresses](#output\_public\_ip\_addresses)
+
+Description: The Public IP addresses of the API Management Service.
+
+### <a name="output_resource"></a> [resource](#output\_resource)
+
+Description: The API Management service resource.
+
+### <a name="output_scm_url"></a> [scm\_url](#output\_scm\_url)
+
+Description: The URL for the SCM (Source Code Management) Endpoint associated with this API Management service.
+
+### <a name="output_tenant_access"></a> [tenant\_access](#output\_tenant\_access)
+
+Description: The tenant access information for the API Management Service.
+
+### <a name="output_workspace_identity"></a> [workspace\_identity](#output\_workspace\_identity)
+
+Description: The identity for the created workspace.
 
 ## Modules
 

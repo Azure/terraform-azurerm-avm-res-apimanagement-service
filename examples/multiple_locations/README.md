@@ -13,7 +13,7 @@ terraform {
     }
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~> 4.0"
+      version = "4.24.0"
     }
     modtm = {
       source  = "Azure/modtm"
@@ -37,6 +37,7 @@ provider "azurerm" {
     }
     #     api_management {
     # purge_soft_delete_on_destroy = false
+    #     min_api_version = "2024-10-01-preview"
     #     }
   }
 }
@@ -82,12 +83,19 @@ module "test" {
   publisher_email     = var.publisher_email # see variables.tf
   publisher_name      = "Apim Example Publisher"
   sku_name            = "Premium_1"
+  # sku_name = "Developer_1"
   tags = {
     environment = "test"
     cost_center = "test"
   }
   enable_telemetry = var.enable_telemetry # see variables.tf
+  additional_location = [{
+    # location western europe
+    location = "westeurope"
+    capacity = 1
+  }]
 }
+
 ```
 
 <!-- markdownlint-disable MD033 -->
@@ -99,7 +107,7 @@ The following requirements are needed by this module:
 
 - <a name="requirement_azapi"></a> [azapi](#requirement\_azapi) (~> 2.0)
 
-- <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) (~> 4.0)
+- <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) (4.24.0)
 
 - <a name="requirement_modtm"></a> [modtm](#requirement\_modtm) (0.3.2)
 
@@ -109,7 +117,7 @@ The following requirements are needed by this module:
 
 The following resources are used by this module:
 
-- [azurerm_resource_group.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/resource_group) (resource)
+- [azurerm_resource_group.this](https://registry.terraform.io/providers/hashicorp/azurerm/4.24.0/docs/resources/resource_group) (resource)
 - [random_integer.region_index](https://registry.terraform.io/providers/hashicorp/random/3.6.2/docs/resources/integer) (resource)
 
 <!-- markdownlint-disable MD013 -->

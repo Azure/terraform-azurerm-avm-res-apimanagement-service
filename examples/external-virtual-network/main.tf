@@ -73,12 +73,14 @@ module "test" {
   location            = azurerm_resource_group.this.location
   name                = module.naming.api_management.name_unique
   resource_group_name = azurerm_resource_group.this.name
-  publisher_email     = var.publisher_email # see variables.tf
+  publisher_email     = var.publisher_email
   publisher_name      = "Apim Example Publisher"
-  sku_name            = "Premium_1"
+  sku_name            = "Developer_1"
   tags = {
     environment = "test"
     cost_center = "test"
   }
-  enable_telemetry = var.enable_telemetry # see variables.tf
+  enable_telemetry          = var.enable_telemetry # see variables.tf
+  virtual_network_type      = "External"
+  virtual_network_subnet_id = "/subscriptions/aa27a1b3-530a-4637-a1e6-6855033a65e5/resourceGroups/rg-wwgpr/providers/Microsoft.Network/virtualNetworks/vnetwwgpr/subnets/apim-subnet-3"
 }

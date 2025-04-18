@@ -1,7 +1,8 @@
 <!-- BEGIN_TF_DOCS -->
 # Default example
 
-This deploys the module in its simplest form.
+This deploys the module with telemetry enabled and deploys azure log analytics workspace and configures the module to send logs to it.
+It shows the user can specify which kind of APIM logs to send to the workspace.
 
 ```hcl
 terraform {
@@ -37,6 +38,7 @@ provider "azurerm" {
     }
     #     api_management {
     # purge_soft_delete_on_destroy = false
+    #     min_api_version = "2024-10-01-preview"
     #     }
   }
 }
@@ -64,10 +66,21 @@ module "naming" {
 
 # This is required for resource modules
 resource "azurerm_resource_group" "this" {
-  location = module.regions.regions[random_integer.region_index.result].name
+  location = "East US 2" #module.regions.regions[random_integer.region_index.result].name
   name     = module.naming.resource_group.name_unique
 }
 
+resource "azurerm_log_analytics_workspace" "diag" {
+  location            = azurerm_resource_group.this.location
+  name                = "diag${module.naming.log_analytics_workspace.name_unique}"
+  resource_group_name = azurerm_resource_group.this.name
+}
+
+resource "azurerm_log_analytics_workspace" "diag2" {
+  location            = azurerm_resource_group.this.location
+  name                = "diag2${module.naming.log_analytics_workspace.name_unique}"
+  resource_group_name = azurerm_resource_group.this.name
+}
 # This is the module call
 # Do not specify location here due to the randomization above.
 # Leaving location as `null` will cause the module to use the resource group location
@@ -76,18 +89,36 @@ module "test" {
   source = "../../"
   # source             = "Azure/avm-<res/ptn>-<name>/azurerm"
   # ...
-  location            = azurerm_resource_group.this.location
+  location = "eastus2" # diagnostoc settings are not available in all regions
+  # location            = azurerm_resource_group.this.location
   name                = module.naming.api_management.name_unique
   resource_group_name = azurerm_resource_group.this.name
-  publisher_email     = var.publisher_email # see variables.tf
-  publisher_name      = "Apim Example Publisher"
-  sku_name            = "Premium_1"
+  publisher_email     = var.publisher_email
+  publisher_name      = "John Wick"
+  sku_name            = "Developer_1"
+  # sku_name = "Developer_1"
   tags = {
     environment = "test"
     cost_center = "test"
   }
   enable_telemetry = var.enable_telemetry # see variables.tf
+  diagnostic_settings = {
+    diag = {
+      name                  = "aml${module.naming.monitor_diagnostic_setting.name_unique}"
+      workspace_resource_id = azurerm_log_analytics_workspace.diag.id
+    },
+    diag2 = {
+      name                  = "aml2${module.naming.monitor_diagnostic_setting.name_unique}"
+      workspace_resource_id = azurerm_log_analytics_workspace.diag2.id
+      log_categories = [
+        "GatewayLogs",             # Logs related to ApiManagement Gateway
+        "WebSocketConnectionLogs", # Logs related to Websocket Connections
+        "DeveloperPortalAuditLogs" # Logs related to Developer Portal usage
+      ]
+    }
+  }
 }
+
 ```
 
 <!-- markdownlint-disable MD033 -->
@@ -109,6 +140,8 @@ The following requirements are needed by this module:
 
 The following resources are used by this module:
 
+- [azurerm_log_analytics_workspace.diag](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/log_analytics_workspace) (resource)
+- [azurerm_log_analytics_workspace.diag2](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/log_analytics_workspace) (resource)
 - [azurerm_resource_group.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/resource_group) (resource)
 - [random_integer.region_index](https://registry.terraform.io/providers/hashicorp/random/3.6.2/docs/resources/integer) (resource)
 

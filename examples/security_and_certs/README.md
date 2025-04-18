@@ -1,7 +1,7 @@
 <!-- BEGIN_TF_DOCS -->
 # Default example
 
-This deploys the module in its simplest form.
+This deploys the module with system assigned managed identity enabled.
 
 ```hcl
 terraform {
@@ -13,7 +13,7 @@ terraform {
     }
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~> 4.0"
+      version = "4.24.0"
     }
     modtm = {
       source  = "Azure/modtm"
@@ -64,7 +64,7 @@ module "naming" {
 
 # This is required for resource modules
 resource "azurerm_resource_group" "this" {
-  location = module.regions.regions[random_integer.region_index.result].name
+  location = "eastus2" # module.regions.regions[random_integer.region_index.result].name
   name     = module.naming.resource_group.name_unique
 }
 
@@ -82,11 +82,19 @@ module "test" {
   publisher_email     = var.publisher_email # see variables.tf
   publisher_name      = "Apim Example Publisher"
   sku_name            = "Premium_1"
+  # sku_name = "Developer_1"
   tags = {
     environment = "test"
     cost_center = "test"
   }
   enable_telemetry = var.enable_telemetry # see variables.tf
+  managed_identities = {
+    system_assigned = true
+  }
+  security = {
+    enable_backend_ssl30                           = true
+    tls_rsa_with_aes128_gcm_sha256_ciphers_enabled = true
+  }
 }
 ```
 
@@ -99,7 +107,7 @@ The following requirements are needed by this module:
 
 - <a name="requirement_azapi"></a> [azapi](#requirement\_azapi) (~> 2.0)
 
-- <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) (~> 4.0)
+- <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) (4.24.0)
 
 - <a name="requirement_modtm"></a> [modtm](#requirement\_modtm) (0.3.2)
 
@@ -109,7 +117,7 @@ The following requirements are needed by this module:
 
 The following resources are used by this module:
 
-- [azurerm_resource_group.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/resource_group) (resource)
+- [azurerm_resource_group.this](https://registry.terraform.io/providers/hashicorp/azurerm/4.24.0/docs/resources/resource_group) (resource)
 - [random_integer.region_index](https://registry.terraform.io/providers/hashicorp/random/3.6.2/docs/resources/integer) (resource)
 
 <!-- markdownlint-disable MD013 -->
@@ -139,7 +147,11 @@ Default: `true`
 
 ## Outputs
 
-No outputs.
+The following outputs are exported:
+
+### <a name="output_workspace_identity"></a> [workspace\_identity](#output\_workspace\_identity)
+
+Description: The identity for the created workspace.
 
 ## Modules
 

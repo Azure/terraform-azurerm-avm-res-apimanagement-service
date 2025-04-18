@@ -7,7 +7,7 @@ terraform {
     }
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~> 4.0"
+      version = "4.24.0"
     }
     modtm = {
       source  = "Azure/modtm"
@@ -58,7 +58,7 @@ module "naming" {
 
 # This is required for resource modules
 resource "azurerm_resource_group" "this" {
-  location = module.regions.regions[random_integer.region_index.result].name
+  location = "eastus2" # module.regions.regions[random_integer.region_index.result].name
   name     = module.naming.resource_group.name_unique
 }
 
@@ -76,9 +76,17 @@ module "test" {
   publisher_email     = var.publisher_email # see variables.tf
   publisher_name      = "Apim Example Publisher"
   sku_name            = "Premium_1"
+  # sku_name = "Developer_1"
   tags = {
     environment = "test"
     cost_center = "test"
   }
   enable_telemetry = var.enable_telemetry # see variables.tf
+  managed_identities = {
+    system_assigned = true
+  }
+  security = {
+    enable_backend_ssl30                           = true
+    tls_rsa_with_aes128_gcm_sha256_ciphers_enabled = true
+  }
 }
