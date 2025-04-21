@@ -306,12 +306,12 @@ DESCRIPTION
 # https://github.com/Azure/terraform-azurerm-avm-res-keyvault-vault/issues/32
 # Alternatively you can use AzAPI, which does not have this issue.
 #TODO: add DNS zone if enabled
-variable "private_endpoints_manage_dns_zone_group" {
-  type        = bool
-  default     = true
-  description = "Whether to manage private DNS zone groups with this module. If set to false, you must manage private DNS zone groups externally, e.g. using Azure Policy."
-  nullable    = false
-}
+# variable "private_endpoints_manage_dns_zone_group" {
+#   type        = bool
+#   default     = true
+#   description = "Whether to manage private DNS zone groups with this module. If set to false, you must manage private DNS zone groups externally, e.g. using Azure Policy."
+#   nullable    = false
+# }
 
 variable "protocols" {
   type = object({

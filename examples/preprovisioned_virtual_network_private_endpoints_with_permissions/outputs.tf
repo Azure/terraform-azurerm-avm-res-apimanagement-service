@@ -18,9 +18,9 @@ output "name" {
   value       = module.test.name
 }
 
-output "private_endpoint" {
+output "private_endpoint_subnet_id" {
   description = "The private endpoint created for the API Management service."
-  value       = module.test.private_endpoint
+  value       = module.test.private_endpoints
 }
 
 output "private_endpoint_name" {
