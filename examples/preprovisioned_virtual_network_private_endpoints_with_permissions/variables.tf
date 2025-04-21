@@ -12,8 +12,3 @@ variable "publisher_email" {
   type        = string
   description = "The email address of the publisher."
 }
-
-variable "publisher_email" {
-  type        = string
-  description = "The email address of the publisher."
-}
