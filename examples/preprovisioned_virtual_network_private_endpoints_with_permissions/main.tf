@@ -55,19 +55,18 @@ data "azurerm_client_config" "current" {}
 
 
 resource "azurerm_resource_group" "this" {
-  name     = module.naming.resource_group.name_unique
   location = module.regions.regions[random_integer.region_index.result].name
+  name     = module.naming.resource_group.name_unique
 }
 
 
 
 # Create Virtual Network and Subnets
 resource "azurerm_virtual_network" "this" {
-  name                = module.naming.virtual_network.name_unique
   address_space       = ["10.0.0.0/16"]
   location            = azurerm_resource_group.this.location
+  name                = module.naming.virtual_network.name_unique
   resource_group_name = azurerm_resource_group.this.name
-
   tags = {
     environment = "test"
     cost_center = "test"
@@ -75,24 +74,24 @@ resource "azurerm_virtual_network" "this" {
 }
 
 resource "azurerm_subnet" "private_endpoints" {
+  address_prefixes     = ["10.0.1.0/24"]
   name                 = "private_endpoints"
   resource_group_name  = azurerm_resource_group.this.name
   virtual_network_name = azurerm_virtual_network.this.name
-  address_prefixes     = ["10.0.1.0/24"]
 }
 
 resource "azurerm_subnet" "apim_subnet" {
+  address_prefixes     = ["10.0.2.0/24"]
   name                 = "apim_subnet"
   resource_group_name  = azurerm_resource_group.this.name
   virtual_network_name = azurerm_virtual_network.this.name
-  address_prefixes     = ["10.0.2.0/24"]
 }
 
 resource "azurerm_subnet" "default" {
+  address_prefixes     = ["10.0.3.0/24"]
   name                 = "default"
   resource_group_name  = azurerm_resource_group.this.name
   virtual_network_name = azurerm_virtual_network.this.name
-  address_prefixes     = ["10.0.3.0/24"]
 }
 
 # Private DNS Zone for API Management
