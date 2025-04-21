@@ -29,10 +29,7 @@ provider "azurerm" {
     resource_group {
       prevent_deletion_if_contains_resources = false
     }
-    #     api_management {
-    # purge_soft_delete_on_destroy = false
-    #     min_api_version = "2024-10-01-preview"
-    #     }
+
   }
 }
 
@@ -59,7 +56,7 @@ module "naming" {
 
 # This is required for resource modules
 resource "azurerm_resource_group" "this" {
-  location = "East US 2" #module.regions.regions[random_integer.region_index.result].name
+  location = "East US 2"
   name     = module.naming.resource_group.name_unique
 }
 
@@ -82,14 +79,13 @@ module "test" {
   source = "../../"
   # source             = "Azure/avm-<res/ptn>-<name>/azurerm"
   # ...
-  location = "eastus2" # diagnostoc settings are not available in all regions
+  location = "eastus2" # diagnostic settings are not available in all regions
   # location            = azurerm_resource_group.this.location
   name                = module.naming.api_management.name_unique
   resource_group_name = azurerm_resource_group.this.name
   publisher_email     = var.publisher_email
   publisher_name      = "John Wick"
   sku_name            = "Developer_1"
-  # sku_name = "Developer_1"
   tags = {
     environment = "test"
     cost_center = "test"

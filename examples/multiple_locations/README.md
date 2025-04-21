@@ -1,7 +1,7 @@
 <!-- BEGIN_TF_DOCS -->
-# Default example
+# Multiple Locations Example
 
-This deploys the module in its simplest form.
+This deploys the module into multiple regions, as specified by the user
 
 ```hcl
 terraform {
@@ -35,10 +35,7 @@ provider "azurerm" {
     resource_group {
       prevent_deletion_if_contains_resources = false
     }
-    #     api_management {
-    # purge_soft_delete_on_destroy = false
-    #     min_api_version = "2024-10-01-preview"
-    #     }
+
   }
 }
 

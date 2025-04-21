@@ -29,9 +29,7 @@ provider "azurerm" {
     resource_group {
       prevent_deletion_if_contains_resources = false
     }
-    #     api_management {
-    # purge_soft_delete_on_destroy = false
-    #     }
+
   }
 }
 
@@ -82,5 +80,5 @@ module "test" {
   }
   enable_telemetry          = var.enable_telemetry # see variables.tf
   virtual_network_type      = "External"
-  virtual_network_subnet_id = "/subscriptions/aa27a1b3-530a-4637-a1e6-6855033a65e5/resourceGroups/rg-wwgpr/providers/Microsoft.Network/virtualNetworks/vnetwwgpr/subnets/apim-subnet-3"
+  virtual_network_subnet_id = var.virtual_network_subnet_id
 }

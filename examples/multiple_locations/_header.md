@@ -1,3 +1,3 @@
-# Default example
+# Multiple Locations Example
 
-This deploys the module in its simplest form.
+This deploys the module into multiple regions, as specified by the user

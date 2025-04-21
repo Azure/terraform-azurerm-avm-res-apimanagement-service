@@ -30,9 +30,7 @@ provider "azurerm" {
     resource_group {
       prevent_deletion_if_contains_resources = false
     }
-    #     api_management {
-    # purge_soft_delete_on_destroy = false
-    #     }
+
   }
 }
 

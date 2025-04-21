@@ -35,9 +35,7 @@ provider "azurerm" {
     resource_group {
       prevent_deletion_if_contains_resources = false
     }
-    #     api_management {
-    # purge_soft_delete_on_destroy = false
-    #     }
+
   }
 }
 
@@ -88,7 +86,7 @@ module "test" {
   }
   enable_telemetry          = var.enable_telemetry # see variables.tf
   virtual_network_type      = "Internal"
-  virtual_network_subnet_id = "/subscriptions/aa27a1b3-530a-4637-a1e6-6855033a65e5/resourceGroups/rg-wwgpr/providers/Microsoft.Network/virtualNetworks/vnetwwgpr/subnets/apim-subnet-4"
+  virtual_network_subnet_id = var.virtual_network_subnet_id # see variables.tf
 }
 
 ```
@@ -123,6 +121,12 @@ The following input variables are required:
 ### <a name="input_publisher_email"></a> [publisher\_email](#input\_publisher\_email)
 
 Description: The email address of the publisher.
+
+Type: `string`
+
+### <a name="input_virtual_network_subnet_id"></a> [virtual\_network\_subnet\_id](#input\_virtual\_network\_subnet\_id)
+
+Description: The ID of the subnet in the virtual network.
 
 Type: `string`
 

@@ -15,8 +15,6 @@ variable "resource_group_name" {
   description = "The resource group where the resources will be deployed."
 }
 
-
-# New variables for APIM
 variable "publisher_name" {
   type        = string
   description = "The name of the API Management service publisher."
@@ -27,6 +25,10 @@ variable "publisher_email" {
   type        = string
   description = "The email of the API Management service publisher."
   default     = ""
+  validation {
+    condition     = can(regex("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$", var.publisher_email))
+    error_message = "The publisher_email must be a valid email address."
+  }
 }
 
 variable "sku_name" {
@@ -69,6 +71,7 @@ variable "virtual_network_type" {
     error_message = "The virtual_network_type must be one of: None, External, or Internal."
   }
 }
+
 # required AVM interfaces
 # remove only if not supported by the resource
 # tflint-ignore: terraform_unused_declarations
@@ -310,7 +313,6 @@ variable "client_certificate_enabled" {
   default     = false
   description = "Enforce a client certificate to be presented on each request to the gateway. This is only supported when SKU type is Consumption."
   nullable    = false
-  # add validation to check if sku_name is Consumption
   validation {
     condition     = startswith(var.sku_name, "Consumption") ? true : !var.client_certificate_enabled
     error_message = "Client certificate is only supported when SKU type is Consumption (e.g., Consumption_1, Consumption_2, etc)."
@@ -418,10 +420,6 @@ variable "public_network_access_enabled" {
   default     = true
   description = "Is public access to the API Management service allowed? This only applies to the Management plane, not the API gateway or Developer portal."
   nullable    = false
-  # validation {
-  #   condition     = var.public_ip_address_id == null || (contains(["Premium", "Developer"], split("_", var.sku_name)[0]) && var.virtual_network_type != "None")
-  #   error_message = "Public IP address is only supported on Premium and Developer tiers when deployed in a virtual network (virtual_network_type must not be 'None' and can be either 'Internal' or 'External')."
-  # }
 }
 
 variable "security" {
