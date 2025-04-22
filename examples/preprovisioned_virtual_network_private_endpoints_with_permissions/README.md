@@ -272,10 +272,6 @@ Description: The ID of the API Management service.
 
 Description: The name of the API Management service.
 
-### <a name="output_private_endpoint"></a> [private\_endpoint](#output\_private\_endpoint)
-
-Description: The private endpoint created for the API Management service.
-
 ### <a name="output_private_endpoint_name"></a> [private\_endpoint\_name](#output\_private\_endpoint\_name)
 
 Description: The name of the private endpoint created for the API Management service.

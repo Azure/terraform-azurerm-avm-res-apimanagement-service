@@ -125,13 +125,13 @@ module "test" {
   virtual_network_type = "None"
 
   # private endpoints
-  // Add private endpoint configuration
+  # Add private endpoint configuration
   private_endpoints = {
     endpoint1 = {
       name               = "pe-${module.naming.api_management.name_unique}"
       subnet_resource_id = module.virtual_network.subnets["pe_subnet"].resource_id
 
-      // Link to the private DNS zone we created
+      # Link to the private DNS zone we created
       private_dns_zone_resource_ids = [
         module.private_dns_apim.resource.id
       ]

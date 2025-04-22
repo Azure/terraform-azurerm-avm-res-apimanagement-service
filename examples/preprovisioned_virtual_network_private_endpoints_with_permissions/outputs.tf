@@ -10,17 +10,12 @@ output "apim_management_url" {
 
 output "id" {
   description = "The ID of the API Management service."
-  value       = module.test.id
+  value       = module.test.resource_id
 }
 
 output "name" {
   description = "The name of the API Management service."
   value       = module.test.name
-}
-
-output "private_endpoint_subnet_id" {
-  description = "The private endpoint created for the API Management service."
-  value       = module.test.private_endpoints
 }
 
 output "private_endpoint_name" {
