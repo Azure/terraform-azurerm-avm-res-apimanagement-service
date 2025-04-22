@@ -1,14 +1,3 @@
-output "resource_id" {
-  description = "The ID of the API Management service."
-  value       = azurerm_api_management.this.id
-}
-
-output "name" {
-  description = "The name of the API Management service."
-  value       = azurerm_api_management.this.name
-}
-
-
 output "additional_locations" {
   description = "Information about additional locations for the API Management Service."
   value = [
@@ -63,6 +52,10 @@ output "hostname_configuration" {
   }
 }
 
+output "name" {
+  description = "The name of the API Management service."
+  value       = azurerm_api_management.this.name
+}
 
 output "portal_url" {
   description = "The URL for the Publisher Portal associated with this API Management service."
@@ -91,6 +84,11 @@ output "resource" {
   description = "The API Management service resource."
   sensitive   = true
   value       = azurerm_api_management.this
+}
+
+output "resource_id" {
+  description = "The ID of the API Management service."
+  value       = azurerm_api_management.this.id
 }
 
 output "scm_url" {

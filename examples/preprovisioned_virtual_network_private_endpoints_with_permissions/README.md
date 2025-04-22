@@ -9,17 +9,9 @@ This deploys the module with the virtual network settings provided by the user. 
 terraform {
   required_version = ">= 1.9, < 2.0"
   required_providers {
-    azapi = {
-      source  = "Azure/azapi"
-      version = "~> 2.0"
-    }
     azurerm = {
       source  = "hashicorp/azurerm"
       version = "~> 4.0"
-    }
-    modtm = {
-      source  = "Azure/modtm"
-      version = "0.3.2"
     }
     random = {
       source  = "hashicorp/random"
@@ -185,11 +177,7 @@ The following requirements are needed by this module:
 
 - <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) (>= 1.9, < 2.0)
 
-- <a name="requirement_azapi"></a> [azapi](#requirement\_azapi) (~> 2.0)
-
 - <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) (~> 4.0)
-
-- <a name="requirement_modtm"></a> [modtm](#requirement\_modtm) (0.3.2)
 
 - <a name="requirement_random"></a> [random](#requirement\_random) (3.6.2)
 

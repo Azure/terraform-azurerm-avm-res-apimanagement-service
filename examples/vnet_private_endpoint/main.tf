@@ -1,17 +1,9 @@
 terraform {
   required_version = ">= 1.9, < 2.0"
   required_providers {
-    azapi = {
-      source  = "Azure/azapi"
-      version = "~> 2.0"
-    }
     azurerm = {
       source  = "hashicorp/azurerm"
       version = "~> 4.0"
-    }
-    modtm = {
-      source  = "Azure/modtm"
-      version = "0.3.2"
     }
     random = {
       source  = "hashicorp/random"
@@ -55,7 +47,7 @@ module "naming" {
 }
 
 
-// Create a virtual network for testing if needed
+# Create a virtual network for testing if needed
 module "virtual_network" {
   source              = "Azure/avm-res-network-virtualnetwork/azurerm"
   version             = "~> 0.8.0"
@@ -80,7 +72,7 @@ module "virtual_network" {
 }
 
 
-// Create a Private DNS Zone for API Management
+# Create a Private DNS Zone for API Management
 module "private_dns_apim" {
   source              = "Azure/avm-res-network-privatednszone/azurerm"
   version             = "~> 0.2"
