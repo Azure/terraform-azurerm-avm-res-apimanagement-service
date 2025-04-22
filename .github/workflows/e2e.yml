@@ -7,8 +7,8 @@
     workflow_dispatch:
   
   # Define environment variables at workflow level
-  env:
-    TF_VAR_publisher_email: "uncle_donald@acme_corp.com"
+  # env:
+  #   TF_VAR_publisher_email: "uncle_donald@acme_corp.com"
     
   jobs:
     check:
