@@ -3,6 +3,11 @@ variable "publisher_email" {
   description = "The email address of the publisher."
 }
 
+variable "virtual_network_subnet_id" {
+  type        = string
+  description = "The ID of the subnet in the virtual network."
+}
+
 variable "enable_telemetry" {
   type        = bool
   default     = true

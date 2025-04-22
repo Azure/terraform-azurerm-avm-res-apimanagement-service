@@ -1,7 +1,7 @@
 <!-- BEGIN_TF_DOCS -->
-# Default example
+# Multiple Locations Example
 
-This deploys the module in its simplest form.
+This deploys the module into multiple regions, as specified by the user
 
 ```hcl
 terraform {
@@ -72,12 +72,19 @@ module "test" {
   publisher_email     = var.publisher_email # see variables.tf
   publisher_name      = "Apim Example Publisher"
   sku_name            = "Premium_1"
+  # sku_name = "Developer_1"
   tags = {
     environment = "test"
     cost_center = "test"
   }
   enable_telemetry = var.enable_telemetry # see variables.tf
+  additional_location = [{
+    # location western europe
+    location = "westeurope"
+    capacity = 1
+  }]
 }
+
 ```
 
 <!-- markdownlint-disable MD033 -->

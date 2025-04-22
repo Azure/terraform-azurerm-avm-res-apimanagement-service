@@ -1,37 +1,42 @@
 <!-- BEGIN_TF_DOCS -->
-# Ignored example for e2e tests
+# Default example
 
-This example will not be run as an e2e test as it has the .e2eignore file in the same directory.
+This deploys the module with system assigned managed identity enabled.
 
 ```hcl
 terraform {
-  required_version = "~> 1.5"
+  required_version = ">= 1.9, < 2.0"
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~> 3.74"
-    }
-    modtm = {
-      source  = "azure/modtm"
-      version = "~> 0.3"
+      version = "~> 4.0"
     }
     random = {
       source  = "hashicorp/random"
-      version = "~> 3.5"
+      version = "3.6.2"
     }
   }
 }
 
 provider "azurerm" {
-  features {}
+
+  features {
+    key_vault {
+      purge_soft_delete_on_destroy = false
+    }
+    resource_group {
+      prevent_deletion_if_contains_resources = false
+    }
+
+  }
 }
 
 
 ## Section to provide a random Azure region for the resource group
 # This allows us to randomize the region for the resource group.
 module "regions" {
-  source  = "Azure/avm-utl-regions/azurerm"
-  version = "~> 0.1"
+  source  = "Azure/regions/azurerm"
+  version = "~> 0.3"
 }
 
 # This allows us to randomize the region for the resource group.
@@ -49,7 +54,7 @@ module "naming" {
 
 # This is required for resource modules
 resource "azurerm_resource_group" "this" {
-  location = module.regions.regions[random_integer.region_index.result].name
+  location = "eastus2" # module.regions.regions[random_integer.region_index.result].name
   name     = module.naming.resource_group.name_unique
 }
 
@@ -62,10 +67,19 @@ module "test" {
   # source             = "Azure/avm-<res/ptn>-<name>/azurerm"
   # ...
   location            = azurerm_resource_group.this.location
-  name                = "TODO" # TODO update with module.naming.<RESOURCE_TYPE>.name_unique
+  name                = module.naming.api_management.name_unique
   resource_group_name = azurerm_resource_group.this.name
-
+  publisher_email     = var.publisher_email # see variables.tf
+  publisher_name      = "Apim Example Publisher"
+  sku_name            = "Premium_1"
+  tags = {
+    environment = "test"
+    cost_center = "test"
+  }
   enable_telemetry = var.enable_telemetry # see variables.tf
+  managed_identities = {
+    system_assigned = true
+  }
 }
 ```
 
@@ -74,25 +88,29 @@ module "test" {
 
 The following requirements are needed by this module:
 
-- <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) (~> 1.5)
+- <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) (>= 1.9, < 2.0)
 
-- <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) (~> 3.74)
+- <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) (~> 4.0)
 
-- <a name="requirement_modtm"></a> [modtm](#requirement\_modtm) (~> 0.3)
-
-- <a name="requirement_random"></a> [random](#requirement\_random) (~> 3.5)
+- <a name="requirement_random"></a> [random](#requirement\_random) (3.6.2)
 
 ## Resources
 
 The following resources are used by this module:
 
 - [azurerm_resource_group.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/resource_group) (resource)
-- [random_integer.region_index](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/integer) (resource)
+- [random_integer.region_index](https://registry.terraform.io/providers/hashicorp/random/3.6.2/docs/resources/integer) (resource)
 
 <!-- markdownlint-disable MD013 -->
 ## Required Inputs
 
-No required inputs.
+The following input variables are required:
+
+### <a name="input_publisher_email"></a> [publisher\_email](#input\_publisher\_email)
+
+Description: The email address of the publisher.
+
+Type: `string`
 
 ## Optional Inputs
 
@@ -110,7 +128,11 @@ Default: `true`
 
 ## Outputs
 
-No outputs.
+The following outputs are exported:
+
+### <a name="output_workspace_identity"></a> [workspace\_identity](#output\_workspace\_identity)
+
+Description: The identity for the created workspace.
 
 ## Modules
 
@@ -124,9 +146,9 @@ Version: ~> 0.3
 
 ### <a name="module_regions"></a> [regions](#module\_regions)
 
-Source: Azure/avm-utl-regions/azurerm
+Source: Azure/regions/azurerm
 
-Version: ~> 0.1
+Version: ~> 0.3
 
 ### <a name="module_test"></a> [test](#module\_test)
 

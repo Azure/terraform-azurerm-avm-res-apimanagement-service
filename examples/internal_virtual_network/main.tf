@@ -65,10 +65,13 @@ module "test" {
   resource_group_name = azurerm_resource_group.this.name
   publisher_email     = var.publisher_email # see variables.tf
   publisher_name      = "Apim Example Publisher"
-  sku_name            = "Premium_1"
+  sku_name            = "Developer_1"
   tags = {
     environment = "test"
     cost_center = "test"
   }
-  enable_telemetry = var.enable_telemetry # see variables.tf
+  enable_telemetry          = var.enable_telemetry # see variables.tf
+  virtual_network_type      = "Internal"
+  virtual_network_subnet_id = var.virtual_network_subnet_id # see variables.tf
 }
+

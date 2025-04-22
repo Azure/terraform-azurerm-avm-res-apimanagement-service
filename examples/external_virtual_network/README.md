@@ -1,7 +1,7 @@
 <!-- BEGIN_TF_DOCS -->
-# Default example
+# External Virtual Network Example
 
-This deploys the module in its simplest form.
+This deploys the module with the Virtual Network Type set to "External". This setting secures all backend APIs within the virtual network, while providing a public IP for external sources to access these APIs via APIM. Visit [APIM Networking](https://learn.microsoft.com/en-us/azure/api-management/virtual-network-concepts) to learn more about virtual network configurations for API Management.
 
 ```hcl
 terraform {
@@ -69,14 +69,16 @@ module "test" {
   location            = azurerm_resource_group.this.location
   name                = module.naming.api_management.name_unique
   resource_group_name = azurerm_resource_group.this.name
-  publisher_email     = var.publisher_email # see variables.tf
+  publisher_email     = var.publisher_email
   publisher_name      = "Apim Example Publisher"
-  sku_name            = "Premium_1"
+  sku_name            = "Developer_1"
   tags = {
     environment = "test"
     cost_center = "test"
   }
-  enable_telemetry = var.enable_telemetry # see variables.tf
+  enable_telemetry          = var.enable_telemetry # see variables.tf
+  virtual_network_type      = "External"
+  virtual_network_subnet_id = var.virtual_network_subnet_id
 }
 ```
 
@@ -106,6 +108,12 @@ The following input variables are required:
 ### <a name="input_publisher_email"></a> [publisher\_email](#input\_publisher\_email)
 
 Description: The email address of the publisher.
+
+Type: `string`
+
+### <a name="input_virtual_network_subnet_id"></a> [virtual\_network\_subnet\_id](#input\_virtual\_network\_subnet\_id)
+
+Description: The ID of the subnet in the virtual network.
 
 Type: `string`
 

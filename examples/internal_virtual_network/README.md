@@ -1,7 +1,7 @@
 <!-- BEGIN_TF_DOCS -->
-# Default example
+# Internal Virtual Network Example
 
-This deploys the module in its simplest form.
+This deploys the module with the Virtual Network Type set to "Internal". This setting secures the API Management instance within a virtual network. It can only be accessed within the same virtual network or peered networks. Visit [APIM Networking](https://learn.microsoft.com/en-us/azure/api-management/virtual-network-concepts) to learn more about virtual network configurations for API Management.
 
 ```hcl
 terraform {
@@ -71,13 +71,16 @@ module "test" {
   resource_group_name = azurerm_resource_group.this.name
   publisher_email     = var.publisher_email # see variables.tf
   publisher_name      = "Apim Example Publisher"
-  sku_name            = "Premium_1"
+  sku_name            = "Developer_1"
   tags = {
     environment = "test"
     cost_center = "test"
   }
-  enable_telemetry = var.enable_telemetry # see variables.tf
+  enable_telemetry          = var.enable_telemetry # see variables.tf
+  virtual_network_type      = "Internal"
+  virtual_network_subnet_id = var.virtual_network_subnet_id # see variables.tf
 }
+
 ```
 
 <!-- markdownlint-disable MD033 -->
@@ -106,6 +109,12 @@ The following input variables are required:
 ### <a name="input_publisher_email"></a> [publisher\_email](#input\_publisher\_email)
 
 Description: The email address of the publisher.
+
+Type: `string`
+
+### <a name="input_virtual_network_subnet_id"></a> [virtual\_network\_subnet\_id](#input\_virtual\_network\_subnet\_id)
+
+Description: The ID of the subnet in the virtual network.
 
 Type: `string`
 
