@@ -1,31 +1,36 @@
 terraform {
-  required_version = "~> 1.5"
+  required_version = ">= 1.9, < 2.0"
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~> 3.74"
-    }
-    modtm = {
-      source  = "azure/modtm"
-      version = "~> 0.3"
+      version = "~> 4.0"
     }
     random = {
       source  = "hashicorp/random"
-      version = "~> 3.5"
+      version = "3.6.2"
     }
   }
 }
 
 provider "azurerm" {
-  features {}
+
+  features {
+    key_vault {
+      purge_soft_delete_on_destroy = false
+    }
+    resource_group {
+      prevent_deletion_if_contains_resources = false
+    }
+
+  }
 }
 
 
 ## Section to provide a random Azure region for the resource group
 # This allows us to randomize the region for the resource group.
 module "regions" {
-  source  = "Azure/avm-utl-regions/azurerm"
-  version = "~> 0.1"
+  source  = "Azure/regions/azurerm"
+  version = "~> 0.3"
 }
 
 # This allows us to randomize the region for the resource group.
@@ -56,8 +61,21 @@ module "test" {
   # source             = "Azure/avm-<res/ptn>-<name>/azurerm"
   # ...
   location            = azurerm_resource_group.this.location
-  name                = "TODO" # TODO update with module.naming.<RESOURCE_TYPE>.name_unique
+  name                = module.naming.api_management.name_unique
   resource_group_name = azurerm_resource_group.this.name
-
+  publisher_email     = var.publisher_email # see variables.tf
+  publisher_name      = "Apim Example Publisher"
+  sku_name            = "Premium_1"
+  # sku_name = "Developer_1"
+  tags = {
+    environment = "test"
+    cost_center = "test"
+  }
   enable_telemetry = var.enable_telemetry # see variables.tf
+  additional_location = [{
+    # location western europe
+    location = "westeurope"
+    capacity = 1
+  }]
 }
+

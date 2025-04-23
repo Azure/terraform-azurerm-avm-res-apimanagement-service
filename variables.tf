@@ -1,3 +1,21 @@
+# required AVM interfaces
+# remove only if not supported by the resource
+# tflint-ignore: terraform_unused_declarations
+
+# Below AI generated 
+
+# This variable is used to determine if the private_dns_zone_group block should be included,
+# or if it is to be managed externally, e.g. using Azure Policy.
+# https://github.com/Azure/terraform-azurerm-avm-res-keyvault-vault/issues/32
+# Alternatively you can use AzAPI, which does not have this issue.
+#TODO: add DNS zone if enabled
+# variable "private_endpoints_manage_dns_zone_group" {
+#   type        = bool
+#   default     = true
+#   description = "Whether to manage private DNS zone groups with this module. If set to false, you must manage private DNS zone groups externally, e.g. using Azure Policy."
+#   nullable    = false
+# }
+
 variable "location" {
   type        = string
   description = "Azure region where the resource should be deployed."
@@ -7,13 +25,6 @@ variable "location" {
 variable "name" {
   type        = string
   description = "The name of the this resource."
-
-  validation {
-    condition     = can(regex("TODO", var.name))
-    error_message = "The name must be TODO." # TODO remove the example below once complete:
-    #condition     = can(regex("^[a-z0-9]{5,50}$", var.name))
-    #error_message = "The name must be between 5 and 50 characters long and can only contain lowercase letters and numbers."
-  }
 }
 
 # This is required for most resource modules
@@ -22,27 +33,63 @@ variable "resource_group_name" {
   description = "The resource group where the resources will be deployed."
 }
 
-# required AVM interfaces
-# remove only if not supported by the resource
-# tflint-ignore: terraform_unused_declarations
-variable "customer_managed_key" {
-  type = object({
-    key_vault_resource_id = string
-    key_name              = string
-    key_version           = optional(string, null)
-    user_assigned_identity = optional(object({
-      resource_id = string
+variable "additional_location" {
+  type = list(object({
+    location             = string
+    capacity             = optional(number, null)
+    zones                = optional(list(string), null)
+    public_ip_address_id = optional(string, null)
+    gateway_disabled     = optional(bool, null)
+    virtual_network_configuration = optional(object({
+      subnet_id = string
     }), null)
+  }))
+  default     = []
+  description = "Additional datacenter locations where the API Management service should be provisioned."
+  nullable    = false
+}
+
+variable "certificate" {
+  type = list(object({
+    encoded_certificate  = string
+    store_name           = string
+    certificate_password = optional(string, null)
+  }))
+  default     = []
+  description = "Certificate configurations for the API Management service."
+  nullable    = false
+
+  validation {
+    condition     = length(var.certificate) <= 10
+    error_message = "A maximum of 10 certificates can be added to an API Management service."
+  }
+  validation {
+    condition     = alltrue([for cert in var.certificate : contains(["CertificateAuthority", "Root"], cert.store_name)])
+    error_message = "The store_name must be one of: 'CertificateAuthority', 'Root'."
+  }
+}
+
+variable "client_certificate_enabled" {
+  type        = bool
+  default     = false
+  description = "Enforce a client certificate to be presented on each request to the gateway. This is only supported when SKU type is Consumption."
+  nullable    = false
+
+  validation {
+    condition     = startswith(var.sku_name, "Consumption") ? true : !var.client_certificate_enabled
+    error_message = "Client certificate is only supported when SKU type is Consumption (e.g., Consumption_1, Consumption_2, etc)."
+  }
+}
+
+variable "delegation" {
+  type = object({
+    subscriptions_enabled     = optional(bool, false)
+    user_registration_enabled = optional(bool, false)
+    url                       = optional(string, null)
+    validation_key            = optional(string, null)
   })
   default     = null
-  description = <<DESCRIPTION
-A map describing customer-managed keys to associate with the resource. This includes the following properties:
-- `key_vault_resource_id` - The resource ID of the Key Vault where the key is stored.
-- `key_name` - The name of the key.
-- `key_version` - (Optional) The version of the key. If not specified, the latest version is used.
-- `user_assigned_identity` - (Optional) An object representing a user-assigned identity with the following properties:
-  - `resource_id` - The resource ID of the user-assigned identity.
-DESCRIPTION  
+  description = "Delegation settings for the API Management service."
 }
 
 variable "diagnostic_settings" {
@@ -101,6 +148,66 @@ DESCRIPTION
   nullable    = false
 }
 
+variable "gateway_disabled" {
+  type        = bool
+  default     = false
+  description = "Disable the gateway in the main region? This is only supported when additional_location is set."
+  nullable    = false
+
+  validation {
+    condition     = var.gateway_disabled == false || length(var.additional_location) > 0
+    error_message = "Gateway can only be disabled in the main region when at least one additional location is configured."
+  }
+}
+
+variable "hostname_configuration" {
+  type = object({
+    management = optional(list(object({
+      host_name                       = string
+      key_vault_id                    = optional(string, null)
+      certificate                     = optional(string, null)
+      certificate_password            = optional(string, null)
+      negotiate_client_certificate    = optional(bool, false)
+      ssl_keyvault_identity_client_id = optional(string, null)
+    })), [])
+    portal = optional(list(object({
+      host_name                       = string
+      key_vault_id                    = optional(string, null)
+      certificate                     = optional(string, null)
+      certificate_password            = optional(string, null)
+      negotiate_client_certificate    = optional(bool, false)
+      ssl_keyvault_identity_client_id = optional(string, null)
+    })), [])
+    developer_portal = optional(list(object({
+      host_name                       = string
+      key_vault_id                    = optional(string, null)
+      certificate                     = optional(string, null)
+      certificate_password            = optional(string, null)
+      negotiate_client_certificate    = optional(bool, false)
+      ssl_keyvault_identity_client_id = optional(string, null)
+    })), [])
+    proxy = optional(list(object({
+      host_name                       = string
+      default_ssl_binding             = optional(bool, false)
+      key_vault_id                    = optional(string, null)
+      certificate                     = optional(string, null)
+      certificate_password            = optional(string, null)
+      negotiate_client_certificate    = optional(bool, false)
+      ssl_keyvault_identity_client_id = optional(string, null)
+    })), [])
+    scm = optional(list(object({
+      host_name                       = string
+      key_vault_id                    = optional(string, null)
+      certificate                     = optional(string, null)
+      certificate_password            = optional(string, null)
+      negotiate_client_certificate    = optional(bool, false)
+      ssl_keyvault_identity_client_id = optional(string, null)
+    })), [])
+  })
+  default     = null
+  description = "Hostname configuration for the API Management service."
+}
+
 variable "lock" {
   type = object({
     kind = string
@@ -136,6 +243,18 @@ DESCRIPTION
   nullable    = false
 }
 
+variable "min_api_version" {
+  type        = string
+  default     = null
+  description = "The version which the control plane API calls to API Management service are limited with version equal to or newer than."
+}
+
+variable "notification_sender_email" {
+  type        = string
+  default     = null
+  description = "Email address from which the notification will be sent."
+}
+
 variable "private_endpoints" {
   type = map(object({
     name = optional(string, null)
@@ -147,6 +266,7 @@ variable "private_endpoints" {
       condition                              = optional(string, null)
       condition_version                      = optional(string, null)
       delegated_managed_identity_resource_id = optional(string, null)
+      principal_type                         = optional(string, null)
     })), {})
     lock = optional(object({
       kind = string
@@ -187,17 +307,49 @@ A map of private endpoints to create on this resource. The map key is deliberate
   - `private_ip_address` - The private IP address of the IP configuration.
 DESCRIPTION
   nullable    = false
+
+  validation {
+    condition     = var.virtual_network_type == "None" || length(var.private_endpoints) == 0
+    error_message = "Private endpoints cannot be used with API Management in Internal or External virtual network mode. Use either private endpoints (with virtual_network_type = None ) or Internal/External virtual network mode."
+  }
 }
 
-# This variable is used to determine if the private_dns_zone_group block should be included,
-# or if it is to be managed externally, e.g. using Azure Policy.
-# https://github.com/Azure/terraform-azurerm-avm-res-keyvault-vault/issues/32
-# Alternatively you can use AzAPI, which does not have this issue.
-variable "private_endpoints_manage_dns_zone_group" {
+variable "protocols" {
+  type = object({
+    enable_http2 = optional(bool, false)
+  })
+  default     = null
+  description = "Protocol settings for the API Management service."
+}
+
+variable "public_ip_address_id" {
+  type        = string
+  default     = null
+  description = "ID of a standard SKU IPv4 Public IP. Only supported on Premium and Developer tiers when deployed in a virtual network."
+}
+
+variable "public_network_access_enabled" {
   type        = bool
   default     = true
-  description = "Whether to manage private DNS zone groups with this module. If set to false, you must manage private DNS zone groups externally, e.g. using Azure Policy."
+  description = "Is public access to the API Management service allowed? This only applies to the Management plane, not the API gateway or Developer portal."
   nullable    = false
+}
+
+variable "publisher_email" {
+  type        = string
+  default     = ""
+  description = "The email of the API Management service publisher."
+
+  validation {
+    condition     = can(regex("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$", var.publisher_email))
+    error_message = "The publisher_email must be a valid email address."
+  }
+}
+
+variable "publisher_name" {
+  type        = string
+  default     = "Apim Example Publisher"
+  description = "The name of the API Management service publisher."
 }
 
 variable "role_assignments" {
@@ -209,6 +361,7 @@ variable "role_assignments" {
     condition                              = optional(string, null)
     condition_version                      = optional(string, null)
     delegated_managed_identity_resource_id = optional(string, null)
+    principal_type                         = optional(string, null)
   }))
   default     = {}
   description = <<DESCRIPTION
@@ -226,9 +379,106 @@ DESCRIPTION
   nullable    = false
 }
 
+variable "security" {
+  type = object({
+    enable_backend_ssl30                                = optional(bool, false)
+    enable_backend_tls10                                = optional(bool, false)
+    enable_backend_tls11                                = optional(bool, false)
+    enable_frontend_ssl30                               = optional(bool, false)
+    enable_frontend_tls10                               = optional(bool, false)
+    enable_frontend_tls11                               = optional(bool, false)
+    tls_ecdhe_ecdsa_with_aes128_cbc_sha_ciphers_enabled = optional(bool, false)
+    tls_ecdhe_ecdsa_with_aes256_cbc_sha_ciphers_enabled = optional(bool, false)
+    tls_ecdhe_rsa_with_aes128_cbc_sha_ciphers_enabled   = optional(bool, false)
+    tls_ecdhe_rsa_with_aes256_cbc_sha_ciphers_enabled   = optional(bool, false)
+    tls_rsa_with_aes128_cbc_sha256_ciphers_enabled      = optional(bool, false)
+    tls_rsa_with_aes128_cbc_sha_ciphers_enabled         = optional(bool, false)
+    tls_rsa_with_aes128_gcm_sha256_ciphers_enabled      = optional(bool, false)
+    tls_rsa_with_aes256_gcm_sha384_ciphers_enabled      = optional(bool, false)
+    tls_rsa_with_aes256_cbc_sha256_ciphers_enabled      = optional(bool, false)
+    tls_rsa_with_aes256_cbc_sha_ciphers_enabled         = optional(bool, false)
+    triple_des_ciphers_enabled                          = optional(bool, false)
+  })
+  default     = null
+  description = "Security settings for the API Management service."
+}
+
+variable "sign_in" {
+  type = object({
+    enabled = bool
+  })
+  default     = null
+  description = "Sign-in settings for the API Management service. When enabled, anonymous users will be redirected to the sign-in page."
+}
+
+variable "sign_up" {
+  type = object({
+    enabled = bool
+    terms_of_service = object({
+      consent_required = bool
+      enabled          = bool
+      text             = optional(string, null)
+    })
+  })
+  default     = null
+  description = "Sign-up settings for the API Management service."
+}
+
+variable "sku_name" {
+  type        = string
+  default     = "Developer_1"
+  description = "The SKU name of the API Management service."
+
+  validation {
+    condition     = can(regex("^(Consumption|Developer|Basic|Standard|Premium)_([1-9]|[1-9][0-9])$", var.sku_name))
+    error_message = "The sku_name must be a string consisting of two parts separated by an underscore(_). The first part must be one of: Consumption, Developer, Basic, Standard, or Premium. The second part must be a positive integer between 1-99 (e.g. Developer_1)."
+  }
+}
+
 # tflint-ignore: terraform_unused_declarations
 variable "tags" {
   type        = map(string)
   default     = null
   description = "(Optional) Tags of the resource."
+}
+
+variable "tenant_access" {
+  type = object({
+    enabled = bool
+  })
+  default     = null
+  description = "Controls whether access to the management API is enabled. When enabled, the primary/secondary keys provide access to this API."
+}
+
+variable "virtual_network_subnet_id" {
+  type        = string
+  default     = null
+  description = "The ID of the subnet in the virtual network where the API Management service will be deployed."
+
+  validation {
+    condition     = var.virtual_network_type == "None" ? var.virtual_network_subnet_id == null : true
+    error_message = "The virtual_network_subnet_id must not be set when virtual_network_type is None."
+  }
+}
+
+variable "virtual_network_type" {
+  type        = string
+  default     = "None"
+  description = "The type of virtual network configuration for the API Management service."
+
+  validation {
+    condition     = contains(["None", "External", "Internal"], var.virtual_network_type)
+    error_message = "The virtual_network_type must be one of: None, External, or Internal."
+  }
+}
+
+variable "zones" {
+  type        = list(string)
+  default     = null
+  description = "Specifies a list of Availability Zones in which this API Management service should be located. Only supported in the Premium tier."
+
+  validation {
+    condition     = var.zones == null || startswith(var.sku_name, "Premium")
+    error_message = "Availability Zones are only supported in the Premium tier."
+  }
 }

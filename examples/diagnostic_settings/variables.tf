@@ -1,3 +1,8 @@
+variable "publisher_email" {
+  type        = string
+  description = "The email address of the publisher."
+}
+
 variable "enable_telemetry" {
   type        = bool
   default     = true
