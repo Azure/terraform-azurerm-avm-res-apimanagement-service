@@ -65,6 +65,12 @@ Description: The name of the this resource.
 
 Type: `string`
 
+### <a name="input_publisher_email"></a> [publisher\_email](#input\_publisher\_email)
+
+Description: The email of the API Management service publisher.
+
+Type: `string`
+
 ### <a name="input_resource_group_name"></a> [resource\_group\_name](#input\_resource\_group\_name)
 
 Description: The resource group where the resources will be deployed.
@@ -389,14 +395,6 @@ Description: Is public access to the API Management service allowed? This only a
 Type: `bool`
 
 Default: `true`
-
-### <a name="input_publisher_email"></a> [publisher\_email](#input\_publisher\_email)
-
-Description: The email of the API Management service publisher.
-
-Type: `string`
-
-Default: `""`
 
 ### <a name="input_publisher_name"></a> [publisher\_name](#input\_publisher\_name)
 
