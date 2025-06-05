@@ -64,7 +64,7 @@ output "portal_url" {
 
 output "private_endpoints" {
   description = "A map of the private endpoints created."
-  value       = azurerm_private_endpoint.this
+  value       = var.private_endpoints_manage_dns_zone_group ? azurerm_private_endpoint.this : azurerm_private_endpoint.this_unmanaged_dns_zone_groups
 }
 
 output "private_ip_addresses" {
