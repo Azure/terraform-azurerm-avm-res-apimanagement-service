@@ -4,18 +4,6 @@
 
 # Below AI generated 
 
-# This variable is used to determine if the private_dns_zone_group block should be included,
-# or if it is to be managed externally, e.g. using Azure Policy.
-# https://github.com/Azure/terraform-azurerm-avm-res-keyvault-vault/issues/32
-# Alternatively you can use AzAPI, which does not have this issue.
-#TODO: add DNS zone if enabled
-variable "private_endpoints_manage_dns_zone_group" {
-  type        = bool
-  default     = true
-  description = "Whether to manage private DNS zone groups with this module. If set to false, you must manage private DNS zone groups externally, e.g. using Azure Policy."
-  nullable    = false
-}
-
 variable "location" {
   type        = string
   description = "Azure region where the resource should be deployed."
@@ -312,6 +300,18 @@ DESCRIPTION
     condition     = var.virtual_network_type == "None" || length(var.private_endpoints) == 0
     error_message = "Private endpoints cannot be used with API Management in Internal or External virtual network mode. Use either private endpoints (with virtual_network_type = None ) or Internal/External virtual network mode."
   }
+}
+
+# This variable is used to determine if the private_dns_zone_group block should be included,
+# or if it is to be managed externally, e.g. using Azure Policy.
+# https://github.com/Azure/terraform-azurerm-avm-res-keyvault-vault/issues/32
+# Alternatively you can use AzAPI, which does not have this issue.
+#TODO: add DNS zone if enabled
+variable "private_endpoints_manage_dns_zone_group" {
+  type        = bool
+  default     = true
+  description = "Whether to manage private DNS zone groups with this module. If set to false, you must manage private DNS zone groups externally, e.g. using Azure Policy."
+  nullable    = false
 }
 
 variable "protocols" {
