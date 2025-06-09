@@ -69,13 +69,13 @@ module "test" {
   # ...
   location            = azurerm_resource_group.this.location
   name                = module.naming.api_management.name_unique
+  publisher_email     = var.publisher_email # see variables.tf
   resource_group_name = azurerm_resource_group.this.name
   enable_telemetry    = var.enable_telemetry # see variables.tf
   managed_identities = {
     system_assigned = true
   }
-  publisher_email = var.publisher_email # see variables.tf
-  publisher_name  = "Apim Example Publisher"
+  publisher_name = "Apim Example Publisher"
   security = {
     enable_backend_ssl30                           = true
     tls_rsa_with_aes128_gcm_sha256_ciphers_enabled = true

@@ -63,14 +63,14 @@ module "test" {
   # ...
   location            = azurerm_resource_group.this.location
   name                = module.naming.api_management.name_unique
+  publisher_email     = var.publisher_email # see variables.tf
   resource_group_name = azurerm_resource_group.this.name
   enable_telemetry    = var.enable_telemetry # see variables.tf
   managed_identities = {
     system_assigned = true
   }
-  publisher_email = var.publisher_email # see variables.tf
-  publisher_name  = "Apim Example Publisher"
-  sku_name        = "Premium_1"
+  publisher_name = "Apim Example Publisher"
+  sku_name       = "Premium_1"
   tags = {
     environment = "test"
     cost_center = "test"

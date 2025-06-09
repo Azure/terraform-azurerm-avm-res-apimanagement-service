@@ -84,6 +84,7 @@ module "test" {
   location = "eastus2" # diagnostic settings are not available in all regions
   # location            = azurerm_resource_group.this.location
   name                = module.naming.api_management.name_unique
+  publisher_email     = var.publisher_email
   resource_group_name = azurerm_resource_group.this.name
   diagnostic_settings = {
     diag = {
@@ -101,7 +102,6 @@ module "test" {
     }
   }
   enable_telemetry = var.enable_telemetry # see variables.tf
-  publisher_email  = var.publisher_email
   publisher_name   = "John Wick"
   sku_name         = "Developer_1"
   tags = {

@@ -15,6 +15,16 @@ variable "name" {
   description = "The name of the this resource."
 }
 
+variable "publisher_email" {
+  type        = string
+  description = "The email of the API Management service publisher."
+
+  validation {
+    condition     = can(regex("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$", var.publisher_email))
+    error_message = "The publisher_email must be a valid email address."
+  }
+}
+
 # This is required for most resource modules
 variable "resource_group_name" {
   type        = string
@@ -333,17 +343,6 @@ variable "public_network_access_enabled" {
   default     = true
   description = "Is public access to the API Management service allowed? This only applies to the Management plane, not the API gateway or Developer portal."
   nullable    = false
-}
-
-variable "publisher_email" {
-  type        = string
-  default     = ""
-  description = "The email of the API Management service publisher."
-
-  validation {
-    condition     = can(regex("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$", var.publisher_email))
-    error_message = "The publisher_email must be a valid email address."
-  }
 }
 
 variable "publisher_name" {
