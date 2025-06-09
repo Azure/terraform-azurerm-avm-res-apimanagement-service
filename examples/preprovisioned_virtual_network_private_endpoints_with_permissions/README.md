@@ -124,6 +124,7 @@ module "test" {
   # Remove the hardcoded location and use the resource group location
   location            = azurerm_resource_group.this.location
   name                = module.naming.api_management.name_unique
+  publisher_email     = var.publisher_email # see variables.tf
   resource_group_name = azurerm_resource_group.this.name
   enable_telemetry    = var.enable_telemetry
   # Add private endpoint configuration
@@ -143,8 +144,7 @@ module "test" {
       }
     }
   }
-  publisher_email = var.publisher_email # see variables.tf
-  publisher_name  = "Apim Example Publisher"
+  publisher_name = "Apim Example Publisher"
   role_assignments = {
     deployment_user_secrets = {
       role_definition_id_or_name = "/providers/Microsoft.Authorization/roleDefinitions/00482a5a-887f-4fb3-b363-3b7fe8e74483" # Key Vault Administrator

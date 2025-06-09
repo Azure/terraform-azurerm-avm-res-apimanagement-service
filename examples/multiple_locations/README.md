@@ -69,6 +69,7 @@ module "test" {
   # ...
   location            = azurerm_resource_group.this.location
   name                = module.naming.api_management.name_unique
+  publisher_email     = var.publisher_email # see variables.tf
   resource_group_name = azurerm_resource_group.this.name
   additional_location = [{
     # location western europe
@@ -76,7 +77,6 @@ module "test" {
     capacity = 1
   }]
   enable_telemetry = var.enable_telemetry # see variables.tf
-  publisher_email  = var.publisher_email  # see variables.tf
   publisher_name   = "Apim Example Publisher"
   sku_name         = "Premium_1"
   # sku_name = "Developer_1"
