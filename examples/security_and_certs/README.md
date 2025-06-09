@@ -64,26 +64,27 @@ resource "azurerm_resource_group" "this" {
 # with a data source.
 module "test" {
   source = "../../"
+
   # source             = "Azure/avm-<res/ptn>-<name>/azurerm"
   # ...
   location            = azurerm_resource_group.this.location
   name                = module.naming.api_management.name_unique
   resource_group_name = azurerm_resource_group.this.name
-  publisher_email     = var.publisher_email # see variables.tf
-  publisher_name      = "Apim Example Publisher"
-  sku_name            = "Premium_1"
+  enable_telemetry    = var.enable_telemetry # see variables.tf
+  managed_identities = {
+    system_assigned = true
+  }
+  publisher_email = var.publisher_email # see variables.tf
+  publisher_name  = "Apim Example Publisher"
+  security = {
+    enable_backend_ssl30                           = true
+    tls_rsa_with_aes128_gcm_sha256_ciphers_enabled = true
+  }
+  sku_name = "Premium_1"
   # sku_name = "Developer_1"
   tags = {
     environment = "test"
     cost_center = "test"
-  }
-  enable_telemetry = var.enable_telemetry # see variables.tf
-  managed_identities = {
-    system_assigned = true
-  }
-  security = {
-    enable_backend_ssl30                           = true
-    tls_rsa_with_aes128_gcm_sha256_ciphers_enabled = true
   }
 }
 ```
