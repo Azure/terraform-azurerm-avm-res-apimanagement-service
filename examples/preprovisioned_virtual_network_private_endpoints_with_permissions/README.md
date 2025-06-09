@@ -124,7 +124,7 @@ module "test" {
   # Remove the hardcoded location and use the resource group location
   location            = azurerm_resource_group.this.location
   name                = module.naming.api_management.name_unique
-  publisher_email     = var.publisher_email # see variables.tf
+  publisher_email     = var.publisher_email
   resource_group_name = azurerm_resource_group.this.name
   enable_telemetry    = var.enable_telemetry
   # Add private endpoint configuration

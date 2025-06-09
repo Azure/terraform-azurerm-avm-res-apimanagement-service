@@ -79,8 +79,6 @@ resource "azurerm_log_analytics_workspace" "diag2" {
 module "test" {
   source = "../../"
 
-  # source             = "Azure/avm-<res/ptn>-<name>/azurerm"
-  # ...
   location = "eastus2" # diagnostic settings are not available in all regions
   # location            = azurerm_resource_group.this.location
   name                = module.naming.api_management.name_unique
@@ -101,7 +99,7 @@ module "test" {
       ]
     }
   }
-  enable_telemetry = var.enable_telemetry # see variables.tf
+  enable_telemetry = var.enable_telemetry
   publisher_name   = "John Wick"
   sku_name         = "Developer_1"
   tags = {
