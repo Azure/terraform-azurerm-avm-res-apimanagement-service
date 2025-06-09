@@ -88,17 +88,18 @@ resource "azurerm_subnet" "default" {
 
 # Private DNS Zone for API Management
 module "private_dns_apim" {
-  source              = "Azure/avm-res-network-privatednszone/azurerm"
-  version             = "~> 0.2"
+  source  = "Azure/avm-res-network-privatednszone/azurerm"
+  version = "~> 0.2"
+
   domain_name         = "privatelink.azure-api.net"
   resource_group_name = azurerm_resource_group.this.name
+  enable_telemetry    = var.enable_telemetry
   virtual_network_links = {
     dnslink = {
       vnetlinkname = "privatelink-azure-api-net"
       vnetid       = azurerm_virtual_network.this.id
     }
   }
-  enable_telemetry = var.enable_telemetry
 }
 
 resource "azurerm_user_assigned_identity" "cmk" {
@@ -113,19 +114,12 @@ resource "azurerm_user_assigned_identity" "cmk" {
 # with a data source.
 module "test" {
   source = "../../"
+
   # Remove the hardcoded location and use the resource group location
   location            = azurerm_resource_group.this.location
   name                = module.naming.api_management.name_unique
   resource_group_name = azurerm_resource_group.this.name
-  publisher_email     = var.publisher_email # see variables.tf
-  publisher_name      = "Apim Example Publisher"
-  sku_name            = "Developer_1"
-  tags = {
-    environment = "test"
-    cost_center = "test"
-  }
-  enable_telemetry = var.enable_telemetry
-
+  enable_telemetry    = var.enable_telemetry
   # Add private endpoint configuration
   private_endpoints = {
     endpoint1 = {
@@ -143,6 +137,8 @@ module "test" {
       }
     }
   }
+  publisher_email = var.publisher_email # see variables.tf
+  publisher_name  = "Apim Example Publisher"
   role_assignments = {
     deployment_user_secrets = {
       role_definition_id_or_name = "/providers/Microsoft.Authorization/roleDefinitions/00482a5a-887f-4fb3-b363-3b7fe8e74483" # Key Vault Administrator
@@ -160,5 +156,9 @@ module "test" {
       principal_id               = azurerm_user_assigned_identity.cmk.principal_id
     }
   }
-
+  sku_name = "Developer_1"
+  tags = {
+    environment = "test"
+    cost_center = "test"
+  }
 }

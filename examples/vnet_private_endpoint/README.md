@@ -55,13 +55,13 @@ module "naming" {
 
 # Create a virtual network for testing if needed
 module "virtual_network" {
-  source              = "Azure/avm-res-network-virtualnetwork/azurerm"
-  version             = "~> 0.8.0"
-  name                = module.naming.virtual_network.name_unique
-  resource_group_name = azurerm_resource_group.this.name
-  location            = azurerm_resource_group.this.location
-  address_space       = ["10.0.0.0/16"]
+  source  = "Azure/avm-res-network-virtualnetwork/azurerm"
+  version = "~> 0.8.0"
 
+  address_space       = ["10.0.0.0/16"]
+  location            = azurerm_resource_group.this.location
+  resource_group_name = azurerm_resource_group.this.name
+  name                = module.naming.virtual_network.name_unique
   subnets = {
     default_subnet = {
       name             = "default_subnet"
@@ -80,18 +80,19 @@ module "virtual_network" {
 
 # Create a Private DNS Zone for API Management
 module "private_dns_apim" {
-  source              = "Azure/avm-res-network-privatednszone/azurerm"
-  version             = "~> 0.2"
+  source  = "Azure/avm-res-network-privatednszone/azurerm"
+  version = "~> 0.2"
+
   domain_name         = "privatelink.azure-api.net"
   resource_group_name = azurerm_resource_group.this.name
+  # tags             = var.tags
+  enable_telemetry = var.enable_telemetry
   virtual_network_links = {
     dnslink = {
       vnetlinkname = "privatelink-azure-api-net"
       vnetid       = module.virtual_network.resource.id
     }
   }
-  # tags             = var.tags
-  enable_telemetry = var.enable_telemetry
 }
 
 
@@ -107,21 +108,13 @@ resource "azurerm_resource_group" "this" {
 # with a data source.
 module "test" {
   source = "../../"
+
   # source             = "Azure/avm-<res/ptn>-<name>/azurerm"
   # ...
   location            = azurerm_resource_group.this.location
   name                = module.naming.api_management.name_unique
   resource_group_name = azurerm_resource_group.this.name
-  publisher_email     = var.publisher_email # see variables.tf
-  publisher_name      = "Apim Example Publisher"
-  sku_name            = "Developer_1"
-  tags = {
-    environment = "test"
-    cost_center = "test"
-  }
-  enable_telemetry     = var.enable_telemetry # see variables.tf
-  virtual_network_type = "None"
-
+  enable_telemetry    = var.enable_telemetry # see variables.tf
   # private endpoints
   # Add private endpoint configuration
   private_endpoints = {
@@ -140,7 +133,14 @@ module "test" {
       }
     }
   }
-
+  publisher_email = var.publisher_email # see variables.tf
+  publisher_name  = "Apim Example Publisher"
+  sku_name        = "Developer_1"
+  tags = {
+    environment = "test"
+    cost_center = "test"
+  }
+  virtual_network_type = "None"
 }
 
 ```
