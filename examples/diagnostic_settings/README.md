@@ -14,10 +14,6 @@ terraform {
       source  = "hashicorp/azurerm"
       version = "~> 4.0"
     }
-    random = {
-      source  = "hashicorp/random"
-      version = "3.6.2"
-    }
   }
 }
 
@@ -34,21 +30,6 @@ provider "azurerm" {
   }
 }
 
-
-## Section to provide a random Azure region for the resource group
-# This allows us to randomize the region for the resource group.
-module "regions" {
-  source  = "Azure/regions/azurerm"
-  version = "~> 0.3"
-}
-
-# This allows us to randomize the region for the resource group.
-resource "random_integer" "region_index" {
-  max = length(module.regions.regions) - 1
-  min = 0
-}
-## End of section to provide a random Azure region for the resource group
-
 # This ensures we have unique CAF compliant names for our resources.
 module "naming" {
   source  = "Azure/naming/azurerm"
@@ -57,7 +38,7 @@ module "naming" {
 
 # This is required for resource modules
 resource "azurerm_resource_group" "this" {
-  location = "East US 2"
+  location = var.location
   name     = module.naming.resource_group.name_unique
 }
 
@@ -73,14 +54,12 @@ resource "azurerm_log_analytics_workspace" "diag2" {
   resource_group_name = azurerm_resource_group.this.name
 }
 # This is the module call
-# Do not specify location here due to the randomization above.
 # Leaving location as `null` will cause the module to use the resource group location
 # with a data source.
 module "test" {
   source = "../../"
 
-  location = "eastus2" # diagnostic settings are not available in all regions
-  # location            = azurerm_resource_group.this.location
+  location            = var.location
   name                = module.naming.api_management.name_unique
   publisher_email     = var.publisher_email
   resource_group_name = azurerm_resource_group.this.name
@@ -119,8 +98,6 @@ The following requirements are needed by this module:
 
 - <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) (~> 4.0)
 
-- <a name="requirement_random"></a> [random](#requirement\_random) (3.6.2)
-
 ## Resources
 
 The following resources are used by this module:
@@ -128,7 +105,6 @@ The following resources are used by this module:
 - [azurerm_log_analytics_workspace.diag](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/log_analytics_workspace) (resource)
 - [azurerm_log_analytics_workspace.diag2](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/log_analytics_workspace) (resource)
 - [azurerm_resource_group.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/resource_group) (resource)
-- [random_integer.region_index](https://registry.terraform.io/providers/hashicorp/random/3.6.2/docs/resources/integer) (resource)
 
 <!-- markdownlint-disable MD013 -->
 ## Required Inputs
@@ -155,6 +131,14 @@ Type: `bool`
 
 Default: `true`
 
+### <a name="input_location"></a> [location](#input\_location)
+
+Description: Azure region where the resource should be deployed.
+
+Type: `string`
+
+Default: `"eastus2"`
+
 ## Outputs
 
 No outputs.
@@ -166,12 +150,6 @@ The following Modules are called:
 ### <a name="module_naming"></a> [naming](#module\_naming)
 
 Source: Azure/naming/azurerm
-
-Version: ~> 0.3
-
-### <a name="module_regions"></a> [regions](#module\_regions)
-
-Source: Azure/regions/azurerm
 
 Version: ~> 0.3
 
