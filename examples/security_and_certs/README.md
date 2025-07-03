@@ -59,7 +59,7 @@ module "test" {
     enable_backend_ssl30                           = true
     tls_rsa_with_aes128_gcm_sha256_ciphers_enabled = true
   }
-  sku_name = "Premium_1"
+  sku_name = "Premium_3"
   # sku_name = "Developer_1"
   tags = {
     environment = "test"

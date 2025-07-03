@@ -140,7 +140,7 @@ module "test" {
       principal_id               = azurerm_user_assigned_identity.cmk.principal_id
     }
   }
-  sku_name = "Premium_1"
+  sku_name = "Premium_3"
   tags = {
     environment = "test"
     cost_center = "test"

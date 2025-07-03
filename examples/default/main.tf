@@ -46,7 +46,7 @@ module "test" {
   resource_group_name = azurerm_resource_group.this.name
   enable_telemetry    = var.enable_telemetry
   publisher_name      = "Apim Example Publisher"
-  sku_name            = "Premium_1"
+  sku_name            = "Premium_3"
   tags = {
     environment = "test"
     cost_center = "test"

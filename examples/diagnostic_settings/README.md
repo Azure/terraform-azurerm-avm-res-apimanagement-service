@@ -81,7 +81,7 @@ module "test" {
   }
   enable_telemetry = var.enable_telemetry
   publisher_name   = "John Wick"
-  sku_name         = "Premium_1"
+  sku_name         = "Premium_3"
   tags = {
     environment = "test"
     cost_center = "test"

@@ -49,7 +49,7 @@ module "test" {
     system_assigned = true
   }
   publisher_name = "Apim Example Publisher"
-  sku_name       = "Premium_1"
+  sku_name       = "Premium_3"
   tags = {
     environment = "test"
     cost_center = "test"
