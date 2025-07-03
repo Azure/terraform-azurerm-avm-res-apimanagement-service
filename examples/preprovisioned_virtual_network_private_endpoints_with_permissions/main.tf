@@ -140,9 +140,10 @@ module "test" {
       principal_id               = azurerm_user_assigned_identity.cmk.principal_id
     }
   }
-  sku_name = "Developer_1"
+  sku_name = "Premium_1"
   tags = {
     environment = "test"
     cost_center = "test"
   }
+  zones = ["1", "2", "3"] # For compliance with WAF
 }

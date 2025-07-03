@@ -72,10 +72,11 @@ module "test" {
   }
   enable_telemetry = var.enable_telemetry
   publisher_name   = "John Wick"
-  sku_name         = "Developer_1"
+  sku_name         = "Premium_1"
   tags = {
     environment = "test"
     cost_center = "test"
   }
+  zones = ["1", "2", "3"] # For compliance with WAF
 }
 
