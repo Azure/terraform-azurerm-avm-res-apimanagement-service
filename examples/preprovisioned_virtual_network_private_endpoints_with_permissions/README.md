@@ -8,6 +8,7 @@ This deploys the module with the virtual network settings provided by the user. 
 # the different features of the AVM
 terraform {
   required_version = ">= 1.9, < 2.0"
+
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
@@ -45,10 +46,10 @@ resource "azurerm_resource_group" "this" {
 
 # Create Virtual Network and Subnets
 resource "azurerm_virtual_network" "this" {
-  address_space       = ["10.0.0.0/16"]
   location            = azurerm_resource_group.this.location
   name                = module.naming.virtual_network.name_unique
   resource_group_name = azurerm_resource_group.this.name
+  address_space       = ["10.0.0.0/16"]
   tags = {
     environment = "test"
     cost_center = "test"
