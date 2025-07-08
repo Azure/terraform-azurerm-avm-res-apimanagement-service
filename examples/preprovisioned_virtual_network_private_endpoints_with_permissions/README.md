@@ -8,6 +8,7 @@ This deploys the module with the virtual network settings provided by the user. 
 # the different features of the AVM
 terraform {
   required_version = ">= 1.9, < 2.0"
+
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
@@ -45,10 +46,10 @@ resource "azurerm_resource_group" "this" {
 
 # Create Virtual Network and Subnets
 resource "azurerm_virtual_network" "this" {
-  address_space       = ["10.0.0.0/16"]
   location            = azurerm_resource_group.this.location
   name                = module.naming.virtual_network.name_unique
   resource_group_name = azurerm_resource_group.this.name
+  address_space       = ["10.0.0.0/16"]
   tags = {
     environment = "test"
     cost_center = "test"
@@ -130,26 +131,27 @@ module "test" {
   publisher_name = "Apim Example Publisher"
   role_assignments = {
     deployment_user_secrets = {
-      role_definition_id_or_name = "/providers/Microsoft.Authorization/roleDefinitions/00482a5a-887f-4fb3-b363-3b7fe8e74483" # Key Vault Administrator
+      role_definition_id_or_name = "Key Vault Administrator"
       principal_id               = data.azurerm_client_config.current.object_id
     }
 
     cosmos_db = {
-      role_definition_id_or_name       = "/providers/Microsoft.Authorization/roleDefinitions/e147488a-f6f5-4113-8e2d-b22465e65bf6" # Key Vault Crypto Service Encryption User
-      principal_id                     = "a232010e-820c-4083-83bb-3ace5fc29d0b"                                                    # CosmosDB **FOR AZURE GOV** use "57506a73-e302-42a9-b869-6f12d9ec29e9"
-      skip_service_principal_aad_check = true                                                                                      # because it isn't a traditional SP
+      role_definition_id_or_name       = "Key Vault Crypto Service Encryption User"
+      principal_id                     = "a232010e-820c-4083-83bb-3ace5fc29d0b"
+      skip_service_principal_aad_check = true # because it isn't a traditional SP
     }
 
     uai = {
-      role_definition_id_or_name = "/providers/Microsoft.Authorization/roleDefinitions/14b46e9e-c2b7-41b4-b07b-48a6ebf60603" # Key Vault Crypto Officer
+      role_definition_id_or_name = "Key Vault Crypto Officer" # Key Vault Crypto Officer
       principal_id               = azurerm_user_assigned_identity.cmk.principal_id
     }
   }
-  sku_name = "Developer_1"
+  sku_name = "Premium_3"
   tags = {
     environment = "test"
     cost_center = "test"
   }
+  zones = ["1", "2", "3"] # For compliance with WAF
 }
 ```
 

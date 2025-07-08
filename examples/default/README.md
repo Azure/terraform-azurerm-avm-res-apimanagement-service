@@ -6,6 +6,7 @@ This deploys the module in its simplest form.
 ```hcl
 terraform {
   required_version = ">= 1.9, < 2.0"
+
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
@@ -51,11 +52,12 @@ module "test" {
   resource_group_name = azurerm_resource_group.this.name
   enable_telemetry    = var.enable_telemetry
   publisher_name      = "Apim Example Publisher"
-  sku_name            = "Premium_1"
+  sku_name            = "Premium_3"
   tags = {
     environment = "test"
     cost_center = "test"
   }
+  zones = ["1", "2", "3"] # For compliance with WAF
 }
 ```
 

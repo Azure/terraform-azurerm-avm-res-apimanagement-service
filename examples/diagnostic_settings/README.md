@@ -9,6 +9,7 @@ Note that Diagnostic settings are not supported in all Azure regions, and we hav
 ```hcl
 terraform {
   required_version = ">= 1.9, < 2.0"
+
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
@@ -80,11 +81,12 @@ module "test" {
   }
   enable_telemetry = var.enable_telemetry
   publisher_name   = "John Wick"
-  sku_name         = "Developer_1"
+  sku_name         = "Premium_3"
   tags = {
     environment = "test"
     cost_center = "test"
   }
+  zones = ["1", "2", "3"] # For compliance with WAF
 }
 
 ```

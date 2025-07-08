@@ -1,5 +1,6 @@
 terraform {
   required_version = ">= 1.9, < 2.0"
+
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
@@ -107,11 +108,12 @@ module "test" {
     }
   }
   publisher_name = "Apim Example Publisher"
-  sku_name       = "Developer_1"
+  sku_name       = "Premium_3"
   tags = {
     environment = "test"
     cost_center = "test"
   }
   virtual_network_type = "None"
+  zones                = ["1", "2", "3"] # For compliance with WAF
 }
 

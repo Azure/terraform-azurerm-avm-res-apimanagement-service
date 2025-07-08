@@ -6,6 +6,7 @@ This deploys the module into multiple regions, as specified by the user
 ```hcl
 terraform {
   required_version = ">= 1.9, < 2.0"
+
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
@@ -56,12 +57,13 @@ module "test" {
   }]
   enable_telemetry = var.enable_telemetry
   publisher_name   = "Apim Example Publisher"
-  sku_name         = "Premium_1"
+  sku_name         = "Premium_3"
   # sku_name = "Developer_1"
   tags = {
     environment = "test"
     cost_center = "test"
   }
+  zones = ["1", "2", "3"] # For compliance with WAF
 }
 
 ```

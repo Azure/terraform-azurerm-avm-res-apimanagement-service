@@ -6,6 +6,7 @@ This deploys the module with system assigned managed identity enabled.
 ```hcl
 terraform {
   required_version = ">= 1.9, < 2.0"
+
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
@@ -54,11 +55,12 @@ module "test" {
     system_assigned = true
   }
   publisher_name = "Apim Example Publisher"
-  sku_name       = "Premium_1"
+  sku_name       = "Premium_3"
   tags = {
     environment = "test"
     cost_center = "test"
   }
+  zones = ["1", "2", "3"] # For compliance with WAF
 }
 ```
 
