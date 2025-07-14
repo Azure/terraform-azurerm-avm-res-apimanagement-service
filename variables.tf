@@ -431,6 +431,7 @@ variable "sku_name" {
   type        = string
   default     = "Developer_1"
   description = "The SKU name of the API Management service."
+
   validation {
     condition     = can(regex("^Consumption_0$|^Basic_(1|2)$|^BasicV2_([1-9]|10)|^Developer_1$|^Premium_([1-9][0-9]{0,1})$|^PremiumV2_([1-9]|1[0-9]|2[0-9]|30)$|^Standard_[1-4]$|^StandardV2_([1-9]|10)$", var.sku_name))
     error_message = "The sku_name must be one of: Consumption_0, Basic_1, Basic_2, BasicV2_1 through BasicV2_10, Developer_1, Premium_1 through Premium_99, PremiumV2_1 through PremiumV2_30, Standard_1 through Standard_4, or StandardV2_1 through StandardV2_10."
