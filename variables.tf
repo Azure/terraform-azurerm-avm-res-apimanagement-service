@@ -2,7 +2,7 @@
 # remove only if not supported by the resource
 # tflint-ignore: terraform_unused_declarations
 
-# Below AI generated 
+# Below AI generated
 
 variable "location" {
   type        = string
@@ -117,7 +117,7 @@ A map of diagnostic settings to create on the Key Vault. The map key is delibera
 - `event_hub_authorization_rule_resource_id` - (Optional) The resource ID of the event hub authorization rule to send logs and metrics to.
 - `event_hub_name` - (Optional) The name of the event hub. If none is specified, the default event hub will be selected.
 - `marketplace_partner_resource_id` - (Optional) The full ARM resource ID of the Marketplace resource to which you would like to send Diagnostic LogsLogs.
-DESCRIPTION  
+DESCRIPTION
   nullable    = false
 
   validation {
@@ -433,12 +433,8 @@ variable "sku_name" {
   description = "The SKU name of the API Management service."
 
   validation {
-    condition     = !startswith(var.sku_name, "Consumption_") || can(regex("^Consumption_0$", var.sku_name))
-    error_message = "For the Consumption SKU, only 'Consumption_0' is allowed."
-  }
-  validation {
-    condition     = startswith(var.sku_name, "Consumption_") || can(regex("^(Developer|Basic|Standard|Premium)_([1-9][0-9]?)$", var.sku_name))
-    error_message = "The sku_name must be a string consisting of two parts separated by an underscore(_). The first part must be one of: Consumption, Developer, Basic, Standard, or Premium. The second part must be a positive integer between 1-99 (e.g. Developer_1)."
+    condition     = can(regex("^Consumption_0$|^Basic_(1|2)$|^BasicV2_([1-9]|10)|^Developer_1$|^Premium_([1-9][0-9]{0,1})$|^PremiumV2_([1-9]|1[0-9]|2[0-9]|30)$|^Standard_[1-4]$|^StandardV2_([1-9]|10)$", var.sku_name))
+    error_message = "The sku_name must be one of: Consumption_0, Basic_1, Basic_2, BasicV2_1 through BasicV2_10, Developer_1, Premium_1 through Premium_99, PremiumV2_1 through PremiumV2_30, Standard_1 through Standard_4, or StandardV2_1 through StandardV2_10."
   }
 }
 
