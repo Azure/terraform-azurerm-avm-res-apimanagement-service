@@ -32,7 +32,7 @@ provider "azurerm" {
 # This ensures we have unique CAF compliant names for our resources.
 module "naming" {
   source  = "Azure/naming/azurerm"
-  version = "0.3"
+  version = "0.3.0"
 }
 data "azurerm_client_config" "current" {}
 
@@ -283,7 +283,7 @@ The following Modules are called:
 
 Source: Azure/naming/azurerm
 
-Version: 0.3
+Version: 0.3.0
 
 ### <a name="module_private_dns_apim"></a> [private\_dns\_apim](#module\_private\_dns\_apim)
 
