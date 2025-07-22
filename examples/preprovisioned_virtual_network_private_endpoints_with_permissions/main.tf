@@ -81,6 +81,7 @@ module "private_dns_apim" {
   parent_id        = azurerm_resource_group.this.id
   virtual_network_links = {
     dnslink = {
+      name         = "dnslink-azure-apim"
       vnetlinkname = "privatelink-azure-api-net"
       vnetid       = azurerm_virtual_network.this.id
     }
