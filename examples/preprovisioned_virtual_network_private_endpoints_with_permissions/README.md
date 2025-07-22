@@ -12,7 +12,7 @@ terraform {
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~> 4.0"
+      version = ">= 4.0"
     }
   }
 }
@@ -80,7 +80,7 @@ resource "azurerm_subnet" "default" {
 # Private DNS Zone for API Management
 module "private_dns_apim" {
   source  = "Azure/avm-res-network-privatednszone/azurerm"
-  version = "~> 0.2"
+  version = ">= 0.2"
 
   domain_name      = "privatelink.azure-api.net"
   enable_telemetry = var.enable_telemetry
@@ -163,7 +163,7 @@ The following requirements are needed by this module:
 
 - <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) (>= 1.9, < 2.0)
 
-- <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) (~> 4.0)
+- <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) (>= 4.0)
 
 ## Resources
 
@@ -289,7 +289,7 @@ Version: 0.3.0
 
 Source: Azure/avm-res-network-privatednszone/azurerm
 
-Version: ~> 0.2
+Version: >= 0.2
 
 ### <a name="module_test"></a> [test](#module\_test)
 
