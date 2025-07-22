@@ -472,14 +472,6 @@ variable "virtual_network_type" {
   }
 }
 
-variable "virtual_network_configuration" {
-  type = object({
-    subnet_id = string
-  })
-  default     = null
-  description = "Virtual network configuration for the API Management service. Required when virtual_network_type is External or Internal."
-}
-
 variable "zones" {
   type        = list(string)
   default     = null
