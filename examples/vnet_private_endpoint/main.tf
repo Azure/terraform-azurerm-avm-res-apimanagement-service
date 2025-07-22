@@ -29,29 +29,29 @@ module "naming" {
 }
 
 
-# # Create a virtual network for testing if needed
-# module "virtual_network" {
-#   source  = "Azure/avm-res-network-virtualnetwork/azurerm"
-#   version = "~> 0.8.0"
+# Create a virtual network for testing if needed
+module "virtual_network" {
+  source  = "Azure/avm-res-network-virtualnetwork/azurerm"
+  version = "~> 0.8.0"
 
-#   address_space       = ["10.0.0.0/16"]
-#   location            = azurerm_resource_group.this.location
-#   resource_group_name = azurerm_resource_group.this.name
-#   name                = module.naming.virtual_network.name_unique
-#   subnets = {
-#     default_subnet = {
-#       name             = "default_subnet"
-#       address_prefixes = ["10.0.1.0/24"]
-#       # delegations       = {}
-#     }
-#     pe_subnet = {
-#       name              = "pe_subnet"
-#       address_prefixes  = ["10.0.2.0/24"]
-#       service_endpoints = []
-#       # delegations       = {}
-#     }
-#   }
-# }
+  address_space       = ["10.0.0.0/16"]
+  location            = azurerm_resource_group.this.location
+  resource_group_name = azurerm_resource_group.this.name
+  name                = module.naming.virtual_network.name_unique
+  subnets = {
+    default_subnet = {
+      name             = "default_subnet"
+      address_prefixes = ["10.0.1.0/24"]
+      # delegations       = {}
+    }
+    pe_subnet = {
+      name              = "pe_subnet"
+      address_prefixes  = ["10.0.2.0/24"]
+      service_endpoints = []
+      # delegations       = {}
+    }
+  }
+}
 
 
 # Create a Private DNS Zone for API Management
@@ -59,14 +59,15 @@ module "private_dns_apim" {
   source  = "Azure/avm-res-network-privatednszone/azurerm"
   version = "~> 0.2"
 
-  domain_name         = "privatelink.azure-api.net"
-  resource_group_name = azurerm_resource_group.this.name
+  domain_name = "privatelink.azure-api.net"
+  parent_id   = azurerm_resource_group.this.id
   # tags             = var.tags
   enable_telemetry = var.enable_telemetry
   virtual_network_links = {
     dnslink = {
+      name         = "dnslink-azure-apim"
       vnetlinkname = "privatelink-azure-api-net"
-      vnetid       ="/subscriptions/aa27a1b3-530a-4637-a1e6-6855033a65e5/resourceGroups/rg-ij17/providers/Microsoft.Network/virtualNetworks/vnet-ij17"
+      vnetid       = module.virtual_network.resource.id
     }
   }
 }
@@ -94,7 +95,7 @@ module "test" {
   private_endpoints = {
     endpoint1 = {
       name               = "pe-${module.naming.api_management.name_unique}"
-      subnet_resource_id = "/subscriptions/aa27a1b3-530a-4637-a1e6-6855033a65e5/resourceGroups/rg-ij17/providers/Microsoft.Network/virtualNetworks/vnet-ij17/subnets/pe_subnet"
+      subnet_resource_id = module.virtual_network.subnets["pe_subnet"].resource_id
 
       # Link to the private DNS zone we created
       private_dns_zone_resource_ids = [
@@ -108,13 +109,12 @@ module "test" {
     }
   }
   publisher_name = "Apim Example Publisher"
-  sku_name       = "PremiumV2_3"
+  sku_name       = "Premium_3"
   tags = {
     environment = "test"
     cost_center = "test"
   }
-  virtual_network_type = "External"
-  virtual_network_subnet_id = "/subscriptions/aa27a1b3-530a-4637-a1e6-6855033a65e5/resourceGroups/rg-ij17/providers/Microsoft.Network/virtualNetworks/vnet-ij17/subnets/pe_subnet"
-  #zones                = ["1", "2", "3"] # For compliance with WAF
+  virtual_network_type = "None"
+  zones                = ["1", "2", "3"] # For compliance with WAF
 }
 

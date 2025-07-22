@@ -46,10 +46,10 @@ module "test" {
   resource_group_name = azurerm_resource_group.this.name
   enable_telemetry    = var.enable_telemetry
   publisher_name      = "Apim Example Publisher"
-  sku_name            = "PremiumV2_3"
+  sku_name            = "Premium_3"
   tags = {
     environment = "test"
     cost_center = "test"
   }
-  #zones = ["1", "2", "3"] # For compliance with WAF
+  zones = ["1", "2", "3"] # For compliance with WAF
 }
