@@ -307,12 +307,9 @@ DESCRIPTION
   nullable    = false
 
   validation {
-    condition     = var.virtual_network_type == "None" || length(var.private_endpoints) == 0
-    error_message = "Private endpoints cannot be used with API Management in Internal or External virtual network mode. Use either private endpoints (with virtual_network_type = None ) or Internal/External virtual network mode."
-  }
-  validation {
-    condition     = !startswith(var.sku_name, "Consumption") || length(var.private_endpoints) == 0
-    error_message = "Private endpoints are not supported with the API Management Consumption SKU."
+    condition = length(var.private_endpoints) == 0 || (
+      var.virtual_network_type == "None" || can(regex("V2", var.sku_name))) && !startswith(var.sku_name, "Consumption")
+    error_message = "Private endpoints are not supported with Consumption SKU or when using Internal/External virtual network mode (unless using a V2 SKU)."
   }
 }
 
@@ -473,6 +470,14 @@ variable "virtual_network_type" {
     condition     = contains(["None", "External", "Internal"], var.virtual_network_type)
     error_message = "The virtual_network_type must be one of: None, External, or Internal."
   }
+}
+
+variable "virtual_network_configuration" {
+  type = object({
+    subnet_id = string
+  })
+  default     = null
+  description = "Virtual network configuration for the API Management service. Required when virtual_network_type is External or Internal."
 }
 
 variable "zones" {
