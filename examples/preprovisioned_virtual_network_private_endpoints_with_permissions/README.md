@@ -82,9 +82,9 @@ module "private_dns_apim" {
   source  = "Azure/avm-res-network-privatednszone/azurerm"
   version = "~> 0.2"
 
-  domain_name         = "privatelink.azure-api.net"
-  resource_group_name = azurerm_resource_group.this.name
-  enable_telemetry    = var.enable_telemetry
+  domain_name      = "privatelink.azure-api.net"
+  enable_telemetry = var.enable_telemetry
+  parent_id        = azurerm_resource_group.this.id
   virtual_network_links = {
     dnslink = {
       vnetlinkname = "privatelink-azure-api-net"
