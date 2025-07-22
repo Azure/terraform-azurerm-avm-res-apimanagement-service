@@ -25,14 +25,14 @@ provider "azurerm" {
 # This ensures we have unique CAF compliant names for our resources.
 module "naming" {
   source  = "Azure/naming/azurerm"
-  version = ">= 0.3"
+  version = 0.3
 }
 
 
 # Create a virtual network for testing if needed
 module "virtual_network" {
   source  = "Azure/avm-res-network-virtualnetwork/azurerm"
-  version = ">= 0.8.0"
+  version = "0.9.2"
 
   address_space       = ["10.0.0.0/16"]
   location            = azurerm_resource_group.this.location
@@ -57,7 +57,7 @@ module "virtual_network" {
 # Create a Private DNS Zone for API Management
 module "private_dns_apim" {
   source  = "Azure/avm-res-network-privatednszone/azurerm"
-  version = ">= 0.2"
+  version = "0.4.0"
 
   domain_name = "privatelink.azure-api.net"
   parent_id   = azurerm_resource_group.this.id
