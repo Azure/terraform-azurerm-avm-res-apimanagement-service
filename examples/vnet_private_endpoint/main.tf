@@ -4,7 +4,7 @@ terraform {
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~> 4.0"
+      version = ">= 4.0"
     }
   }
 }
@@ -25,14 +25,14 @@ provider "azurerm" {
 # This ensures we have unique CAF compliant names for our resources.
 module "naming" {
   source  = "Azure/naming/azurerm"
-  version = "~> 0.3"
+  version = "0.3.0"
 }
 
 
 # Create a virtual network for testing if needed
 module "virtual_network" {
   source  = "Azure/avm-res-network-virtualnetwork/azurerm"
-  version = "~> 0.8.0"
+  version = "0.9.2"
 
   address_space       = ["10.0.0.0/16"]
   location            = azurerm_resource_group.this.location
@@ -57,14 +57,15 @@ module "virtual_network" {
 # Create a Private DNS Zone for API Management
 module "private_dns_apim" {
   source  = "Azure/avm-res-network-privatednszone/azurerm"
-  version = "~> 0.2"
+  version = "0.4.0"
 
   domain_name = "privatelink.azure-api.net"
+  parent_id   = azurerm_resource_group.this.id
   # tags             = var.tags
-  enable_telemetry    = var.enable_telemetry
-  resource_group_name = azurerm_resource_group.this.name
+  enable_telemetry = var.enable_telemetry
   virtual_network_links = {
     dnslink = {
+      name         = "dnslink-azure-apim"
       vnetlinkname = "privatelink-azure-api-net"
       vnetid       = module.virtual_network.resource.id
     }

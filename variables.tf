@@ -307,12 +307,9 @@ DESCRIPTION
   nullable    = false
 
   validation {
-    condition     = var.virtual_network_type == "None" || length(var.private_endpoints) == 0
-    error_message = "Private endpoints cannot be used with API Management in Internal or External virtual network mode. Use either private endpoints (with virtual_network_type = None ) or Internal/External virtual network mode."
-  }
-  validation {
-    condition     = !startswith(var.sku_name, "Consumption") || length(var.private_endpoints) == 0
-    error_message = "Private endpoints are not supported with the API Management Consumption SKU."
+    condition = length(var.private_endpoints) == 0 || (
+    var.virtual_network_type == "None" || can(regex("StandardV2", var.sku_name))) && !startswith(var.sku_name, "Consumption")
+    error_message = "Private endpoints are not supported with Consumption SKU or when using Internal/External virtual network mode (unless using StandardV2 SKU)."
   }
 }
 
