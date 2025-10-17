@@ -113,3 +113,23 @@ output "workspace_identity" {
     type         = try(azurerm_api_management.this.identity[0].type, null)
   }
 }
+
+# Named Values outputs
+output "named_values" {
+  description = "A map of named values created in the API Management service."
+  value = {
+    for k, v in azurerm_api_management_named_value.this : k => {
+      id           = v.id
+      name         = v.name
+      display_name = v.display_name
+      secret       = v.secret
+    }
+  }
+}
+
+output "named_value_ids" {
+  description = "A map of named value keys to their resource IDs."
+  value = {
+    for k, v in azurerm_api_management_named_value.this : k => v.id
+  }
+}

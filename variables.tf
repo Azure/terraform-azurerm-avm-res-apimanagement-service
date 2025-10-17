@@ -482,3 +482,75 @@ variable "zones" {
     error_message = "Availability Zones are only supported in the Premium tier."
   }
 }
+
+# Named Values for configuration and secrets management
+variable "named_values" {
+  type = map(object({
+    display_name = string
+    value        = optional(string)
+    secret       = optional(bool, false)
+    tags         = optional(list(string), [])
+    value_from_key_vault = optional(object({
+      secret_id          = string
+      identity_client_id = optional(string)
+    }))
+  }))
+  default     = {}
+  description = <<DESCRIPTION
+Named values for the API Management service. Named values are a collection of key/value pairs that can be referenced in policies and API configurations.
+
+- `display_name` - (Required) The display name of the named value. Must be unique within the API Management service.
+- `value` - (Optional) The value of the named value. Conflicts with `value_from_key_vault`. If neither is specified, the named value must be set through other means.
+- `secret` - (Optional) Whether the value is a secret and should be encrypted. Defaults to `false`.
+- `tags` - (Optional) A list of tags that can be used to filter the named values list.
+- `value_from_key_vault` - (Optional) A Key Vault configuration for secret values. Conflicts with `value`.
+  - `secret_id` - (Required) The versioned secret ID from Key Vault (e.g., `https://myvault.vault.azure.net/secrets/mysecret/version`).
+  - `identity_client_id` - (Optional) The client ID of a user-assigned managed identity to use for Key Vault access. If not specified, the system-assigned identity will be used.
+
+Example:
+```terraform
+named_values = {
+  "api-key" = {
+    display_name = "API Key"
+    value        = "my-secret-key"
+    secret       = true
+    tags         = ["production", "api"]
+  }
+  "keyvault-secret" = {
+    display_name = "Database Connection String"
+    secret       = true
+    value_from_key_vault = {
+      secret_id = "https://myvault.vault.azure.net/secrets/db-conn/abc123"
+    }
+  }
+}
+```
+DESCRIPTION
+  nullable    = false
+
+  validation {
+    condition = alltrue([
+      for k, v in var.named_values :
+      v.display_name != null && v.display_name != ""
+    ])
+    error_message = "All named values must have a non-empty display_name."
+  }
+
+  validation {
+    condition = alltrue([
+      for k, v in var.named_values :
+      (v.value != null && v.value_from_key_vault == null) ||
+      (v.value == null && v.value_from_key_vault != null) ||
+      (v.value == null && v.value_from_key_vault == null)
+    ])
+    error_message = "Each named value must specify either 'value' or 'value_from_key_vault', but not both."
+  }
+
+  validation {
+    condition = alltrue([
+      for k, v in var.named_values :
+      can(regex("^[a-zA-Z0-9-._]+$", k))
+    ])
+    error_message = "Named value keys can only contain letters, numbers, hyphens, periods, and underscores."
+  }
+}
