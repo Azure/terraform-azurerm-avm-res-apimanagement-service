@@ -30,4 +30,24 @@ locals {
     ]
   ]) : "${assoc.pe_key}-${assoc.asg_key}" => assoc }
   role_definition_resource_substring = "/providers/Microsoft.Authorization/roleDefinitions"
+
+  # Flatten API operations into a single map for resource creation
+  api_operations = merge([
+    for api_key, api in var.apis : {
+      for op_key, op in api.operations : "${api_key}-${op_key}" => merge(op, {
+        api_key = api_key
+      })
+    }
+  ]...)
+
+  # Flatten operation-level policies into a single map
+  operation_policies = merge([
+    for api_key, api in var.apis : {
+      for op_key, op in api.operations : "${api_key}-${op_key}" => {
+        api_key     = api_key
+        xml_content = op.policy != null ? op.policy.xml_content : null
+        xml_link    = op.policy != null ? op.policy.xml_link : null
+      } if op.policy != null
+    }
+  ]...)
 }

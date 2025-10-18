@@ -554,3 +554,315 @@ DESCRIPTION
     error_message = "Named value keys can only contain letters, numbers, hyphens, periods, and underscores."
   }
 }
+
+# API Version Sets for managing API versions
+variable "api_version_sets" {
+  type = map(object({
+    display_name        = string
+    versioning_scheme   = string
+    description         = optional(string)
+    version_header_name = optional(string)
+    version_query_name  = optional(string)
+  }))
+  default     = {}
+  description = <<DESCRIPTION
+API Version Sets for the API Management service. Version sets enable API versioning using Header, Query, or Segment-based schemes.
+
+- `display_name` - (Required) The display name of the API version set.
+- `versioning_scheme` - (Required) The versioning scheme. Valid values: `Header`, `Query`, `Segment`.
+- `description` - (Optional) Description of the API version set.
+- `version_header_name` - (Optional) Name of the HTTP header parameter for the `Header` versioning scheme. Required when `versioning_scheme` is `Header`.
+- `version_query_name` - (Optional) Name of the query string parameter for the `Query` versioning scheme. Required when `versioning_scheme` is `Query`.
+
+Example:
+```terraform
+api_version_sets = {
+  "my-api-versions" = {
+    display_name        = "My API Versions"
+    versioning_scheme   = "Header"
+    version_header_name = "api-version"
+    description         = "Version set for My API"
+  }
+}
+```
+DESCRIPTION
+  nullable    = false
+
+  validation {
+    condition = alltrue([
+      for k, v in var.api_version_sets :
+      contains(["Header", "Query", "Segment"], v.versioning_scheme)
+    ])
+    error_message = "versioning_scheme must be one of: Header, Query, Segment."
+  }
+
+  validation {
+    condition = alltrue([
+      for k, v in var.api_version_sets :
+      v.versioning_scheme != "Header" || v.version_header_name != null
+    ])
+    error_message = "version_header_name is required when versioning_scheme is 'Header'."
+  }
+
+  validation {
+    condition = alltrue([
+      for k, v in var.api_version_sets :
+      v.versioning_scheme != "Query" || v.version_query_name != null
+    ])
+    error_message = "version_query_name is required when versioning_scheme is 'Query'."
+  }
+}
+
+# APIs - Core API definitions with operations and policies
+variable "apis" {
+  type = map(object({
+    # Basic API properties
+    display_name          = string
+    path                  = string
+    protocols             = optional(list(string), ["https"])
+    revision              = optional(string, "1")
+    service_url           = optional(string)
+    description           = optional(string)
+    subscription_required = optional(bool, true)
+
+    # API versioning
+    api_version          = optional(string)
+    api_version_set_name = optional(string)
+    revision_description = optional(string)
+
+    # SOAP API settings
+    soap_pass_through = optional(bool)
+    api_type          = optional(string)
+
+    # Import configuration (OpenAPI, WSDL, WADL, etc.)
+    import = optional(object({
+      content_format = string
+      content_value  = string
+      wsdl_selector = optional(object({
+        service_name  = string
+        endpoint_name = string
+      }))
+    }))
+
+    # Source API for cloning
+    source_api_id = optional(string)
+
+    # OAuth2 Authorization
+    oauth2_authorization = optional(object({
+      authorization_server_name = string
+      scope                     = optional(string)
+    }))
+
+    # OpenID Connect Authentication
+    openid_authentication = optional(object({
+      openid_provider_name         = string
+      bearer_token_sending_methods = optional(list(string))
+    }))
+
+    # Subscription key parameter names
+    subscription_key_parameter_names = optional(object({
+      header = string
+      query  = string
+    }))
+
+    # Contact information
+    contact = optional(object({
+      email = optional(string)
+      name  = optional(string)
+      url   = optional(string)
+    }))
+
+    # License information
+    license = optional(object({
+      name = optional(string)
+      url  = optional(string)
+    }))
+
+    terms_of_service_url = optional(string)
+
+    # API-level policy
+    policy = optional(object({
+      xml_content = optional(string)
+      xml_link    = optional(string)
+    }))
+
+    # API operations
+    operations = optional(map(object({
+      display_name = string
+      method       = string
+      url_template = string
+      description  = optional(string)
+
+      # Template parameters (URL path parameters)
+      template_parameters = optional(list(object({
+        name          = string
+        required      = bool
+        type          = string
+        description   = optional(string)
+        default_value = optional(string)
+        values        = optional(list(string))
+      })))
+
+      # Request configuration
+      request = optional(object({
+        description = optional(string)
+
+        query_parameters = optional(list(object({
+          name          = string
+          required      = bool
+          type          = string
+          description   = optional(string)
+          default_value = optional(string)
+          values        = optional(list(string))
+        })))
+
+        headers = optional(list(object({
+          name          = string
+          required      = bool
+          type          = string
+          description   = optional(string)
+          default_value = optional(string)
+          values        = optional(list(string))
+        })))
+
+        representations = optional(list(object({
+          content_type = string
+          sample       = optional(string)
+          schema_id    = optional(string)
+          type_name    = optional(string)
+
+          form_parameters = optional(list(object({
+            name          = string
+            required      = bool
+            type          = string
+            description   = optional(string)
+            default_value = optional(string)
+            values        = optional(list(string))
+          })))
+        })))
+      }))
+
+      # Response configuration
+      responses = optional(list(object({
+        status_code = number
+        description = optional(string)
+
+        headers = optional(list(object({
+          name          = string
+          required      = bool
+          type          = string
+          description   = optional(string)
+          default_value = optional(string)
+          values        = optional(list(string))
+        })))
+
+        representations = optional(list(object({
+          content_type = string
+          sample       = optional(string)
+          schema_id    = optional(string)
+          type_name    = optional(string)
+
+          form_parameters = optional(list(object({
+            name          = string
+            required      = bool
+            type          = string
+            description   = optional(string)
+            default_value = optional(string)
+            values        = optional(list(string))
+          })))
+        })))
+      })))
+
+      # Operation-level policy
+      policy = optional(object({
+        xml_content = optional(string)
+        xml_link    = optional(string)
+      }))
+    })), {})
+  }))
+  default     = {}
+  description = <<DESCRIPTION
+APIs for the API Management service. APIs define the operations available to API consumers.
+
+- `display_name` - (Required) The display name of the API.
+- `path` - (Required) The relative path for the API. Must be unique within the API Management service.
+- `protocols` - (Optional) A list of protocols the API supports. Valid values: `http`, `https`, `ws`, `wss`. Defaults to `["https"]`.
+- `revision` - (Optional) The revision number of the API. Defaults to `"1"`.
+- `service_url` - (Optional) The backend service URL for the API.
+- `description` - (Optional) Description of the API.
+- `subscription_required` - (Optional) Whether a subscription key is required to access the API. Defaults to `true`.
+
+Versioning:
+- `api_version` - (Optional) The version identifier for the API.
+- `api_version_set_name` - (Optional) The name of the API version set to associate with this API.
+- `revision_description` - (Optional) Description of the API revision.
+
+SOAP API:
+- `soap_pass_through` - (Optional) Whether this is a SOAP pass-through API.
+- `api_type` - (Optional) The type of API. Valid values: `graphql`, `http`, `soap`, `websocket`.
+
+Import:
+- `import` - (Optional) Import configuration for OpenAPI, WSDL, WADL specifications.
+  - `content_format` - (Required) Format of the content. Valid values: `openapi`, `openapi+json`, `openapi+json-link`, `openapi-link`, `swagger-json`, `swagger-link-json`, `wadl-link-json`, `wadl-xml`, `wsdl`, `wsdl-link`.
+  - `content_value` - (Required) The API definition content or URL.
+  - `wsdl_selector` - (Optional) WSDL selector for SOAP APIs.
+
+Operations:
+- `operations` - (Optional) Map of API operations. Each operation defines an HTTP method and URL template.
+
+Policies:
+- `policy` - (Optional) API-level policy configuration.
+  - `xml_content` - (Optional) XML policy content.
+  - `xml_link` - (Optional) URL to XML policy content.
+
+Example:
+```terraform
+apis = {
+  "petstore-api" = {
+    display_name = "Petstore API"
+    path         = "petstore"
+    protocols    = ["https"]
+    service_url  = "https://petstore.swagger.io/v2"
+    
+    operations = {
+      "get-pets" = {
+        display_name = "Get all pets"
+        method       = "GET"
+        url_template = "/pets"
+      }
+    }
+  }
+}
+```
+DESCRIPTION
+  nullable    = false
+
+  validation {
+    condition = alltrue([
+      for k, v in var.apis :
+      can(regex("^[^*#&+:<>?]+$", v.path))
+    ])
+    error_message = "API path cannot contain the following characters: *, #, &, +, :, <, >, ?."
+  }
+
+  validation {
+    condition = alltrue([
+      for k, v in var.apis :
+      alltrue([
+        for protocol in v.protocols :
+        contains(["http", "https", "ws", "wss"], protocol)
+      ])
+    ])
+    error_message = "API protocols must be one of: http, https, ws, wss."
+  }
+
+  validation {
+    condition = alltrue(flatten([
+      for k, v in var.apis : [
+        for op_k, op_v in v.operations :
+        contains(["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS", "TRACE"], op_v.method)
+      ]
+    ]))
+    error_message = "API operation method must be one of: GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS, TRACE."
+  }
+}

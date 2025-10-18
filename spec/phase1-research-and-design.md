@@ -1,7 +1,7 @@
 # Phase 1: Foundation & Planning - Research and Design
 
-**Date:** 2025-10-17  
-**Status:** In Progress  
+**Date:** 2025-10-17
+**Status:** In Progress
 **Goal:** Set up structure and understand requirements for Core API Management features
 
 ---
@@ -75,23 +75,23 @@ apis: [
     apiType: string                 // Optional: 'http' | 'soap' | 'websocket' | 'graphql'
     type: string                    // Optional: 'http' | 'soap' | 'websocket' | 'graphql'
     protocols: array                // Optional: ['http', 'https']
-    
+
     // Import Support
     format: string                  // Optional: 'openapi' | 'openapi-link' | 'openapi+json' | 'wsdl' | etc.
     value: string                   // Optional: API definition content or URL
-    
+
     // Versioning
     apiVersion: string              // Optional
     apiVersionSetName: string       // Optional (references version set)
     apiRevision: string             // Optional
     apiRevisionDescription: string  // Optional
     isCurrent: bool                 // Optional
-    
+
     // Security & Access
     subscriptionRequired: bool      // Optional
     subscriptionKeyParameterNames: object  // Optional
     authenticationSettings: object  // Optional
-    
+
     // Child Resources
     operations: [                   // Optional
       {
@@ -112,7 +112,7 @@ apis: [
         ]
       }
     ]
-    
+
     policies: [                     // API-level policies
       {
         name: string
@@ -120,7 +120,7 @@ apis: [
         value: string
       }
     ]
-    
+
     diagnostics: array              // Optional
   }
 ]
@@ -149,7 +149,7 @@ products: [
     approvalRequired: bool         // Optional
     subscriptionsLimit: int        // Optional
     state: string                  // Optional: 'notPublished' | 'published'
-    
+
     // Associations
     apis: array                    // Optional (array of API names)
     groups: array                  // Optional (array of group names)
@@ -237,27 +237,27 @@ policies: [
 ```mermaid
 graph TD
     APIM[API Management Service]
-    
+
     APIM --> NV[Named Values]
     APIM --> AVS[API Version Sets]
     APIM --> API[APIs]
     APIM --> PROD[Products]
     APIM --> SUB[Subscriptions]
     APIM --> SPOL[Service Policy]
-    
+
     AVS --> API
     API --> APIOP[API Operations]
     API --> APIPOL[API Policy]
     APIOP --> OPPOL[Operation Policy]
-    
+
     API --> PRODAPI[Product-API Links]
     PROD --> PRODAPI
-    
+
     PROD --> PRODGRP[Product-Group Links]
-    
+
     API --> SUB
     PROD --> SUB
-    
+
     NV -.-> APIPOL
     NV -.-> OPPOL
     NV -.-> SPOL
@@ -290,7 +290,7 @@ variable "named_values" {
     value        = optional(string)        # Conflicts with key_vault
     secret       = optional(bool, false)
     tags         = optional(list(string), [])
-    
+
     key_vault = optional(object({
       secret_id        = string
       identity_client_id = optional(string)
@@ -309,7 +309,7 @@ Named values for the API Management service. The map key is the named value name
   - `identity_client_id` - (Optional) The client ID of the managed identity for Key Vault access.
 DESCRIPTION
   nullable    = false
-  
+
   validation {
     condition = alltrue([
       for k, v in var.named_values :
@@ -342,7 +342,7 @@ API Version Sets for the API Management service. The map key is the version set 
 - `version_query_name` - (Optional) Name of the query parameter for `Query` scheme.
 DESCRIPTION
   nullable    = false
-  
+
   validation {
     condition = alltrue([
       for k, v in var.api_version_sets :
@@ -350,7 +350,7 @@ DESCRIPTION
     ])
     error_message = "versioning_scheme must be one of: Header, Query, Segment."
   }
-  
+
   validation {
     condition = alltrue([
       for k, v in var.api_version_sets :
@@ -358,7 +358,7 @@ DESCRIPTION
     ])
     error_message = "version_header_name is required when versioning_scheme is 'Header'."
   }
-  
+
   validation {
     condition = alltrue([
       for k, v in var.api_version_sets :
@@ -378,22 +378,22 @@ variable "apis" {
     path            = string
     service_url     = optional(string)
     protocols       = optional(list(string), ["https"])
-    
+
     # Import configuration
     import = optional(object({
       format      = string  # openapi, openapi-link, wsdl, etc.
       content_value = string  # API definition or URL
     }))
-    
+
     # Versioning
     api_version          = optional(string)
     api_version_set_name = optional(string)  # References version set
     revision             = optional(string)
     revision_description = optional(string)
-    
+
     # Access control
     subscription_required = optional(bool, true)
-    
+
     # Operations
     operations = optional(map(object({
       display_name       = string
@@ -407,7 +407,7 @@ variable "apis" {
         description = optional(string)
       })), [])
     })), {})
-    
+
     # Policies
     policy = optional(object({
       xml_content = string
@@ -432,7 +432,7 @@ variable "products" {
     approval_required     = optional(bool, false)
     subscriptions_limit   = optional(number)
     state                 = optional(string, "published")  # published, notPublished
-    
+
     # Associations
     api_names   = optional(list(string), [])
     group_names = optional(list(string), [])
@@ -440,7 +440,7 @@ variable "products" {
   default     = {}
   description = "Products for the API Management service."
   nullable    = false
-  
+
   validation {
     condition = alltrue([
       for k, v in var.products :
@@ -468,7 +468,7 @@ variable "subscriptions" {
   description = "Subscriptions for the API Management service."
   nullable    = false
   sensitive   = true
-  
+
   validation {
     condition = alltrue([
       for k, v in var.subscriptions :
@@ -496,7 +496,7 @@ Service-level policy for the API Management service.
 
 Note: Specify either `xml_content` or `xml_link`, not both.
 DESCRIPTION
-  
+
   validation {
     condition = var.service_policy == null || (
       (var.service_policy.xml_content != null && var.service_policy.xml_link == null) ||

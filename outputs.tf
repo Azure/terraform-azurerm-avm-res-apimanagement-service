@@ -133,3 +133,76 @@ output "named_value_ids" {
     for k, v in azurerm_api_management_named_value.this : k => v.id
   }
 }
+
+# API Version Sets outputs
+output "api_version_sets" {
+  description = "A map of API version sets created in the API Management service."
+  value = {
+    for k, v in azurerm_api_management_api_version_set.this : k => {
+      id                  = v.id
+      name                = v.name
+      display_name        = v.display_name
+      versioning_scheme   = v.versioning_scheme
+      version_header_name = v.version_header_name
+      version_query_name  = v.version_query_name
+    }
+  }
+}
+
+output "api_version_set_ids" {
+  description = "A map of API version set names to their resource IDs."
+  value = {
+    for k, v in azurerm_api_management_api_version_set.this : k => v.id
+  }
+}
+
+# APIs outputs
+output "apis" {
+  description = "A map of APIs created in the API Management service."
+  value = {
+    for k, v in azurerm_api_management_api.this : k => {
+      id                    = v.id
+      name                  = v.name
+      api_type              = v.api_type
+      display_name          = v.display_name
+      path                  = v.path
+      protocols             = v.protocols
+      revision              = v.revision
+      version               = v.version
+      version_set_id        = v.version_set_id
+      subscription_required = v.subscription_required
+      service_url           = v.service_url
+      is_current            = v.is_current
+      is_online             = v.is_online
+    }
+  }
+}
+
+output "api_ids" {
+  description = "A map of API names to their resource IDs."
+  value = {
+    for k, v in azurerm_api_management_api.this : k => v.id
+  }
+}
+
+# API Operations outputs
+output "api_operations" {
+  description = "A map of API operations created in the API Management service."
+  value = {
+    for k, v in azurerm_api_management_api_operation.this : k => {
+      id           = v.id
+      operation_id = v.operation_id
+      api_name     = v.api_name
+      display_name = v.display_name
+      method       = v.method
+      url_template = v.url_template
+    }
+  }
+}
+
+output "api_operation_ids" {
+  description = "A map of API operation keys to their operation IDs."
+  value = {
+    for k, v in azurerm_api_management_api_operation.this : k => v.operation_id
+  }
+}

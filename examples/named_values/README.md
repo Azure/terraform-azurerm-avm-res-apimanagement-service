@@ -30,7 +30,7 @@ module "apim_with_named_values" {
       value        = "https://api.contoso.com"
       tags         = ["configuration", "url"]
     }
-    
+
     # Secret value (encrypted at rest in APIM)
     "api-key" = {
       display_name = "Third Party API Key"
@@ -38,7 +38,7 @@ module "apim_with_named_values" {
       secret       = true
       tags         = ["secret", "api", "production"]
     }
-    
+
     # Key Vault backed secret
     "database-connection-string" = {
       display_name = "Database Connection String"
@@ -48,7 +48,7 @@ module "apim_with_named_values" {
       }
       tags = ["database", "secret"]
     }
-    
+
     # Environment indicator
     "environment" = {
       display_name = "Environment"
