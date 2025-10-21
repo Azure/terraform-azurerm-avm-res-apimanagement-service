@@ -77,7 +77,6 @@ module "apim" {
               representations = [
                 {
                   content_type = "application/json"
-                  sample       = jsonencode([{ id = 1, name = "Fluffy", category = "cat" }])
                 }
               ]
             }
@@ -106,7 +105,6 @@ module "apim" {
               representations = [
                 {
                   content_type = "application/json"
-                  sample       = jsonencode({ id = 1, name = "Fluffy", category = "cat" })
                 }
               ]
             },
@@ -128,11 +126,6 @@ module "apim" {
             representations = [
               {
                 content_type = "application/json"
-                sample = jsonencode({
-                  name     = "Fluffy"
-                  category = "cat"
-                  status   = "available"
-                })
               }
             ]
           }
@@ -144,7 +137,6 @@ module "apim" {
               representations = [
                 {
                   content_type = "application/json"
-                  sample       = jsonencode({ id = 1, name = "Fluffy", category = "cat", status = "available" })
                 }
               ]
             }
@@ -171,11 +163,6 @@ module "apim" {
             representations = [
               {
                 content_type = "application/json"
-                sample = jsonencode({
-                  name     = "Fluffy Updated"
-                  category = "cat"
-                  status   = "sold"
-                })
               }
             ]
           }
@@ -263,12 +250,6 @@ module "apim" {
               representations = [
                 {
                   content_type = "application/json"
-                  sample = jsonencode({
-                    city        = "Seattle"
-                    temperature = 15.5
-                    humidity    = 75
-                    conditions  = "Partly cloudy"
-                  })
                 }
               ]
             }

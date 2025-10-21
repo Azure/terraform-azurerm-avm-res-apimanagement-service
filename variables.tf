@@ -630,10 +630,6 @@ variable "apis" {
     api_version_set_name = optional(string)
     revision_description = optional(string)
 
-    # SOAP API settings
-    soap_pass_through = optional(bool)
-    api_type          = optional(string)
-
     # Import configuration (OpenAPI, WSDL, WADL, etc.)
     import = optional(object({
       content_format = string
@@ -727,7 +723,6 @@ variable "apis" {
 
         representations = optional(list(object({
           content_type = string
-          sample       = optional(string)
           schema_id    = optional(string)
           type_name    = optional(string)
 
@@ -758,7 +753,6 @@ variable "apis" {
 
         representations = optional(list(object({
           content_type = string
-          sample       = optional(string)
           schema_id    = optional(string)
           type_name    = optional(string)
 
@@ -797,10 +791,6 @@ Versioning:
 - `api_version_set_name` - (Optional) The name of the API version set to associate with this API.
 - `revision_description` - (Optional) Description of the API revision.
 
-SOAP API:
-- `soap_pass_through` - (Optional) Whether this is a SOAP pass-through API.
-- `api_type` - (Optional) The type of API. Valid values: `graphql`, `http`, `soap`, `websocket`.
-
 Import:
 - `import` - (Optional) Import configuration for OpenAPI, WSDL, WADL specifications.
   - `content_format` - (Required) Format of the content. Valid values: `openapi`, `openapi+json`, `openapi+json-link`, `openapi-link`, `swagger-json`, `swagger-link-json`, `wadl-link-json`, `wadl-xml`, `wsdl`, `wsdl-link`.
@@ -823,7 +813,7 @@ apis = {
     path         = "petstore"
     protocols    = ["https"]
     service_url  = "https://petstore.swagger.io/v2"
-    
+
     operations = {
       "get-pets" = {
         display_name = "Get all pets"

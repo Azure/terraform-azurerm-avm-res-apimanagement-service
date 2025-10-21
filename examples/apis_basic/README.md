@@ -33,14 +33,14 @@ The example demonstrates:
 ```hcl
 module "apim" {
   source = "Azure/avm-res-apimanagement-service/azurerm"
-  
+
   apis = {
     "petstore-api" = {
       display_name = "Petstore API"
       path         = "petstore"
       protocols    = ["https"]
       service_url  = "https://petstore.swagger.io/v2"
-      
+
       operations = {
         "get-pets" = {
           display_name = "Get all pets"

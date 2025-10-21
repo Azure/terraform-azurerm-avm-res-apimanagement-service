@@ -88,7 +88,7 @@ apis = {
   "my-api" = {
     display_name = "My API"
     path         = "myapi"
-    
+
     # API-level policy
     policy = {
       xml_content = <<XML
@@ -102,7 +102,7 @@ apis = {
 </policies>
 XML
     }
-    
+
     operations = {
       "my-operation" = {
         # Operation-level policy

@@ -34,7 +34,7 @@ apis = {
   "my-api" = {
     display_name = "My API"
     path         = "myapi"
-    
+
     import = {
       content_format = "openapi+json"
       content_value  = jsonencode({
@@ -54,7 +54,7 @@ apis = {
   "my-api" = {
     display_name = "My API"
     path         = "myapi"
-    
+
     import = {
       content_format = "openapi-link"
       content_value  = "https://example.com/openapi.json"

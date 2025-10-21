@@ -37,10 +37,6 @@ resource "azurerm_api_management_api" "this" {
   description          = each.value.description
   revision_description = each.value.revision_description
 
-  # SOAP API settings
-  soap_pass_through = each.value.soap_pass_through
-  api_type          = each.value.api_type
-
   # OAuth2 Authorization
   dynamic "oauth2_authorization" {
     for_each = each.value.oauth2_authorization != null ? [each.value.oauth2_authorization] : []
@@ -78,9 +74,14 @@ resource "azurerm_api_management_api" "this" {
     content {
       content_format = import.value.content_format
       content_value  = import.value.content_value
-      wsdl_selector {
-        service_name  = import.value.wsdl_selector != null ? import.value.wsdl_selector.service_name : null
-        endpoint_name = import.value.wsdl_selector != null ? import.value.wsdl_selector.endpoint_name : null
+
+      dynamic "wsdl_selector" {
+        for_each = import.value.wsdl_selector != null ? [import.value.wsdl_selector] : []
+
+        content {
+          service_name  = wsdl_selector.value.service_name
+          endpoint_name = wsdl_selector.value.endpoint_name
+        }
       }
     }
   }
@@ -168,7 +169,6 @@ resource "azurerm_api_management_api_operation" "this" {
 
         content {
           content_type = representation.value.content_type
-          sample       = representation.value.sample
           schema_id    = representation.value.schema_id
           type_name    = representation.value.type_name
 
@@ -215,7 +215,6 @@ resource "azurerm_api_management_api_operation" "this" {
 
         content {
           content_type = representation.value.content_type
-          sample       = representation.value.sample
           schema_id    = representation.value.schema_id
           type_name    = representation.value.type_name
 
