@@ -529,6 +529,44 @@ terraform-azurerm-avm-res-apimanagement-service/
 └── locals.tf                        # MODIFIED - Add helper locals
 ```
 
+### Example Strategy
+
+**Philosophy:** Single comprehensive example instead of multiple feature-specific examples.
+
+**Rationale:**
+
+- `examples/default/` already demonstrates minimal APIM without APIs
+- A single `examples/complete/` will show all features integrated together
+- Reduces maintenance burden, CI/CD time, and cognitive overhead
+- More realistic real-world usage pattern
+- Features can be documented through README and in-code comments
+
+**Proposed Examples for This PR:**
+
+```text
+examples/
+├── default/              # ✅ Existing - Minimal APIM (no changes)
+├── complete/             # 🆕 NEW - Comprehensive example with:
+│                         #   - Named values (plain, secret, Key Vault)
+│                         #   - API version sets (Header/Query/Segment)
+│                         #   - APIs (basic + OpenAPI import)
+│                         #   - API operations with parameters
+│                         #   - API policies (API-level + operation-level)
+│                         #   - Products (basic + approval workflow)
+│                         #   - Product-API associations
+│                         #   - Subscriptions (product/API/all-APIs scoped)
+│                         #   - Service-level policy
+└── [other existing examples remain unchanged]
+```
+
+**Total New Examples:** 1 (`complete/`)
+
+**Note on Testing:**
+
+- Automated tests will be deferred to future work
+- Manual testing will be performed using the `complete/` example
+- AVM validation checks (`./avm pre-commit` and `./avm pr-check`) will be run
+
 ---
 
 ## 6. Key Patterns from Existing Module
@@ -581,6 +619,7 @@ validation {
 ## 7. Next Steps
 
 ### Immediate Tasks
+
 - [x] Complete Bicep analysis
 - [x] Document all resources
 - [x] Map dependencies
@@ -590,6 +629,7 @@ validation {
 - [ ] Begin Phase 2 implementation
 
 ### Questions for Review
+
 1. Should API operations be in a separate file or combined with APIs?
 2. Should policies be in a separate file or combined with APIs?
 3. Do we need additional validation rules?
@@ -600,6 +640,7 @@ validation {
 ## Status Summary
 
 ✅ **Completed:**
+
 - Bicep module analysis
 - Resource inventory and documentation
 - Dependency mapping
@@ -607,6 +648,7 @@ validation {
 - File structure planning
 
 ⏳ **Pending Review:**
+
 - Variable designs approval
 - File organization decisions
 - Additional validation requirements
