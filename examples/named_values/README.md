@@ -9,6 +9,57 @@ This example demonstrates how to create named values in API Management, includin
 - Key Vault integration for secrets
 - Named values with tags for filtering
 
+## Important: Key Vault Access Policy Management
+
+Following the **Azure Verified Modules (AVM) Bicep pattern**, Key Vault access policy management is the **user's responsibility**. This approach:
+
+- ✅ Avoids Terraform circular dependency issues
+- ✅ Provides flexibility in deployment strategies
+- ✅ Aligns with AVM Bicep module design
+- ✅ Allows proper separation of concerns
+
+### Deployment Options
+
+#### Option 1: Two-Step Deployment (Recommended for First-Time Setup)
+
+**Step 1:** Deploy APIM without Key Vault-backed named values
+
+```bash
+# Comment out the 'database-connection-string' named value in main.tf
+terraform init
+terraform apply
+```
+
+**Step 2:** Grant Key Vault access using Azure CLI
+
+```bash
+az keyvault set-policy \
+  --name $(terraform output -raw key_vault_name) \
+  --object-id $(terraform output -raw apim_identity_principal_id) \
+  --secret-permissions get list
+```
+
+**Step 3:** Add Key Vault-backed named values
+
+```bash
+# Uncomment the 'database-connection-string' named value in main.tf
+terraform apply
+```
+
+#### Option 2: Manual Access Policy with Portal/CLI (Before Deployment)
+
+If you prefer to grant access before deploying APIM:
+
+```bash
+# Create APIM first (you'll need the principal_id from a prior deployment or create identity separately)
+# Then use Portal or CLI to grant Key Vault access
+# Then run full terraform apply with all named values
+```
+
+#### Option 3: Automated with Terraform (Advanced)
+
+Uncomment the `azurerm_key_vault_access_policy` resource in `main.tf`. This creates a dependency that Terraform can handle, but may still require the two-step deployment for initial setup.
+
 ## Usage
 
 ```terraform
@@ -100,28 +151,51 @@ When using Key Vault integration:
 
 1. **Managed Identity**: APIM must have a managed identity (system-assigned or user-assigned)
 2. **Key Vault Access Policy**: Grant the identity "Get" and "List" permissions on secrets
-3. **Secret URL**: Use the versioned secret URL format: `https://{vault-name}.vault.azure.net/secrets/{secret-name}/{version}`
+3. **Secret ID Format**: Use versionless or versioned secret identifier
 
-Example Key Vault access policy:
+### Required Permissions
+
+The APIM managed identity needs the following Key Vault permissions:
+
+- **Secret Permissions**: `Get`, `List`
+
+### Azure CLI Example
+
+```bash
+# Grant access to APIM system-assigned identity
+az keyvault set-policy \
+  --name <key-vault-name> \
+  --object-id <apim-identity-principal-id> \
+  --secret-permissions get list
+```
+
+### Terraform Example (Optional)
+
+If you choose to manage the access policy with Terraform, uncomment this resource in `main.tf`:
 
 ```terraform
 resource "azurerm_key_vault_access_policy" "apim" {
   key_vault_id = azurerm_key_vault.this.id
   tenant_id    = data.azurerm_client_config.current.tenant_id
-  object_id    = module.apim_with_named_values.workspace_identity.principal_id
+  object_id    = module.apim.workspace_identity.principal_id
 
   secret_permissions = [
     "Get",
     "List",
   ]
+
+  depends_on = [module.apim]
 }
 ```
+
+**Note**: Using Terraform for access policy may require two-step deployment (see above).
 
 ## Tags and Filtering
 
 Named values can be tagged for organizational purposes. These tags can be used to filter named values in the Azure Portal and through the API Management REST API.
 
 Common tag patterns:
+
 - **Environment**: `production`, `staging`, `development`
 - **Type**: `configuration`, `secret`, `url`, `api-key`
 - **Service**: `database`, `api`, `storage`

@@ -109,6 +109,8 @@ module "apim" {
     }
 
     # Key Vault backed secret
+    # NOTE: Requires Key Vault access to be granted to APIM system-assigned identity before deployment
+    # See README.md for setup instructions
     "database-connection-string" = {
       display_name = "Database-Connection-String"
       secret       = true
@@ -143,16 +145,45 @@ module "apim" {
   ]
 }
 
-# Grant APIM access to Key Vault
-resource "azurerm_key_vault_access_policy" "apim" {
-  key_vault_id = azurerm_key_vault.this.id
-  object_id    = module.apim.workspace_identity.principal_id
-  tenant_id    = data.azurerm_client_config.current.tenant_id
+# IMPORTANT: Key Vault Access Policy Management
+# ============================================
+# Following the Bicep AVM pattern, Key Vault access policy management is the user's responsibility.
+# This allows flexibility in deployment strategies and avoids Terraform circular dependencies.
+#
+# Two deployment options:
+#
+# Option 1: Two-step deployment (Recommended for first-time setup)
+# ----------------------------------------------------------------
+# Step 1: Comment out the database-connection-string named value above, then:
+#         terraform apply
+#         (This creates APIM with system-assigned identity)
+#
+# Step 2: Grant Key Vault access using Azure CLI:
+#         az keyvault set-policy \
+#           --name $(terraform output -raw key_vault_name) \
+#           --object-id $(terraform output -raw apim_identity_principal_id) \
+#           --secret-permissions get list
+#
+# Step 3: Uncomment the database-connection-string named value above, then:
+#         terraform apply
+#         (This adds the Key Vault-backed named value)
+#
+# Option 2: Automated with separate access policy resource (shown below)
+# -----------------------------------------------------------------------
+# Uncomment the azurerm_key_vault_access_policy resource below for automated deployment.
+# Note: This creates a circular dependency that Terraform handles, but may require
+# commenting out the KV named value for first apply, then uncommenting for second apply.
 
-  secret_permissions = [
-    "Get",
-    "List",
-  ]
-
-  depends_on = [module.apim]
-}
+# Uncomment to automate Key Vault access policy creation:
+# resource "azurerm_key_vault_access_policy" "apim" {
+#   key_vault_id = azurerm_key_vault.this.id
+#   object_id    = module.apim.workspace_identity.principal_id
+#   tenant_id    = data.azurerm_client_config.current.tenant_id
+#
+#   secret_permissions = [
+#     "Get",
+#     "List",
+#   ]
+#
+#   depends_on = [module.apim]
+# }
