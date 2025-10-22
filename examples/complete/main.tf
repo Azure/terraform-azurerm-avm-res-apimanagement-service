@@ -584,6 +584,52 @@ module "apim" {
     }
   }
 
+  # Service-level (global) policy
+  policy = {
+    xml_content = <<XML
+<policies>
+  <inbound>
+    <base />
+    <!-- Global CORS policy -->
+    <cors allow-credentials="true">
+      <allowed-origins>
+        <origin>https://contoso.com</origin>
+        <origin>https://www.contoso.com</origin>
+      </allowed-origins>
+      <allowed-methods preflight-result-max-age="3600">
+        <method>GET</method>
+        <method>POST</method>
+        <method>PUT</method>
+        <method>DELETE</method>
+      </allowed-methods>
+      <allowed-headers>
+        <header>*</header>
+      </allowed-headers>
+    </cors>
+    <!-- Remove insecure headers globally -->
+    <set-header name="X-Powered-By" exists-action="delete" />
+    <set-header name="Server" exists-action="delete" />
+  </inbound>
+  <backend>
+    <base />
+  </backend>
+  <outbound>
+    <base />
+    <!-- Add security headers to all responses -->
+    <set-header name="X-Content-Type-Options" exists-action="override">
+      <value>nosniff</value>
+    </set-header>
+    <set-header name="X-Frame-Options" exists-action="override">
+      <value>DENY</value>
+    </set-header>
+  </outbound>
+  <on-error>
+    <base />
+  </on-error>
+</policies>
+XML
+  }
+
   # Enable managed identity for Key Vault access
   managed_identities = {
     system_assigned = true

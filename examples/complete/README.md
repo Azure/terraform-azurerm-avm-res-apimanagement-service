@@ -46,6 +46,12 @@ This comprehensive example demonstrates all currently implemented features of th
 - Subscription state management (active, submitted, approved)
 - Tracing capabilities
 
+### Service-Level Policy
+- Global policy applying to all APIs
+- CORS configuration
+- Security headers (X-Content-Type-Options, X-Frame-Options)
+- Header manipulation and removal
+
 ### Security & Integration
 - System-assigned managed identity
 - Key Vault integration for secure secret storage
@@ -114,6 +120,7 @@ This example shows a real-world API Management setup with:
 6. **Key Vault integration** for secure secret storage
 7. **Products** with different access tiers (Starter, Premium, Unlimited)
 8. **Subscriptions** with various scopes (product, API, all APIs)
+9. **Service-level policy** with CORS and security headers
 
 ## Usage
 
@@ -201,6 +208,7 @@ This example creates:
 - **6 Named Values** (including 1 Key Vault-backed)
 - **3 API-Level Policies**
 - **1 Operation-Level Policy**
+- **1 Service-Level Policy** (global CORS and security headers)
 - **3 Products** (Starter, Premium, Unlimited)
 - **4 Subscriptions** (demonstrating product, API, and all-APIs scopes)
 - **1 Key Vault** (for secret storage)

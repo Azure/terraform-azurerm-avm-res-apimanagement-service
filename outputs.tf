@@ -265,3 +265,10 @@ output "subscription_keys" {
   }
   sensitive = true
 }
+
+output "policy" {
+  description = "Service-level policy details."
+  value = length(azurerm_api_management_policy.this) > 0 ? {
+    id = azurerm_api_management_policy.this[0].id
+  } : null
+}

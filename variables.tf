@@ -982,3 +982,48 @@ DESCRIPTION
     error_message = "Subscription state must be one of: active, suspended, submitted, rejected, cancelled."
   }
 }
+
+variable "policy" {
+  type = object({
+    xml_content = string
+  })
+  default     = null
+  description = <<DESCRIPTION
+Service-level (global) policy for the API Management service. This policy applies to all APIs.
+
+- `xml_content` - (Required) The XML content of the policy.
+
+Example:
+```terraform
+policy = {
+  xml_content = <<XML
+<policies>
+  <inbound>
+    <base />
+    <cors allow-credentials="true">
+      <allowed-origins>
+        <origin>https://example.com</origin>
+      </allowed-origins>
+      <allowed-methods>
+        <method>GET</method>
+        <method>POST</method>
+      </allowed-methods>
+    </cors>
+    <rate-limit-by-key calls="100" renewal-period="60" counter-key="@(context.Subscription.Id)" />
+  </inbound>
+  <backend>
+    <base />
+  </backend>
+  <outbound>
+    <base />
+    <set-header name="X-Powered-By" exists-action="delete" />
+  </outbound>
+  <on-error>
+    <base />
+  </on-error>
+</policies>
+XML
+}
+```
+DESCRIPTION
+}

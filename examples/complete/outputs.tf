@@ -54,3 +54,8 @@ output "subscription_keys" {
   value       = module.apim.subscription_keys
   sensitive   = true
 }
+
+output "policy" {
+  description = "Service-level policy details."
+  value       = module.apim.policy
+}
