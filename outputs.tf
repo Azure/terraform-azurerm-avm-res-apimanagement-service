@@ -206,3 +206,62 @@ output "api_operation_ids" {
     for k, v in azurerm_api_management_api_operation.this : k => v.operation_id
   }
 }
+
+# Products outputs
+output "products" {
+  description = "A map of products created in the API Management service."
+  value = {
+    for k, v in azurerm_api_management_product.this : k => {
+      id                    = v.id
+      product_id            = v.product_id
+      display_name          = v.display_name
+      description           = v.description
+      subscription_required = v.subscription_required
+      approval_required     = v.approval_required
+      published             = v.published
+      subscriptions_limit   = v.subscriptions_limit
+      terms                 = v.terms
+    }
+  }
+}
+
+output "product_ids" {
+  description = "A map of product keys to their resource IDs."
+  value = {
+    for k, v in azurerm_api_management_product.this : k => v.id
+  }
+}
+
+# Subscriptions outputs
+output "subscriptions" {
+  description = "A map of subscriptions created in the API Management service."
+  value = {
+    for k, v in azurerm_api_management_subscription.this : k => {
+      id              = v.id
+      subscription_id = v.subscription_id
+      display_name    = v.display_name
+      state           = v.state
+      allow_tracing   = v.allow_tracing
+    }
+  }
+  sensitive = true
+}
+
+output "subscription_ids" {
+  description = "A map of subscription keys to their resource IDs."
+  value = {
+    for k, v in azurerm_api_management_subscription.this : k => v.id
+  }
+  sensitive = true
+}
+
+output "subscription_keys" {
+  description = "A map of subscription keys to their primary and secondary keys."
+  value = {
+    for k, v in azurerm_api_management_subscription.this : k => {
+      primary_key   = v.primary_key
+      secondary_key = v.secondary_key
+    }
+  }
+  sensitive = true
+}

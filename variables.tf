@@ -856,3 +856,129 @@ DESCRIPTION
     error_message = "API operation method must be one of: GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS, TRACE."
   }
 }
+
+# Products variable
+variable "products" {
+  type = map(object({
+    display_name          = string
+    description           = optional(string)
+    terms                 = optional(string)
+    subscription_required = optional(bool, false)
+    approval_required     = optional(bool, false)
+    subscriptions_limit   = optional(number)
+    state                 = optional(string, "published") # published, notPublished
+
+    # Associations
+    api_names   = optional(list(string), [])
+    group_names = optional(list(string), [])
+  }))
+  default     = {}
+  description = <<DESCRIPTION
+Products for the API Management service. The map key is the product identifier.
+
+- `display_name` - (Required) The display name of the product.
+- `description` - (Optional) Description of the product.
+- `terms` - (Optional) Terms of use for the product.
+- `subscription_required` - (Optional) Whether a subscription is required to access APIs in this product. Default is `false`.
+- `approval_required` - (Optional) Whether subscription approval is required. Default is `false`.
+- `subscriptions_limit` - (Optional) Maximum number of subscriptions allowed for this product.
+- `state` - (Optional) Publication state of the product. Valid values: `published`, `notPublished`. Default is `published`.
+- `api_names` - (Optional) List of API names to associate with this product.
+- `group_names` - (Optional) List of group names to associate with this product (e.g., "developers", "administrators", "guests").
+
+Example:
+```terraform
+products = {
+  "starter" = {
+    display_name          = "Starter"
+    description           = "Starter product for new developers"
+    subscription_required = true
+    approval_required     = false
+    state                 = "published"
+    api_names             = ["petstore-api", "weather-api"]
+    group_names           = ["developers"]
+  }
+}
+```
+DESCRIPTION
+  nullable    = false
+
+  validation {
+    condition = alltrue([
+      for k, v in var.products :
+      contains(["published", "notPublished"], v.state)
+    ])
+    error_message = "Product state must be either 'published' or 'notPublished'."
+  }
+}
+
+# Subscriptions variable
+variable "subscriptions" {
+  type = map(object({
+    display_name     = string
+    scope_type       = string           # "product", "api", or "all_apis"
+    scope_identifier = optional(string) # Product ID or API name (not needed for "all_apis")
+    user_id          = optional(string)
+    primary_key      = optional(string)
+    secondary_key    = optional(string)
+    state            = optional(string, "active") # active, suspended, submitted, rejected, cancelled
+    allow_tracing    = optional(bool, false)
+  }))
+  default     = {}
+  description = <<DESCRIPTION
+Subscriptions for the API Management service. The map key is the subscription identifier.
+
+- `display_name` - (Required) The display name of the subscription.
+- `scope_type` - (Required) The scope type. Valid values: `product`, `api`, `all_apis`.
+- `scope_identifier` - (Optional) The product ID or API name. Required for `product` and `api` scope types. Not needed for `all_apis`.
+- `user_id` - (Optional) The user ID for this subscription (format: /users/{userId}).
+- `primary_key` - (Optional) Custom primary subscription key.
+- `secondary_key` - (Optional) Custom secondary subscription key.
+- `state` - (Optional) The state of the subscription. Valid values: `active`, `suspended`, `submitted`, `rejected`, `cancelled`. Default is `active`.
+- `allow_tracing` - (Optional) Whether tracing is allowed. Default is `false`.
+
+Example:
+```terraform
+subscriptions = {
+  "developer-sub" = {
+    display_name     = "Developer Subscription"
+    scope_type       = "product"
+    scope_identifier = "starter"
+    state            = "active"
+    allow_tracing    = true
+  }
+  "api-specific-sub" = {
+    display_name     = "Petstore API Subscription"
+    scope_type       = "api"
+    scope_identifier = "petstore-api"
+    state            = "active"
+  }
+}
+```
+DESCRIPTION
+  nullable    = false
+
+  validation {
+    condition = alltrue([
+      for k, v in var.subscriptions :
+      contains(["product", "api", "all_apis"], v.scope_type)
+    ])
+    error_message = "Subscription scope_type must be one of: product, api, all_apis."
+  }
+
+  validation {
+    condition = alltrue([
+      for k, v in var.subscriptions :
+      v.scope_type == "all_apis" || v.scope_identifier != null
+    ])
+    error_message = "Subscription scope_identifier is required when scope_type is 'product' or 'api'."
+  }
+
+  validation {
+    condition = alltrue([
+      for k, v in var.subscriptions :
+      contains(["active", "suspended", "submitted", "rejected", "cancelled"], v.state)
+    ])
+    error_message = "Subscription state must be one of: active, suspended, submitted, rejected, cancelled."
+  }
+}

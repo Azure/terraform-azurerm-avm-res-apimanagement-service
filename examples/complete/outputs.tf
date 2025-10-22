@@ -32,3 +32,25 @@ output "key_vault_id" {
   description = "The resource ID of the Key Vault."
   value       = azurerm_key_vault.this.id
 }
+
+output "products" {
+  description = "The products created in the API Management service."
+  value       = module.apim.products
+}
+
+output "product_ids" {
+  description = "Map of product keys to their resource IDs."
+  value       = module.apim.product_ids
+}
+
+output "subscriptions" {
+  description = "The subscriptions created in the API Management service."
+  value       = module.apim.subscriptions
+  sensitive   = true
+}
+
+output "subscription_keys" {
+  description = "Map of subscription keys to their primary and secondary keys."
+  value       = module.apim.subscription_keys
+  sensitive   = true
+}

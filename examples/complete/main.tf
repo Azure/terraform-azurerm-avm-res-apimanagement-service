@@ -511,6 +511,79 @@ module "apim" {
     }
   }
 
+  # =================================================================
+  # Products Configuration
+  # =================================================================
+  products = {
+    "starter" = {
+      display_name          = "Starter"
+      description           = "Starter product for developers - includes basic APIs with rate limiting"
+      subscription_required = true
+      approval_required     = false
+      state                 = "published"
+      terms                 = "By subscribing to this product, you agree to our terms of service and acceptable use policy."
+      api_names             = ["products-v1", "orders-v1"]
+      group_names           = ["developers"]
+    }
+
+    "premium" = {
+      display_name          = "Premium"
+      description           = "Premium product with enhanced features and higher rate limits"
+      subscription_required = true
+      approval_required     = true # Requires approval for premium access
+      subscriptions_limit   = 10
+      state                 = "published"
+      api_names             = ["products-v2", "orders-v1"]
+      group_names           = ["developers", "guests"]
+    }
+
+    "unlimited" = {
+      display_name          = "Unlimited"
+      description           = "Unlimited access for enterprise customers"
+      subscription_required = true
+      approval_required     = true
+      state                 = "published"
+      api_names             = ["products-v1", "products-v2", "orders-v1"]
+      group_names           = ["administrators"]
+    }
+  }
+
+  # =================================================================
+  # Subscriptions Configuration
+  # =================================================================
+  subscriptions = {
+    "developer-starter-sub" = {
+      display_name     = "Developer Starter Subscription"
+      scope_type       = "product"
+      scope_identifier = "starter"
+      state            = "active"
+      allow_tracing    = true
+    }
+
+    "developer-premium-sub" = {
+      display_name     = "Developer Premium Subscription"
+      scope_type       = "product"
+      scope_identifier = "premium"
+      state            = "submitted" # Awaiting approval
+      allow_tracing    = true
+    }
+
+    "api-specific-sub" = {
+      display_name     = "Products API v1 Subscription"
+      scope_type       = "api"
+      scope_identifier = "products-v1"
+      state            = "active"
+      allow_tracing    = false
+    }
+
+    "all-apis-sub" = {
+      display_name  = "All APIs Access"
+      scope_type    = "all_apis"
+      state         = "active"
+      allow_tracing = true
+    }
+  }
+
   # Enable managed identity for Key Vault access
   managed_identities = {
     system_assigned = true

@@ -31,10 +31,25 @@ This comprehensive example demonstrates all currently implemented features of th
   - Content validation
   - Request transformation
 
+### Products
+- API grouping and access control
+- Subscription requirements and approval workflows
+- Terms of use configuration
+- Multiple products with different access levels (Starter, Premium, Unlimited)
+- Product-API associations
+- Product-Group associations
+
+### Subscriptions
+- Product-scoped subscriptions
+- API-scoped subscriptions
+- All-APIs subscriptions
+- Subscription state management (active, submitted, approved)
+- Tracing capabilities
+
 ### Security & Integration
 - System-assigned managed identity
 - Key Vault integration for secure secret storage
-- Subscription-based API access
+- Subscription-based API access with key management
 
 ## Important: Key Vault Access Policy Management
 
@@ -97,6 +112,8 @@ This example shows a real-world API Management setup with:
 4. **Rate limiting** and caching policies
 5. **Content validation** on specific operations
 6. **Key Vault integration** for secure secret storage
+7. **Products** with different access tiers (Starter, Premium, Unlimited)
+8. **Subscriptions** with various scopes (product, API, all APIs)
 
 ## Usage
 
@@ -141,7 +158,7 @@ module "apim" {
       protocols            = ["https"]
       api_version          = "v1"
       api_version_set_name = "products-api"
-      
+
       policy = {
         xml_content = <<-XML
           <policies>
@@ -151,7 +168,7 @@ module "apim" {
           </policies>
         XML
       }
-      
+
       operations = {
         "list-products" = {
           display_name = "List Products"
@@ -184,6 +201,8 @@ This example creates:
 - **6 Named Values** (including 1 Key Vault-backed)
 - **3 API-Level Policies**
 - **1 Operation-Level Policy**
+- **3 Products** (Starter, Premium, Unlimited)
+- **4 Subscriptions** (demonstrating product, API, and all-APIs scopes)
 - **1 Key Vault** (for secret storage)
 - **1 System-Assigned Managed Identity**
 
@@ -214,6 +233,66 @@ This example creates:
 - `POST /orders` - Create order
 
 **Access:** Requires `Api-Version` header set to `v1`
+
+## Products and Subscriptions
+
+### Products
+
+This example includes three products demonstrating different access tiers:
+
+#### Starter Product
+- **Description**: Basic product for developers - includes basic APIs with rate limiting
+- **Approval Required**: No (automatic approval)
+- **Subscription Required**: Yes
+- **APIs Included**: Products v1, Orders v1
+- **Groups**: Developers
+- **State**: Published
+
+#### Premium Product
+- **Description**: Enhanced product with extended features - includes latest API versions
+- **Approval Required**: Yes (manual approval workflow)
+- **Subscription Required**: Yes
+- **Subscription Limit**: 10
+- **APIs Included**: Products v2, Orders v1
+- **Groups**: Developers
+- **State**: Published
+- **Terms**: Detailed terms of service included
+
+#### Unlimited Product
+- **Description**: Enterprise tier with access to all APIs - for administrators only
+- **Approval Required**: Yes
+- **Subscription Required**: Yes
+- **APIs Included**: All APIs (Products v1, Products v2, Orders v1)
+- **Groups**: Administrators
+- **State**: Published
+
+### Subscriptions
+
+This example includes four subscriptions demonstrating different scope types:
+
+1. **Developer Starter Subscription**
+   - Scope: Product (Starter)
+   - State: Active
+   - Tracing: Enabled
+   - Use Case: Developer access to basic APIs
+
+2. **Developer Premium Subscription**
+   - Scope: Product (Premium)
+   - State: Submitted (awaiting approval)
+   - Tracing: Enabled
+   - Use Case: Demonstrates approval workflow
+
+3. **API-Specific Subscription**
+   - Scope: API (Products v1 only)
+   - State: Active
+   - Tracing: Disabled
+   - Use Case: Limited access to specific API
+
+4. **All APIs Subscription**
+   - Scope: All APIs
+   - State: Active
+   - Tracing: Enabled
+   - Use Case: Access to all APIs without product restrictions
 
 ## Testing the APIs
 
