@@ -14,8 +14,9 @@ resource "azurerm_api_management_subscription" "this" {
 
   # Scope to product, API, or all APIs
   # Note: product_id and api_id are mutually exclusive
+  # For all_apis scope, both should be null
   product_id = each.value.scope_type == "product" ? azurerm_api_management_product.this[each.value.scope_identifier].id : null
-  api_id     = each.value.scope_type == "api" ? azurerm_api_management_api.this[each.value.scope_identifier].id : (each.value.scope_type == "all_apis" ? "${azurerm_api_management.this.id}/apis" : null)
+  api_id     = each.value.scope_type == "api" ? azurerm_api_management_api.this[each.value.scope_identifier].id : null
 
   # Optional user assignment
   user_id = each.value.user_id

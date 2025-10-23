@@ -19,18 +19,8 @@ output "named_value_ids" {
 }
 
 output "apim_identity_principal_id" {
-  description = "The principal ID of the APIM system-assigned managed identity (needed for Key Vault access policy)."
+  description = "The principal ID of the APIM system-assigned managed identity."
   value       = module.apim.workspace_identity.principal_id
-}
-
-output "key_vault_name" {
-  description = "The name of the Key Vault (needed for setting access policy)."
-  value       = azurerm_key_vault.this.name
-}
-
-output "key_vault_id" {
-  description = "The resource ID of the Key Vault."
-  value       = azurerm_key_vault.this.id
 }
 
 output "products" {
