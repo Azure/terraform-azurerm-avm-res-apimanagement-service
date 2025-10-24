@@ -14,10 +14,15 @@ provider "azurerm" {
 }
 
 ## Section to provide a random Azure region for the resource group
-# This allows us to randomize the region for the resource group.
+# This allows us to randomize the region for the resource group, or use a specified region.
 module "regions" {
   source  = "Azure/regions/azurerm"
   version = ">= 0.3.0"
+}
+
+# Use specified region or random one if not provided
+locals {
+  azure_region = var.azure_region != null ? var.azure_region : module.regions.regions[random_integer.region_index.result].name
 }
 
 # This allows us to randomize the region for the resource group.
@@ -35,8 +40,8 @@ module "naming" {
 
 # This is required for resource modules
 resource "azurerm_resource_group" "this" {
-  location = module.regions.regions[random_integer.region_index.result].name
-  name     = module.naming.resource_group.name_unique
+  location = local.azure_region
+  name     = "${var.resource_group_name_prefix}-${module.naming.resource_group.name_unique}"
 }
 
 # This is the module call
