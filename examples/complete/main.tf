@@ -1,10 +1,13 @@
 terraform {
   required_version = ">= 1.9"
-
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
       version = ">= 4.0, < 5.0"
+    }
+    random = {
+      source  = "hashicorp/random"
+      version = ">= 3.6.0, < 4.0.0"
     }
   }
 }
@@ -18,7 +21,7 @@ provider "azurerm" {
 # This allows us to randomize the region for the resource group, or use a specified region.
 module "regions" {
   source  = "Azure/regions/azurerm"
-  version = ">= 0.3.0"
+  version = "0.8.1"
 }
 
 # Use specified region or random one if not provided
@@ -36,7 +39,7 @@ resource "random_integer" "region_index" {
 # This ensures we have unique CAF compliant names for our resources.
 module "naming" {
   source  = "Azure/naming/azurerm"
-  version = ">= 0.3.0"
+  version = "0.4.2"
 }
 
 # This is required for resource modules
