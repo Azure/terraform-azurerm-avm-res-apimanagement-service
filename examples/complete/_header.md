@@ -1,3 +1,3 @@
-# Named Values Example
+# Complete Example
 
-This example demonstrates creating named values in Azure API Management, including both plain text configuration values and Key Vault-backed secrets.
+This example demonstrates the core features of the Azure API Management module, including APIs with operations, products, subscriptions, named values, and policies. It provides a comprehensive showcase of API lifecycle management capabilities.

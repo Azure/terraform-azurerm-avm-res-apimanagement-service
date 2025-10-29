@@ -5,16 +5,16 @@
 resource "azurerm_api_management_product" "this" {
   for_each = var.products
 
-  product_id            = each.key
   api_management_name   = azurerm_api_management.this.name
-  resource_group_name   = azurerm_api_management.this.resource_group_name
   display_name          = each.value.display_name
-  description           = each.value.description
-  terms                 = each.value.terms
-  subscription_required = each.value.subscription_required
-  approval_required     = each.value.approval_required
-  subscriptions_limit   = each.value.subscriptions_limit
+  product_id            = each.key
   published             = each.value.state == "published"
+  resource_group_name   = azurerm_api_management.this.resource_group_name
+  approval_required     = each.value.approval_required
+  description           = each.value.description
+  subscription_required = each.value.subscription_required
+  subscriptions_limit   = each.value.subscriptions_limit
+  terms                 = each.value.terms
 
   depends_on = [azurerm_api_management.this]
 }
@@ -38,9 +38,9 @@ resource "azurerm_api_management_product_api" "this" {
     for assoc in local.product_api_associations : assoc.key => assoc
   }
 
-  product_id          = azurerm_api_management_product.this[each.value.product_key].product_id
-  api_name            = azurerm_api_management_api.this[each.value.api_name].name
   api_management_name = azurerm_api_management.this.name
+  api_name            = azurerm_api_management_api.this[each.value.api_name].name
+  product_id          = azurerm_api_management_product.this[each.value.product_key].product_id
   resource_group_name = azurerm_api_management.this.resource_group_name
 
   depends_on = [
@@ -68,9 +68,9 @@ resource "azurerm_api_management_product_group" "this" {
     for assoc in local.product_group_associations : assoc.key => assoc
   }
 
-  product_id          = azurerm_api_management_product.this[each.value.product_key].product_id
-  group_name          = each.value.group_name
   api_management_name = azurerm_api_management.this.name
+  group_name          = each.value.group_name
+  product_id          = azurerm_api_management_product.this[each.value.product_key].product_id
   resource_group_name = azurerm_api_management.this.resource_group_name
 
   depends_on = [

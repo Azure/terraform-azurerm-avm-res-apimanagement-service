@@ -1,4 +1,12 @@
 locals {
+  # Flatten API operations into a single map for resource creation
+  api_operations = merge([
+    for api_key, api in var.apis : {
+      for op_key, op in api.operations : "${api_key}-${op_key}" => merge(op, {
+        api_key = api_key
+      })
+    }
+  ]...)
   managed_identities = {
     system_assigned_user_assigned = (var.managed_identities.system_assigned || length(var.managed_identities.user_assigned_resource_ids) > 0) ? {
       this = {
@@ -18,6 +26,16 @@ locals {
       }
     } : {}
   }
+  # Flatten operation-level policies into a single map
+  operation_policies = merge([
+    for api_key, api in var.apis : {
+      for op_key, op in api.operations : "${api_key}-${op_key}" => {
+        api_key     = api_key
+        xml_content = op.policy != null ? op.policy.xml_content : null
+        xml_link    = op.policy != null ? op.policy.xml_link : null
+      } if op.policy != null
+    }
+  ]...)
   # Private endpoint application security group associations.
   # We merge the nested maps from private endpoints and application security group associations into a single map.
   private_endpoint_application_security_group_associations = { for assoc in flatten([
@@ -30,24 +48,4 @@ locals {
     ]
   ]) : "${assoc.pe_key}-${assoc.asg_key}" => assoc }
   role_definition_resource_substring = "/providers/Microsoft.Authorization/roleDefinitions"
-
-  # Flatten API operations into a single map for resource creation
-  api_operations = merge([
-    for api_key, api in var.apis : {
-      for op_key, op in api.operations : "${api_key}-${op_key}" => merge(op, {
-        api_key = api_key
-      })
-    }
-  ]...)
-
-  # Flatten operation-level policies into a single map
-  operation_policies = merge([
-    for api_key, api in var.apis : {
-      for op_key, op in api.operations : "${api_key}-${op_key}" => {
-        api_key     = api_key
-        xml_content = op.policy != null ? op.policy.xml_content : null
-        xml_link    = op.policy != null ? op.policy.xml_link : null
-      } if op.policy != null
-    }
-  ]...)
 }

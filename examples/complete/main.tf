@@ -1,5 +1,6 @@
 terraform {
   required_version = ">= 1.9"
+
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
@@ -48,42 +49,10 @@ resource "azurerm_resource_group" "this" {
 module "apim" {
   source = "../../"
 
-  enable_telemetry    = var.enable_telemetry
   location            = azurerm_resource_group.this.location
   name                = module.naming.api_management.name_unique
   publisher_email     = "admin@contoso.com"
-  publisher_name      = "Contoso"
   resource_group_name = azurerm_resource_group.this.name
-  sku_name            = "Developer_1"
-
-  # =================================================================
-  # Named Values Configuration
-  # Named values are like environment variables - can be referenced in policies
-  # =================================================================
-  named_values = {
-    # Plain text configuration value
-    "backend-url" = {
-      display_name = "Backend-URL"
-      value        = "http://echoapi.cloudapp.net/api"
-      tags         = ["configuration", "url"]
-    }
-
-    # Secret value (encrypted at rest in APIM)
-    "api-key" = {
-      display_name = "API-Key"
-      value        = "secret-key-value-12345"
-      secret       = true
-      tags         = ["secret", "api"]
-    }
-
-    # Environment indicator
-    "environment" = {
-      display_name = "Environment"
-      value        = "development"
-      tags         = ["environment"]
-    }
-  }
-
   # =================================================================
   # APIs with Operations Configuration
   # =================================================================
@@ -146,7 +115,38 @@ XML
       }
     }
   }
+  enable_telemetry = var.enable_telemetry
+  # Enable managed identity (optional - useful for accessing other Azure resources)
+  managed_identities = {
+    system_assigned = true
+  }
+  # =================================================================
+  # Named Values Configuration
+  # Named values are like environment variables - can be referenced in policies
+  # =================================================================
+  named_values = {
+    # Plain text configuration value
+    "backend-url" = {
+      display_name = "Backend-URL"
+      value        = "http://echoapi.cloudapp.net/api"
+      tags         = ["configuration", "url"]
+    }
 
+    # Secret value (encrypted at rest in APIM)
+    "api-key" = {
+      display_name = "API-Key"
+      value        = "secret-key-value-12345"
+      secret       = true
+      tags         = ["secret", "api"]
+    }
+
+    # Environment indicator
+    "environment" = {
+      display_name = "Environment"
+      value        = "development"
+      tags         = ["environment"]
+    }
+  }
   # =================================================================
   # Products Configuration
   # Products package APIs with policies and access control
@@ -159,7 +159,7 @@ XML
       approval_required     = false
       state                 = "published"
       terms                 = "By subscribing to this product, you agree to our terms of service."
-      api_names             = ["echo-api"]  # Link API to this product
+      api_names             = ["echo-api"] # Link API to this product
       group_names           = ["developers"]
     }
 
@@ -170,11 +170,12 @@ XML
       approval_required     = true
       subscriptions_limit   = 10
       state                 = "published"
-      api_names             = ["echo-api"]  # Same API, different product tier
+      api_names             = ["echo-api"] # Same API, different product tier
       group_names           = ["developers", "guests"]
     }
   }
-
+  publisher_name = "Contoso"
+  sku_name       = "Developer_1"
   # =================================================================
   # Subscriptions Configuration
   # Subscriptions provide access keys for consuming products/APIs
@@ -195,10 +196,5 @@ XML
       state            = "submitted" # Awaiting approval (because premium requires approval)
       allow_tracing    = true
     }
-  }
-
-  # Enable managed identity (optional - useful for accessing other Azure resources)
-  managed_identities = {
-    system_assigned = true
   }
 }

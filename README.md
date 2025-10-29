@@ -31,6 +31,17 @@ The following requirements are needed by this module:
 The following resources are used by this module:
 
 - [azurerm_api_management.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/api_management) (resource)
+- [azurerm_api_management_api.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/api_management_api) (resource)
+- [azurerm_api_management_api_operation.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/api_management_api_operation) (resource)
+- [azurerm_api_management_api_operation_policy.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/api_management_api_operation_policy) (resource)
+- [azurerm_api_management_api_policy.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/api_management_api_policy) (resource)
+- [azurerm_api_management_api_version_set.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/api_management_api_version_set) (resource)
+- [azurerm_api_management_named_value.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/api_management_named_value) (resource)
+- [azurerm_api_management_policy.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/api_management_policy) (resource)
+- [azurerm_api_management_product.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/api_management_product) (resource)
+- [azurerm_api_management_product_api.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/api_management_product_api) (resource)
+- [azurerm_api_management_product_group.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/api_management_product_group) (resource)
+- [azurerm_api_management_subscription.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/api_management_subscription) (resource)
 - [azurerm_management_lock.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/management_lock) (resource)
 - [azurerm_monitor_diagnostic_setting.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/monitor_diagnostic_setting) (resource)
 - [azurerm_private_endpoint.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/private_endpoint) (resource)
@@ -95,6 +106,259 @@ list(object({
 ```
 
 Default: `[]`
+
+### <a name="input_api_version_sets"></a> [api\_version\_sets](#input\_api\_version\_sets)
+
+Description: API Version Sets for the API Management service. Version sets enable API versioning using Header, Query, or Segment-based schemes.
+
+- `display_name` - (Required) The display name of the API version set.
+- `versioning_scheme` - (Required) The versioning scheme. Valid values: `Header`, `Query`, `Segment`.
+- `description` - (Optional) Description of the API version set.
+- `version_header_name` - (Optional) Name of the HTTP header parameter for the `Header` versioning scheme. Required when `versioning_scheme` is `Header`.
+- `version_query_name` - (Optional) Name of the query string parameter for the `Query` versioning scheme. Required when `versioning_scheme` is `Query`.
+
+Example:
+```terraform
+api_version_sets = {
+  "my-api-versions" = {
+    display_name        = "My API Versions"
+    versioning_scheme   = "Header"
+    version_header_name = "api-version"
+    description         = "Version set for My API"
+  }
+}
+```
+
+Type:
+
+```hcl
+map(object({
+    display_name        = string
+    versioning_scheme   = string
+    description         = optional(string)
+    version_header_name = optional(string)
+    version_query_name  = optional(string)
+  }))
+```
+
+Default: `{}`
+
+### <a name="input_apis"></a> [apis](#input\_apis)
+
+Description: APIs for the API Management service. APIs define the operations available to API consumers.
+
+- `display_name` - (Required) The display name of the API.
+- `path` - (Required) The relative path for the API. Must be unique within the API Management service.
+- `protocols` - (Optional) A list of protocols the API supports. Valid values: `http`, `https`, `ws`, `wss`. Defaults to `["https"]`.
+- `revision` - (Optional) The revision number of the API. Defaults to `"1"`.
+- `service_url` - (Optional) The backend service URL for the API.
+- `description` - (Optional) Description of the API.
+- `subscription_required` - (Optional) Whether a subscription key is required to access the API. Defaults to `true`.
+
+Versioning:
+- `api_version` - (Optional) The version identifier for the API.
+- `api_version_set_name` - (Optional) The name of the API version set to associate with this API.
+- `revision_description` - (Optional) Description of the API revision.
+
+Import:
+- `import` - (Optional) Import configuration for OpenAPI, WSDL, WADL specifications.
+  - `content_format` - (Required) Format of the content. Valid values: `openapi`, `openapi+json`, `openapi+json-link`, `openapi-link`, `swagger-json`, `swagger-link-json`, `wadl-link-json`, `wadl-xml`, `wsdl`, `wsdl-link`.
+  - `content_value` - (Required) The API definition content or URL.
+  - `wsdl_selector` - (Optional) WSDL selector for SOAP APIs.
+
+Operations:
+- `operations` - (Optional) Map of API operations. Each operation defines an HTTP method and URL template.
+
+Policies:
+- `policy` - (Optional) API-level policy configuration.
+  - `xml_content` - (Optional) XML policy content.
+  - `xml_link` - (Optional) URL to XML policy content.
+
+Example:
+```terraform
+apis = {
+  "petstore-api" = {
+    display_name = "Petstore API"
+    path         = "petstore"
+    protocols    = ["https"]
+    service_url  = "https://petstore.swagger.io/v2"
+
+    operations = {
+      "get-pets" = {
+        display_name = "Get all pets"
+        method       = "GET"
+        url_template = "/pets"
+      }
+    }
+  }
+}
+```
+
+Type:
+
+```hcl
+map(object({
+    # Basic API properties
+    display_name          = string
+    path                  = string
+    protocols             = optional(list(string), ["https"])
+    revision              = optional(string, "1")
+    service_url           = optional(string)
+    description           = optional(string)
+    subscription_required = optional(bool, true)
+
+    # API versioning
+    api_version          = optional(string)
+    api_version_set_name = optional(string)
+    revision_description = optional(string)
+
+    # Import configuration (OpenAPI, WSDL, WADL, etc.)
+    import = optional(object({
+      content_format = string
+      content_value  = string
+      wsdl_selector = optional(object({
+        service_name  = string
+        endpoint_name = string
+      }))
+    }))
+
+    # Source API for cloning
+    source_api_id = optional(string)
+
+    # OAuth2 Authorization
+    oauth2_authorization = optional(object({
+      authorization_server_name = string
+      scope                     = optional(string)
+    }))
+
+    # OpenID Connect Authentication
+    openid_authentication = optional(object({
+      openid_provider_name         = string
+      bearer_token_sending_methods = optional(list(string))
+    }))
+
+    # Subscription key parameter names
+    subscription_key_parameter_names = optional(object({
+      header = string
+      query  = string
+    }))
+
+    # Contact information
+    contact = optional(object({
+      email = optional(string)
+      name  = optional(string)
+      url   = optional(string)
+    }))
+
+    # License information
+    license = optional(object({
+      name = optional(string)
+      url  = optional(string)
+    }))
+
+    terms_of_service_url = optional(string)
+
+    # API-level policy
+    policy = optional(object({
+      xml_content = optional(string)
+      xml_link    = optional(string)
+    }))
+
+    # API operations
+    operations = optional(map(object({
+      display_name = string
+      method       = string
+      url_template = string
+      description  = optional(string)
+
+      # Template parameters (URL path parameters)
+      template_parameters = optional(list(object({
+        name          = string
+        required      = bool
+        type          = string
+        description   = optional(string)
+        default_value = optional(string)
+        values        = optional(list(string))
+      })))
+
+      # Request configuration
+      request = optional(object({
+        description = optional(string)
+
+        query_parameters = optional(list(object({
+          name          = string
+          required      = bool
+          type          = string
+          description   = optional(string)
+          default_value = optional(string)
+          values        = optional(list(string))
+        })))
+
+        headers = optional(list(object({
+          name          = string
+          required      = bool
+          type          = string
+          description   = optional(string)
+          default_value = optional(string)
+          values        = optional(list(string))
+        })))
+
+        representations = optional(list(object({
+          content_type = string
+          schema_id    = optional(string)
+          type_name    = optional(string)
+
+          form_parameters = optional(list(object({
+            name          = string
+            required      = bool
+            type          = string
+            description   = optional(string)
+            default_value = optional(string)
+            values        = optional(list(string))
+          })))
+        })))
+      }))
+
+      # Response configuration
+      responses = optional(list(object({
+        status_code = number
+        description = optional(string)
+
+        headers = optional(list(object({
+          name          = string
+          required      = bool
+          type          = string
+          description   = optional(string)
+          default_value = optional(string)
+          values        = optional(list(string))
+        })))
+
+        representations = optional(list(object({
+          content_type = string
+          schema_id    = optional(string)
+          type_name    = optional(string)
+
+          form_parameters = optional(list(object({
+            name          = string
+            required      = bool
+            type          = string
+            description   = optional(string)
+            default_value = optional(string)
+            values        = optional(list(string))
+          })))
+        })))
+      })))
+
+      # Operation-level policy
+      policy = optional(object({
+        xml_content = optional(string)
+        xml_link    = optional(string)
+      }))
+    })), {})
+  }))
+```
+
+Default: `{}`
 
 ### <a name="input_certificate"></a> [certificate](#input\_certificate)
 
@@ -287,11 +551,108 @@ Type: `string`
 
 Default: `null`
 
+### <a name="input_named_values"></a> [named\_values](#input\_named\_values)
+
+Description: Named values for the API Management service. Named values are a collection of key/value pairs that can be referenced in policies and API configurations.
+
+- `display_name` - (Required) The display name of the named value. Must be unique within the API Management service.
+- `value` - (Optional) The value of the named value. Conflicts with `value_from_key_vault`. If neither is specified, the named value must be set through other means.
+- `secret` - (Optional) Whether the value is a secret and should be encrypted. Defaults to `false`.
+- `tags` - (Optional) A list of tags that can be used to filter the named values list.
+- `value_from_key_vault` - (Optional) A Key Vault configuration for secret values. Conflicts with `value`.
+  - `secret_id` - (Required) The versioned secret ID from Key Vault (e.g., `https://myvault.vault.azure.net/secrets/mysecret/version`).
+  - `identity_client_id` - (Optional) The client ID of a user-assigned managed identity to use for Key Vault access. If not specified, the system-assigned identity will be used.
+
+Example:
+```terraform
+named_values = {
+  "api-key" = {
+    display_name = "API Key"
+    value        = "my-secret-key"
+    secret       = true
+    tags         = ["production", "api"]
+  }
+  "keyvault-secret" = {
+    display_name = "Database Connection String"
+    secret       = true
+    value_from_key_vault = {
+      secret_id = "https://myvault.vault.azure.net/secrets/db-conn/abc123"
+    }
+  }
+}
+```
+
+Type:
+
+```hcl
+map(object({
+    display_name = string
+    value        = optional(string)
+    secret       = optional(bool, false)
+    tags         = optional(list(string), [])
+    value_from_key_vault = optional(object({
+      secret_id          = string
+      identity_client_id = optional(string)
+    }))
+  }))
+```
+
+Default: `{}`
+
 ### <a name="input_notification_sender_email"></a> [notification\_sender\_email](#input\_notification\_sender\_email)
 
 Description: Email address from which the notification will be sent.
 
 Type: `string`
+
+Default: `null`
+
+### <a name="input_policy"></a> [policy](#input\_policy)
+
+Description: Service-level (global) policy for the API Management service. This policy applies to all APIs.
+
+- `xml_content` - (Required) The XML content of the policy.
+
+Example:
+```terraform
+policy = {
+  xml_content = <<XML
+<policies>
+  <inbound>
+    <base />
+    <cors allow-credentials="true">
+      <allowed-origins>
+        <origin>https://example.com</origin>
+      </allowed-origins>
+      <allowed-methods>
+        <method>GET</method>
+        <method>POST</method>
+      </allowed-methods>
+    </cors>
+    <rate-limit-by-key calls="100" renewal-period="60" counter-key="@(context.Subscription.Id)" />
+  </inbound>
+  <backend>
+    <base />
+  </backend>
+  <outbound>
+    <base />
+    <set-header name="X-Powered-By" exists-action="delete" />
+  </outbound>
+  <on-error>
+    <base />
+  </on-error>
+</policies>
+XML
+}
+```
+
+Type:
+
+```hcl
+object({
+    xml_content = string
+  })
+```
 
 Default: `null`
 
@@ -359,6 +720,55 @@ Description: Whether to manage private DNS zone groups with this module. If set 
 Type: `bool`
 
 Default: `true`
+
+### <a name="input_products"></a> [products](#input\_products)
+
+Description: Products for the API Management service. The map key is the product identifier.
+
+- `display_name` - (Required) The display name of the product.
+- `description` - (Optional) Description of the product.
+- `terms` - (Optional) Terms of use for the product.
+- `subscription_required` - (Optional) Whether a subscription is required to access APIs in this product. Default is `false`.
+- `approval_required` - (Optional) Whether subscription approval is required. Default is `false`.
+- `subscriptions_limit` - (Optional) Maximum number of subscriptions allowed for this product.
+- `state` - (Optional) Publication state of the product. Valid values: `published`, `notPublished`. Default is `published`.
+- `api_names` - (Optional) List of API names to associate with this product.
+- `group_names` - (Optional) List of group names to associate with this product (e.g., "developers", "administrators", "guests").
+
+Example:
+```terraform
+products = {
+  "starter" = {
+    display_name          = "Starter"
+    description           = "Starter product for new developers"
+    subscription_required = true
+    approval_required     = false
+    state                 = "published"
+    api_names             = ["petstore-api", "weather-api"]
+    group_names           = ["developers"]
+  }
+}
+```
+
+Type:
+
+```hcl
+map(object({
+    display_name          = string
+    description           = optional(string)
+    terms                 = optional(string)
+    subscription_required = optional(bool, false)
+    approval_required     = optional(bool, false)
+    subscriptions_limit   = optional(number)
+    state                 = optional(string, "published") # published, notPublished
+
+    # Associations
+    api_names   = optional(list(string), [])
+    group_names = optional(list(string), [])
+  }))
+```
+
+Default: `{}`
 
 ### <a name="input_protocols"></a> [protocols](#input\_protocols)
 
@@ -499,6 +909,55 @@ Type: `string`
 
 Default: `"Developer_1"`
 
+### <a name="input_subscriptions"></a> [subscriptions](#input\_subscriptions)
+
+Description: Subscriptions for the API Management service. The map key is the subscription identifier.
+
+- `display_name` - (Required) The display name of the subscription.
+- `scope_type` - (Required) The scope type. Valid values: `product`, `api`, `all_apis`.
+- `scope_identifier` - (Optional) The product ID or API name. Required for `product` and `api` scope types. Not needed for `all_apis`.
+- `user_id` - (Optional) The user ID for this subscription (format: /users/{userId}).
+- `primary_key` - (Optional) Custom primary subscription key.
+- `secondary_key` - (Optional) Custom secondary subscription key.
+- `state` - (Optional) The state of the subscription. Valid values: `active`, `suspended`, `submitted`, `rejected`, `cancelled`. Default is `active`.
+- `allow_tracing` - (Optional) Whether tracing is allowed. Default is `false`.
+
+Example:
+```terraform
+subscriptions = {
+  "developer-sub" = {
+    display_name     = "Developer Subscription"
+    scope_type       = "product"
+    scope_identifier = "starter"
+    state            = "active"
+    allow_tracing    = true
+  }
+  "api-specific-sub" = {
+    display_name     = "Petstore API Subscription"
+    scope_type       = "api"
+    scope_identifier = "petstore-api"
+    state            = "active"
+  }
+}
+```
+
+Type:
+
+```hcl
+map(object({
+    display_name     = string
+    scope_type       = string           # "product", "api", or "all_apis"
+    scope_identifier = optional(string) # Product ID or API name (not needed for "all_apis")
+    user_id          = optional(string)
+    primary_key      = optional(string)
+    secondary_key    = optional(string)
+    state            = optional(string, "active") # active, suspended, submitted, rejected, cancelled
+    allow_tracing    = optional(bool, false)
+  }))
+```
+
+Default: `{}`
+
 ### <a name="input_tags"></a> [tags](#input\_tags)
 
 Description: (Optional) Tags of the resource.
@@ -553,6 +1012,26 @@ The following outputs are exported:
 
 Description: Information about additional locations for the API Management Service.
 
+### <a name="output_api_ids"></a> [api\_ids](#output\_api\_ids)
+
+Description: A map of API names to their resource IDs.
+
+### <a name="output_api_operation_ids"></a> [api\_operation\_ids](#output\_api\_operation\_ids)
+
+Description: A map of API operation keys to their operation IDs.
+
+### <a name="output_api_operations"></a> [api\_operations](#output\_api\_operations)
+
+Description: A map of API operations created in the API Management service.
+
+### <a name="output_api_version_set_ids"></a> [api\_version\_set\_ids](#output\_api\_version\_set\_ids)
+
+Description: A map of API version set names to their resource IDs.
+
+### <a name="output_api_version_sets"></a> [api\_version\_sets](#output\_api\_version\_sets)
+
+Description: A map of API version sets created in the API Management service.
+
 ### <a name="output_apim_gateway_url"></a> [apim\_gateway\_url](#output\_apim\_gateway\_url)
 
 Description: The gateway URL of the API Management service.
@@ -560,6 +1039,10 @@ Description: The gateway URL of the API Management service.
 ### <a name="output_apim_management_url"></a> [apim\_management\_url](#output\_apim\_management\_url)
 
 Description: The management URL of the API Management service.
+
+### <a name="output_apis"></a> [apis](#output\_apis)
+
+Description: A map of APIs created in the API Management service.
 
 ### <a name="output_certificates"></a> [certificates](#output\_certificates)
 
@@ -581,6 +1064,18 @@ Description: The hostname configuration for the API Management Service.
 
 Description: The name of the API Management service.
 
+### <a name="output_named_value_ids"></a> [named\_value\_ids](#output\_named\_value\_ids)
+
+Description: A map of named value keys to their resource IDs.
+
+### <a name="output_named_values"></a> [named\_values](#output\_named\_values)
+
+Description: A map of named values created in the API Management service.
+
+### <a name="output_policy"></a> [policy](#output\_policy)
+
+Description: Service-level policy details.
+
 ### <a name="output_portal_url"></a> [portal\_url](#output\_portal\_url)
 
 Description: The URL for the Publisher Portal associated with this API Management service.
@@ -592,6 +1087,14 @@ Description: A map of the private endpoints created.
 ### <a name="output_private_ip_addresses"></a> [private\_ip\_addresses](#output\_private\_ip\_addresses)
 
 Description: The private IP addresses of the private endpoints created by this module
+
+### <a name="output_product_ids"></a> [product\_ids](#output\_product\_ids)
+
+Description: A map of product keys to their resource IDs.
+
+### <a name="output_products"></a> [products](#output\_products)
+
+Description: A map of products created in the API Management service.
 
 ### <a name="output_public_ip_addresses"></a> [public\_ip\_addresses](#output\_public\_ip\_addresses)
 
@@ -608,6 +1111,18 @@ Description: The ID of the API Management service.
 ### <a name="output_scm_url"></a> [scm\_url](#output\_scm\_url)
 
 Description: The URL for the SCM (Source Code Management) Endpoint associated with this API Management service.
+
+### <a name="output_subscription_ids"></a> [subscription\_ids](#output\_subscription\_ids)
+
+Description: A map of subscription keys to their resource IDs.
+
+### <a name="output_subscription_keys"></a> [subscription\_keys](#output\_subscription\_keys)
+
+Description: A map of subscription keys to their primary and secondary keys.
+
+### <a name="output_subscriptions"></a> [subscriptions](#output\_subscriptions)
+
+Description: A map of subscriptions created in the API Management service.
 
 ### <a name="output_tenant_access"></a> [tenant\_access](#output\_tenant\_access)
 
