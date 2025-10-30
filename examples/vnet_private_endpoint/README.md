@@ -17,6 +17,7 @@ terraform {
 }
 
 provider "azurerm" {
+  subscription_id = var.subscription_id
 
   features {
     key_vault {
@@ -176,6 +177,14 @@ Description: The email address of the publisher.
 Type: `string`
 
 Default: `"admin@contoso.com"`
+
+### <a name="input_subscription_id"></a> [subscription\_id](#input\_subscription\_id)
+
+Description: The Azure subscription ID. If not provided, the provider will use the default subscription.
+
+Type: `string`
+
+Default: `null`
 
 ## Outputs
 
