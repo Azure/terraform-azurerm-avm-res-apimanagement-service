@@ -1,9 +1,3 @@
-variable "publisher_email" {
-  type        = string
-  default     = "admin@contoso.com"
-  description = "The email address of the publisher."
-}
-
 variable "enable_telemetry" {
   type        = bool
   default     = true
@@ -19,4 +13,10 @@ variable "location" {
   default     = "eastus2"
   description = "Azure region where the resource should be deployed."
   nullable    = false
+}
+
+variable "publisher_email" {
+  type        = string
+  default     = "admin@contoso.com"
+  description = "The email address of the publisher."
 }

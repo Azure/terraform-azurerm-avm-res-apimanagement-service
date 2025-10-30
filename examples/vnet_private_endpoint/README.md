@@ -145,13 +145,7 @@ The following resources are used by this module:
 <!-- markdownlint-disable MD013 -->
 ## Required Inputs
 
-The following input variables are required:
-
-### <a name="input_publisher_email"></a> [publisher\_email](#input\_publisher\_email)
-
-Description: The email address of the publisher.
-
-Type: `string`
+No required inputs.
 
 ## Optional Inputs
 
@@ -174,6 +168,14 @@ Description: Azure region where the resource should be deployed.
 Type: `string`
 
 Default: `"eastus2"`
+
+### <a name="input_publisher_email"></a> [publisher\_email](#input\_publisher\_email)
+
+Description: The email address of the publisher.
+
+Type: `string`
+
+Default: `"admin@contoso.com"`
 
 ## Outputs
 
