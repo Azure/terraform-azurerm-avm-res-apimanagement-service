@@ -1,5 +1,6 @@
 variable "publisher_email" {
   type        = string
+  default     = "admin@contoso.com"
   description = "The email address of the publisher."
 }
 
