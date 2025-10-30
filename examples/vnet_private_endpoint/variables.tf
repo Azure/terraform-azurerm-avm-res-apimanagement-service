@@ -20,3 +20,9 @@ variable "publisher_email" {
   default     = "admin@contoso.com"
   description = "The email address of the publisher."
 }
+
+variable "subscription_id" {
+  type        = string
+  default     = null
+  description = "The Azure subscription ID. If not provided, the provider will use the default subscription."
+}
