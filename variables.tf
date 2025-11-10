@@ -337,8 +337,8 @@ DESCRIPTION
   validation {
     condition = alltrue(flatten([
       for k, v in var.apis : [
-        for op_k, op_v in v.operations :
-        contains(["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS", "TRACE"], op_v.method)
+        for operation_key, operation_value in v.operations :
+        contains(["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS", "TRACE"], operation_value.method)
       ]
     ]))
     error_message = "API operation method must be one of: GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS, TRACE."
