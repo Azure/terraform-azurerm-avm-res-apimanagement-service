@@ -1,0 +1,12 @@
+{
+  "exemptions": [
+    {
+      "id": "Azure-Proactive-Resiliency-Library-v2/enable_zone_redundancy_for_api_management",
+      "justification": "This is a development/testing example using Developer SKU which does not support availability zones. Zone redundancy is only available with Premium SKU."
+    },
+    {
+      "id": "Azure-Proactive-Resiliency-Library-v2/api_management_services_are_premium_sku",
+      "justification": "This example intentionally uses Developer SKU for cost-effective demonstration purposes. Production deployments should use Premium SKU with zones as shown in the vnet_private_endpoint example."
+    }
+  ]
+}
