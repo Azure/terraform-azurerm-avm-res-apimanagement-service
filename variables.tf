@@ -721,8 +721,8 @@ DESCRIPTION
 
   validation {
     condition = length(var.private_endpoints) == 0 || (
-    var.virtual_network_type == "None" || can(regex("StandardV2", var.sku_name))) && !startswith(var.sku_name, "Consumption")
-    error_message = "Private endpoints are not supported with Consumption SKU or when using Internal/External virtual network mode (unless using StandardV2 SKU)."
+    var.virtual_network_type == "None" || can(regex("StandardV2|PremiumV2", var.sku_name))) && !startswith(var.sku_name, "Consumption")
+    error_message = "Private endpoints are not supported with Consumption SKU or when using Internal/External virtual network mode (unless using StandardV2 or PremiumV2 SKU)."
   }
 }
 
