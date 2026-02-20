@@ -178,7 +178,7 @@ XML
     }
   }
   publisher_name = "Contoso"
-  sku_name       = "Developer_1"
+  sku_name       = "Premium_3"
   # =================================================================
   # Subscriptions Configuration
   # Subscriptions provide access keys for consuming products/APIs

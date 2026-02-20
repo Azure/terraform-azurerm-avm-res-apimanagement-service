@@ -59,7 +59,6 @@ module "test" {
   enable_telemetry = var.enable_telemetry
   publisher_name   = "Apim Example Publisher"
   sku_name         = "Premium_3"
-  # sku_name = "Developer_1"
   tags = {
     environment = "test"
     cost_center = "test"

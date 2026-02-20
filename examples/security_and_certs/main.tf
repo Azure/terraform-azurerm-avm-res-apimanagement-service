@@ -54,7 +54,6 @@ module "test" {
     tls_rsa_with_aes128_gcm_sha256_ciphers_enabled = true
   }
   sku_name = "Premium_3"
-  # sku_name = "Developer_1"
   tags = {
     environment = "test"
     cost_center = "test"
