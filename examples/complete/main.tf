@@ -200,4 +200,5 @@ XML
       allow_tracing    = true
     }
   }
+  zones = ["1", "2", "3"]
 }
