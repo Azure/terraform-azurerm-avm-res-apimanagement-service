@@ -14,7 +14,6 @@ terraform {
 }
 
 provider "azurerm" {
-  subscription_id = var.subscription_id
   features {}
 }
 
@@ -179,7 +178,7 @@ XML
     }
   }
   publisher_name = "Contoso"
-  sku_name       = "Developer_1"
+  sku_name       = "Premium_3"
   # =================================================================
   # Subscriptions Configuration
   # Subscriptions provide access keys for consuming products/APIs
@@ -201,4 +200,5 @@ XML
       allow_tracing    = true
     }
   }
+  zones = ["1", "2", "3"]
 }

@@ -21,7 +21,6 @@ terraform {
 }
 
 provider "azurerm" {
-  subscription_id = var.subscription_id
   features {}
 }
 
@@ -186,7 +185,7 @@ XML
     }
   }
   publisher_name = "Contoso"
-  sku_name       = "Developer_1"
+  sku_name       = "Premium_3"
   # =================================================================
   # Subscriptions Configuration
   # Subscriptions provide access keys for consuming products/APIs
@@ -208,6 +207,7 @@ XML
       allow_tracing    = true
     }
   }
+  zones = ["1", "2", "3"]
 }
 ```
 
@@ -232,13 +232,7 @@ The following resources are used by this module:
 <!-- markdownlint-disable MD013 -->
 ## Required Inputs
 
-The following input variables are required:
-
-### <a name="input_subscription_id"></a> [subscription\_id](#input\_subscription\_id)
-
-Description: The Azure subscription ID to deploy resources into.
-
-Type: `string`
+No required inputs.
 
 ## Optional Inputs
 
