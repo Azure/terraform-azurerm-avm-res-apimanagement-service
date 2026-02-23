@@ -132,7 +132,7 @@ XML
     # Simple HTTP backend for the Echo API
     "echo-backend" = {
       protocol    = "http"
-      url         = "http://echoapi.cloudapp.net/api"
+      url         = "https://echoapi.cloudapp.net/api"
       description = "Echo API backend service"
       title       = "Echo Backend"
       tls = {
@@ -154,7 +154,7 @@ XML
     # Plain text configuration value
     "backend-url" = {
       display_name = "Backend-URL"
-      value        = "http://echoapi.cloudapp.net/api"
+      value        = "https://echoapi.cloudapp.net/api"
       tags         = ["configuration", "url"]
     }
 
