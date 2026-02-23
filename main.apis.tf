@@ -249,7 +249,10 @@ resource "azurerm_api_management_api_policy" "this" {
   xml_content         = each.value.policy.xml_content
   xml_link            = each.value.policy.xml_link
 
-  depends_on = [azurerm_api_management_api.this]
+  depends_on = [
+    azurerm_api_management_api.this,
+    azurerm_api_management_backend.this
+  ]
 }
 
 # API Operation-Level Policies
