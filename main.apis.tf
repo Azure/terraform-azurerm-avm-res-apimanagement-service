@@ -251,6 +251,7 @@ resource "azurerm_api_management_api_policy" "this" {
 
   depends_on = [
     azurerm_api_management_api.this,
+    azurerm_api_management_api_operation.this,
     azurerm_api_management_backend.this
   ]
 }
