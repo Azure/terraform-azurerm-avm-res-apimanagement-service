@@ -299,6 +299,9 @@ XML
       url         = "${azurerm_ai_services.this.endpoint}openai"
       description = "Azure AI Foundry backend via AI Services"
       title       = "AI Foundry"
+      # Routes through the AI Services endpoint;
+      # resource_id is the Cognitive Services audience URL
+      # used by APIM managed identity authentication (not an ARM resource ID in this case).
       resource_id = "https://management.azure.com${azurerm_ai_services.this.id}"
     }
   }
