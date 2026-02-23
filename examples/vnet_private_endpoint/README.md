@@ -116,12 +116,13 @@ module "test" {
     }
   }
   publisher_name = "Apim Example Publisher"
-  sku_name       = "PremiumV2_3"
+  sku_name       = "Premium_3"
   tags = {
     environment = "test"
     cost_center = "test"
   }
   virtual_network_type = "None"
+  zones                = ["1", "2", "3"] # For compliance with WAF
 }
 
 ```
