@@ -286,13 +286,15 @@ XML
   # =================================================================
   backends = {
     # Azure AI Foundry / Azure OpenAI backend
-    # Routes through the AI Services endpoint; resource_id links APIM to the AI service
+    # Routes through the AI Services endpoint; resource_id is the Cognitive Services audience URL
+    # used by APIM managed identity authentication (not an ARM resource ID in this case).
+    # See: https://learn.microsoft.com/en-us/azure/api-management/backends?tabs=portal
     "ai-foundry-backend" = {
       protocol    = "http"
       url         = "${azurerm_ai_services.this.endpoint}openai"
       description = "Azure AI Foundry backend via AI Services"
       title       = "AI Foundry"
-      resource_id = "https://management.azure.com${azurerm_ai_services.this.id}"
+      resource_id = "https://cognitiveservices.azure.com"
     }
   }
   enable_telemetry = var.enable_telemetry
