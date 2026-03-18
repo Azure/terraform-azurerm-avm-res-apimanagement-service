@@ -45,7 +45,7 @@ module "naming" {
 # This is required for resource modules
 resource "azurerm_resource_group" "this" {
   location = local.azure_region
-  name     = "${var.resource_group_name_prefix}-${module.naming.resource_group.name_unique}"
+  name     = module.naming.resource_group.name_unique
 }
 
 # This is the module call
@@ -118,6 +118,22 @@ XML
       }
     }
   }
+  # =================================================================
+  # Backends Configuration
+  # =================================================================
+  backends = {
+    # Simple HTTP backend for the Echo API
+    "echo-backend" = {
+      protocol    = "http"
+      url         = "https://echoapi.cloudapp.net/api"
+      description = "Echo API backend service"
+      title       = "Echo Backend"
+      tls = {
+        validate_certificate_chain = true
+        validate_certificate_name  = true
+      }
+    }
+  }
   enable_telemetry = var.enable_telemetry
   # Enable managed identity (optional - useful for accessing other Azure resources)
   managed_identities = {
@@ -131,7 +147,7 @@ XML
     # Plain text configuration value
     "backend-url" = {
       display_name = "Backend-URL"
-      value        = "http://echoapi.cloudapp.net/api"
+      value        = "https://echoapi.cloudapp.net/api"
       tags         = ["configuration", "url"]
     }
 

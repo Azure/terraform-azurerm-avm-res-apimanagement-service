@@ -52,7 +52,7 @@ module "naming" {
 # This is required for resource modules
 resource "azurerm_resource_group" "this" {
   location = local.azure_region
-  name     = "${var.resource_group_name_prefix}-${module.naming.resource_group.name_unique}"
+  name     = module.naming.resource_group.name_unique
 }
 
 # This is the module call
@@ -125,6 +125,22 @@ XML
       }
     }
   }
+  # =================================================================
+  # Backends Configuration
+  # =================================================================
+  backends = {
+    # Simple HTTP backend for the Echo API
+    "echo-backend" = {
+      protocol    = "http"
+      url         = "https://echoapi.cloudapp.net/api"
+      description = "Echo API backend service"
+      title       = "Echo Backend"
+      tls = {
+        validate_certificate_chain = true
+        validate_certificate_name  = true
+      }
+    }
+  }
   enable_telemetry = var.enable_telemetry
   # Enable managed identity (optional - useful for accessing other Azure resources)
   managed_identities = {
@@ -138,7 +154,7 @@ XML
     # Plain text configuration value
     "backend-url" = {
       display_name = "Backend-URL"
-      value        = "http://echoapi.cloudapp.net/api"
+      value        = "https://echoapi.cloudapp.net/api"
       tags         = ["configuration", "url"]
     }
 
@@ -256,14 +272,6 @@ Type: `bool`
 
 Default: `true`
 
-### <a name="input_resource_group_name_prefix"></a> [resource\_group\_name\_prefix](#input\_resource\_group\_name\_prefix)
-
-Description: The prefix to use for the resource group name. If not specified, the naming module will generate a unique name. Set to empty string to use only the naming module suffix.
-
-Type: `string`
-
-Default: `"rg-apim"`
-
 ## Outputs
 
 The following outputs are exported:
@@ -279,6 +287,14 @@ Description: The principal ID of the APIM system-assigned managed identity.
 ### <a name="output_apim_resource_id"></a> [apim\_resource\_id](#output\_apim\_resource\_id)
 
 Description: The resource ID of the API Management service.
+
+### <a name="output_backend_ids"></a> [backend\_ids](#output\_backend\_ids)
+
+Description: Map of backend names to their resource IDs.
+
+### <a name="output_backends"></a> [backends](#output\_backends)
+
+Description: The backends created in the API Management service.
 
 ### <a name="output_named_value_ids"></a> [named\_value\_ids](#output\_named\_value\_ids)
 

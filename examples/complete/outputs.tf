@@ -13,6 +13,16 @@ output "apim_resource_id" {
   value       = module.apim.resource_id
 }
 
+output "backend_ids" {
+  description = "Map of backend names to their resource IDs."
+  value       = module.apim.backend_ids
+}
+
+output "backends" {
+  description = "The backends created in the API Management service."
+  value       = module.apim.backends
+}
+
 output "named_value_ids" {
   description = "Map of named value keys to their resource IDs."
   value       = module.apim.named_value_ids

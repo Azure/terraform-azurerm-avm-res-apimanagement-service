@@ -8,5 +8,8 @@ resource "azurerm_api_management_policy" "this" {
   api_management_id = azurerm_api_management.this.id
   xml_content       = var.policy.xml_content
 
-  depends_on = [azurerm_api_management.this]
+  depends_on = [
+    azurerm_api_management.this,
+    azurerm_api_management_backend.this
+  ]
 }
