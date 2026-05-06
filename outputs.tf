@@ -92,6 +92,29 @@ output "apis" {
   }
 }
 
+output "backend_ids" {
+  description = "A map of backend names to their resource IDs."
+  value = {
+    for k, v in azurerm_api_management_backend.this : k => v.id
+  }
+}
+
+# Backends outputs
+output "backends" {
+  description = "A map of backends created in the API Management service."
+  value = {
+    for k, v in azurerm_api_management_backend.this : k => {
+      id          = v.id
+      name        = v.name
+      protocol    = v.protocol
+      url         = v.url
+      description = v.description
+      resource_id = v.resource_id
+      title       = v.title
+    }
+  }
+}
+
 output "certificates" {
   description = "Certificate information for the API Management Service."
   value = [

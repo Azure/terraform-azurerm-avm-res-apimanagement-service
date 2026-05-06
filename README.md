@@ -36,6 +36,7 @@ The following resources are used by this module:
 - [azurerm_api_management_api_operation_policy.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/api_management_api_operation_policy) (resource)
 - [azurerm_api_management_api_policy.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/api_management_api_policy) (resource)
 - [azurerm_api_management_api_version_set.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/api_management_api_version_set) (resource)
+- [azurerm_api_management_backend.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/api_management_backend) (resource)
 - [azurerm_api_management_named_value.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/api_management_named_value) (resource)
 - [azurerm_api_management_policy.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/api_management_policy) (resource)
 - [azurerm_api_management_product.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/api_management_product) (resource)
@@ -355,6 +356,105 @@ map(object({
         xml_link    = optional(string)
       }))
     })), {})
+  }))
+```
+
+Default: `{}`
+
+### <a name="input_backends"></a> [backends](#input\_backends)
+
+Description: Backends for the API Management service. Backends represent the backend HTTP endpoint that an API operation forwards requests to.
+
+- `protocol` - (Required) The protocol used by the backend host. Possible values are `http` or `soap`.
+- `url` - (Required) The backend host URL (e.g., `https://backend.example.com/api`). Avoid trailing slashes.
+- `description` - (Optional) Description of the backend.
+- `resource_id` - (Optional) The ARM Resource ID of the backend host in an external system (e.g., Logic Apps, Function Apps, AI Foundry / Cognitive Services).
+- `title` - (Optional) The title of the backend.
+- `credentials` - (Optional) Credentials for the backend.
+  - `authorization` - (Optional) Authorization header configuration.
+    - `parameter` - (Optional) The authentication parameter value.
+    - `scheme` - (Optional) The authentication scheme name.
+  - `certificate` - (Optional) List of client certificate thumbprints for the backend.
+  - `header` - (Optional) Map of header name to comma-separated header values.
+  - `query` - (Optional) Map of query parameter name to comma-separated values.
+- `proxy` - (Optional) Proxy server configuration.
+  - `url` - (Required) The URL of the proxy server.
+  - `username` - (Required) The username to connect to the proxy server.
+  - `password` - (Optional) The password to connect to the proxy server.
+- `service_fabric_cluster` - (Optional) Service Fabric cluster backend configuration.
+  - `client_certificate_thumbprint` - (Optional) Client certificate thumbprint for the management endpoint.
+  - `client_certificate_id` - (Optional) Client certificate resource ID for the management endpoint.
+  - `management_endpoints` - (Required) List of cluster management endpoints.
+  - `max_partition_resolution_retries` - (Required) Maximum retries when resolving the partition.
+  - `server_certificate_thumbprints` - (Optional) List of server certificate thumbprints.
+  - `server_x509_name` - (Optional) List of server X.509 certificate names.
+- `tls` - (Optional) TLS validation settings for self-signed certificates.
+  - `validate_certificate_chain` - (Optional) Whether to validate the SSL certificate chain.
+  - `validate_certificate_name` - (Optional) Whether to validate the SSL certificate name.
+
+Example:
+```terraform
+backends = {
+  "httpbin-backend" = {
+    protocol    = "http"
+    url         = "https://httpbin.org"
+    description = "HTTPBin test backend"
+    tls = {
+      validate_certificate_chain = true
+      validate_certificate_name  = true
+    }
+  }
+  "ai-foundry-backend" = {
+    protocol    = "http"
+    url         = "https://my-ai-service.cognitiveservices.azure.com/openai"
+    description = "Azure AI Foundry backend"
+    resource_id = "/subscriptions/.../providers/Microsoft.CognitiveServices/accounts/my-ai-service"
+  }
+}
+```
+
+Type:
+
+```hcl
+map(object({
+    protocol    = string
+    url         = string
+    description = optional(string)
+    resource_id = optional(string)
+    title       = optional(string)
+
+    credentials = optional(object({
+      authorization = optional(object({
+        parameter = optional(string)
+        scheme    = optional(string)
+      }))
+      certificate = optional(list(string), [])
+      header      = optional(map(string), {})
+      query       = optional(map(string), {})
+    }))
+
+    proxy = optional(object({
+      url      = string
+      username = string
+      password = optional(string)
+    }))
+
+    service_fabric_cluster = optional(object({
+      client_certificate_thumbprint    = optional(string)
+      client_certificate_id            = optional(string)
+      management_endpoints             = list(string)
+      max_partition_resolution_retries = number
+      server_certificate_thumbprints   = optional(list(string), [])
+      server_x509_name = optional(list(object({
+        issuer_certificate_thumbprint = string
+        name                          = string
+      })), [])
+    }))
+
+    tls = optional(object({
+      validate_certificate_chain = optional(bool)
+      validate_certificate_name  = optional(bool)
+    }))
   }))
 ```
 
@@ -1043,6 +1143,14 @@ Description: The management URL of the API Management service.
 ### <a name="output_apis"></a> [apis](#output\_apis)
 
 Description: A map of APIs created in the API Management service.
+
+### <a name="output_backend_ids"></a> [backend\_ids](#output\_backend\_ids)
+
+Description: A map of backend names to their resource IDs.
+
+### <a name="output_backends"></a> [backends](#output\_backends)
+
+Description: A map of backends created in the API Management service.
 
 ### <a name="output_certificates"></a> [certificates](#output\_certificates)
 

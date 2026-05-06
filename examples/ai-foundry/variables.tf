@@ -1,7 +1,6 @@
-variable "azure_region" {
+variable "publisher_email" {
   type        = string
-  default     = null
-  description = "The Azure region to deploy resources into. If not specified, a random region will be selected from available Azure regions."
+  description = "The email address of the publisher."
 }
 
 variable "enable_telemetry" {
@@ -12,4 +11,11 @@ This variable controls whether or not telemetry is enabled for the module.
 For more information see <https://aka.ms/avm/telemetryinfo>.
 If it is set to false, then no telemetry will be collected.
 DESCRIPTION
+}
+
+variable "location" {
+  type        = string
+  default     = "eastus"
+  description = "Azure region where the resources should be deployed."
+  nullable    = false
 }
