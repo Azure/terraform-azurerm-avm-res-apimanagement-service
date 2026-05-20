@@ -220,6 +220,33 @@ resource "azurerm_api_management" "this" {
   }
 }
 
+# TLS 1.3 settings for backend and frontend connections.
+# TLS 1.3 is not exposed by the azurerm_api_management security block, so we use
+# azapi_update_resource to set the custom properties directly via the Azure REST API.
+# This resource is created only when the security variable is provided, allowing
+# explicit management of TLS 1.3 settings (enabled or disabled).
+#
+# Azure API Management PATCH merges customProperties at the individual key level,
+# so only the TLS 1.3 keys listed here are affected; all other customProperties
+# managed by the azurerm_api_management resource (or set externally) are preserved.
+resource "azapi_update_resource" "tls13" {
+  count = var.security != null ? 1 : 0
+
+  type        = "Microsoft.ApiManagement/service@2024-05-01"
+  resource_id = azurerm_api_management.this.id
+
+  body = {
+    properties = {
+      customProperties = {
+        "Microsoft.WindowsAzure.ApiManagement.Gateway.Security.Backend.Protocols.Tls13" = tostring(var.security.enable_backend_tls13)
+        "Microsoft.WindowsAzure.ApiManagement.Gateway.Security.Protocols.Tls13"         = tostring(var.security.enable_frontend_tls13)
+      }
+    }
+  }
+
+  depends_on = [azurerm_api_management.this]
+}
+
 # Lock resource
 resource "azurerm_management_lock" "this" {
   count = var.lock != null ? 1 : 0
