@@ -30,6 +30,7 @@ The following requirements are needed by this module:
 
 The following resources are used by this module:
 
+- [azapi_update_resource.tls13](https://registry.terraform.io/providers/Azure/azapi/latest/docs/resources/update_resource) (resource)
 - [azurerm_api_management.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/api_management) (resource)
 - [azurerm_api_management_api.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/api_management_api) (resource)
 - [azurerm_api_management_api_operation.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/api_management_api_operation) (resource)
@@ -942,6 +943,15 @@ Default: `{}`
 
 Description: Security settings for the API Management service.
 
+- `enable_backend_ssl30` - (Optional) Whether to enable SSL 3.0 on the backend. Defaults to `false`.
+- `enable_backend_tls10` - (Optional) Whether to enable TLS 1.0 on the backend. Defaults to `false`.
+- `enable_backend_tls11` - (Optional) Whether to enable TLS 1.1 on the backend. Defaults to `false`.
+- `enable_backend_tls13` - (Optional) Whether to enable TLS 1.3 on the backend. Defaults to `false`. Note: TLS 1.3 support is configured via Azure REST API custom properties. Enabling this allows API Management to connect to backend services that require TLS 1.3.
+- `enable_frontend_ssl30` - (Optional) Whether to enable SSL 3.0 on the frontend. Defaults to `false`.
+- `enable_frontend_tls10` - (Optional) Whether to enable TLS 1.0 on the frontend. Defaults to `false`.
+- `enable_frontend_tls11` - (Optional) Whether to enable TLS 1.1 on the frontend. Defaults to `false`.
+- `enable_frontend_tls13` - (Optional) Whether to enable TLS 1.3 on the frontend (client-to-gateway). Defaults to `false`. Note: TLS 1.3 support is configured via Azure REST API custom properties.
+
 Type:
 
 ```hcl
@@ -949,9 +959,11 @@ object({
     enable_backend_ssl30                                = optional(bool, false)
     enable_backend_tls10                                = optional(bool, false)
     enable_backend_tls11                                = optional(bool, false)
+    enable_backend_tls13                                = optional(bool, false)
     enable_frontend_ssl30                               = optional(bool, false)
     enable_frontend_tls10                               = optional(bool, false)
     enable_frontend_tls11                               = optional(bool, false)
+    enable_frontend_tls13                               = optional(bool, false)
     tls_ecdhe_ecdsa_with_aes128_cbc_sha_ciphers_enabled = optional(bool, false)
     tls_ecdhe_ecdsa_with_aes256_cbc_sha_ciphers_enabled = optional(bool, false)
     tls_ecdhe_rsa_with_aes128_cbc_sha_ciphers_enabled   = optional(bool, false)
