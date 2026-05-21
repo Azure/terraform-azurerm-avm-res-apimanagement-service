@@ -220,6 +220,38 @@ resource "azurerm_api_management" "this" {
   }
 }
 
+# TLS 1.3 settings for backend and frontend connections.
+# TLS 1.3 is not exposed by the azurerm_api_management security block, so we use
+# azapi_update_resource to set the custom properties directly via the Azure REST API.
+# This resource is created only when at least one TLS 1.3 setting is explicitly
+# provided in the security variable, allowing opt-in management of TLS 1.3.
+#
+# Azure API Management PATCH merges customProperties at the individual key level,
+# so only the TLS 1.3 keys listed here are affected; all other customProperties
+# managed by the azurerm_api_management resource (or set externally) are preserved.
+resource "azapi_update_resource" "tls13" {
+  count = var.security != null && (var.security.enable_backend_tls13 != null || var.security.enable_frontend_tls13 != null) ? 1 : 0
+
+  resource_id = azurerm_api_management.this.id
+  type        = "Microsoft.ApiManagement/service@2024-05-01"
+  body = {
+    properties = {
+      customProperties = merge(
+        var.security.enable_backend_tls13 == null ? {} : {
+          "Microsoft.WindowsAzure.ApiManagement.Gateway.Security.Backend.Protocols.Tls13" = tostring(var.security.enable_backend_tls13)
+        },
+        var.security.enable_frontend_tls13 == null ? {} : {
+          "Microsoft.WindowsAzure.ApiManagement.Gateway.Security.Protocols.Tls13" = tostring(var.security.enable_frontend_tls13)
+        }
+      )
+    }
+  }
+  read_headers   = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
+  update_headers = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
+
+  depends_on = [azurerm_api_management.this]
+}
+
 # Lock resource
 resource "azurerm_management_lock" "this" {
   count = var.lock != null ? 1 : 0
@@ -243,5 +275,4 @@ resource "azurerm_role_assignment" "this" {
   role_definition_name                   = strcontains(lower(each.value.role_definition_id_or_name), lower(local.role_definition_resource_substring)) ? null : each.value.role_definition_id_or_name
   skip_service_principal_aad_check       = each.value.skip_service_principal_aad_check
 }
-
 
