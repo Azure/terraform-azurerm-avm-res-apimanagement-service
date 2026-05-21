@@ -232,9 +232,8 @@ resource "azurerm_api_management" "this" {
 resource "azapi_update_resource" "tls13" {
   count = var.security != null ? 1 : 0
 
-  type        = "Microsoft.ApiManagement/service@2024-05-01"
   resource_id = azurerm_api_management.this.id
-
+  type        = "Microsoft.ApiManagement/service@2024-05-01"
   body = {
     properties = {
       customProperties = {
