@@ -946,11 +946,11 @@ Description: Security settings for the API Management service.
 - `enable_backend_ssl30` - (Optional) Whether to enable SSL 3.0 on the backend. Defaults to `false`.
 - `enable_backend_tls10` - (Optional) Whether to enable TLS 1.0 on the backend. Defaults to `false`.
 - `enable_backend_tls11` - (Optional) Whether to enable TLS 1.1 on the backend. Defaults to `false`.
-- `enable_backend_tls13` - (Optional) Whether to enable TLS 1.3 on the backend. Defaults to `false`. Note: TLS 1.3 support is configured via Azure REST API custom properties. Enabling this allows API Management to connect to backend services that require TLS 1.3.
+- `enable_backend_tls13` - (Optional) Whether to enable TLS 1.3 on the backend. If not set, this module does not attempt to modify backend TLS 1.3 settings. Note: TLS 1.3 support is configured via Azure REST API custom properties.
 - `enable_frontend_ssl30` - (Optional) Whether to enable SSL 3.0 on the frontend. Defaults to `false`.
 - `enable_frontend_tls10` - (Optional) Whether to enable TLS 1.0 on the frontend. Defaults to `false`.
 - `enable_frontend_tls11` - (Optional) Whether to enable TLS 1.1 on the frontend. Defaults to `false`.
-- `enable_frontend_tls13` - (Optional) Whether to enable TLS 1.3 on the frontend (client-to-gateway). Defaults to `false`. Note: TLS 1.3 support is configured via Azure REST API custom properties.
+- `enable_frontend_tls13` - (Optional) Whether to enable TLS 1.3 on the frontend (client-to-gateway). If not set, this module does not attempt to modify frontend TLS 1.3 settings. Note: TLS 1.3 support is configured via Azure REST API custom properties.
 
 Type:
 
@@ -959,11 +959,11 @@ object({
     enable_backend_ssl30                                = optional(bool, false)
     enable_backend_tls10                                = optional(bool, false)
     enable_backend_tls11                                = optional(bool, false)
-    enable_backend_tls13                                = optional(bool, false)
+    enable_backend_tls13                                = optional(bool)
     enable_frontend_ssl30                               = optional(bool, false)
     enable_frontend_tls10                               = optional(bool, false)
     enable_frontend_tls11                               = optional(bool, false)
-    enable_frontend_tls13                               = optional(bool, false)
+    enable_frontend_tls13                               = optional(bool)
     tls_ecdhe_ecdsa_with_aes128_cbc_sha_ciphers_enabled = optional(bool, false)
     tls_ecdhe_ecdsa_with_aes256_cbc_sha_ciphers_enabled = optional(bool, false)
     tls_ecdhe_rsa_with_aes128_cbc_sha_ciphers_enabled   = optional(bool, false)
