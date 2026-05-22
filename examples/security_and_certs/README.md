@@ -57,7 +57,6 @@ module "test" {
   }
   publisher_name = "Apim Example Publisher"
   security = {
-    enable_backend_ssl30                           = true
     tls_rsa_with_aes128_gcm_sha256_ciphers_enabled = true
   }
   sku_name = "Premium_3"
