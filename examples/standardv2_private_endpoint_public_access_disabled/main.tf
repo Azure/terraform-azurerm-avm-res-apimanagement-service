@@ -29,6 +29,16 @@ resource "azurerm_resource_group" "this" {
   name     = module.naming.resource_group.name_unique
 }
 
+# Network security group for the private endpoint subnet.
+# Required because compliance-bound landing zones commonly enforce the
+# "Deny-Subnet-Without-Nsg" Azure Policy - the same class of policy this
+# secure-by-default scenario targets.
+resource "azurerm_network_security_group" "pe" {
+  location            = azurerm_resource_group.this.location
+  name                = module.naming.network_security_group.name_unique
+  resource_group_name = azurerm_resource_group.this.name
+}
+
 # Virtual network to host the private endpoint.
 module "virtual_network" {
   source  = "Azure/avm-res-network-virtualnetwork/azurerm"
@@ -42,6 +52,9 @@ module "virtual_network" {
     pe_subnet = {
       name             = "pe_subnet"
       address_prefixes = ["10.0.2.0/24"]
+      network_security_group = {
+        id = azurerm_network_security_group.pe.id
+      }
     }
   }
 }

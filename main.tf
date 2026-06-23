@@ -14,7 +14,7 @@ resource "azurerm_api_management" "this" {
   notification_sender_email = var.notification_sender_email
   # Public IP and network access settings
   public_ip_address_id          = var.public_ip_address_id
-  public_network_access_enabled = var.public_network_access_enabled
+  public_network_access_enabled = local.public_network_access_enabled_at_create
   tags                          = var.tags
   virtual_network_type          = var.virtual_network_type
   # Availability Zones
@@ -216,6 +216,10 @@ resource "azurerm_api_management" "this" {
     # Optional: If you want to skip destroying default products
     ignore_changes = [
       # product
+      # Public network access is reconciled post-creation by
+      # azapi_update_resource.public_network_access to support secure-by-default private
+      # endpoint deployments on APIM v2 SKUs (which reject disabling it at create time).
+      public_network_access_enabled,
     ]
   }
 }
