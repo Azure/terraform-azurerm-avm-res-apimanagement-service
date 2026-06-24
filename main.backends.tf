@@ -34,6 +34,7 @@ resource "azurerm_api_management_backend" "this" {
       }
     }
   }
+
   # Proxy configuration
   dynamic "proxy" {
     for_each = each.value.proxy != null ? [each.value.proxy] : []
@@ -44,6 +45,7 @@ resource "azurerm_api_management_backend" "this" {
       password = proxy.value.password
     }
   }
+
   # Service Fabric cluster configuration
   dynamic "service_fabric_cluster" {
     for_each = each.value.service_fabric_cluster != null ? [each.value.service_fabric_cluster] : []
@@ -65,6 +67,7 @@ resource "azurerm_api_management_backend" "this" {
       }
     }
   }
+
   # TLS validation settings
   dynamic "tls" {
     for_each = each.value.tls != null ? [each.value.tls] : []

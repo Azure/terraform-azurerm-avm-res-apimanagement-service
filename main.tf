@@ -40,6 +40,7 @@ resource "azurerm_api_management" "this" {
       }
     }
   }
+
   # Certificates
   dynamic "certificate" {
     for_each = var.certificate
@@ -50,6 +51,7 @@ resource "azurerm_api_management" "this" {
       certificate_password = certificate.value.certificate_password
     }
   }
+
   # Delegation settings
   dynamic "delegation" {
     for_each = var.delegation != null ? [var.delegation] : []
@@ -61,6 +63,7 @@ resource "azurerm_api_management" "this" {
       validation_key            = delegation.value.validation_key
     }
   }
+
   # Hostname configuration
   dynamic "hostname_configuration" {
     for_each = var.hostname_configuration != null ? [var.hostname_configuration] : []
@@ -129,6 +132,7 @@ resource "azurerm_api_management" "this" {
       }
     }
   }
+
   # Identity settings
   dynamic "identity" {
     for_each = local.managed_identities.system_assigned_user_assigned
@@ -138,6 +142,7 @@ resource "azurerm_api_management" "this" {
       identity_ids = identity.value.user_assigned_resource_ids
     }
   }
+
   # HTTP protocol settings
   dynamic "protocols" {
     for_each = var.protocols != null ? [var.protocols] : []
@@ -146,6 +151,7 @@ resource "azurerm_api_management" "this" {
       enable_http2 = protocols.value.enable_http2
     }
   }
+
   # Security settings
   dynamic "security" {
     for_each = var.security != null ? [var.security] : []
@@ -170,6 +176,7 @@ resource "azurerm_api_management" "this" {
       triple_des_ciphers_enabled                          = security.value.triple_des_ciphers_enabled
     }
   }
+
   # Sign-in settings
   dynamic "sign_in" {
     for_each = var.sign_in != null ? [var.sign_in] : []
@@ -178,6 +185,7 @@ resource "azurerm_api_management" "this" {
       enabled = sign_in.value.enabled
     }
   }
+
   # Sign-up settings
   dynamic "sign_up" {
     for_each = var.sign_up != null ? [var.sign_up] : []
@@ -192,6 +200,7 @@ resource "azurerm_api_management" "this" {
       }
     }
   }
+
   # Tenant access settings
   dynamic "tenant_access" {
     for_each = var.tenant_access != null ? [var.tenant_access] : []
@@ -200,6 +209,7 @@ resource "azurerm_api_management" "this" {
       enabled = tenant_access.value.enabled
     }
   }
+
   # This implementation uses a dynamic block with for_each to conditionally create the virtual_network_configuration block only when virtual_network_type is either "Internal" or "External".
   # If the type is "None", the block won't be included in the resource.
   dynamic "virtual_network_configuration" {
@@ -279,4 +289,3 @@ resource "azurerm_role_assignment" "this" {
   role_definition_name                   = strcontains(lower(each.value.role_definition_id_or_name), lower(local.role_definition_resource_substring)) ? null : each.value.role_definition_id_or_name
   skip_service_principal_aad_check       = each.value.skip_service_principal_aad_check
 }
-
