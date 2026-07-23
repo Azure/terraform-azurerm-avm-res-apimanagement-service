@@ -48,4 +48,14 @@ locals {
     ]
   ]) : "${assoc.pe_key}-${assoc.asg_key}" => assoc }
   role_definition_resource_substring = "/providers/Microsoft.Authorization/roleDefinitions"
+  # APIM v2 SKUs (BasicV2/StandardV2/PremiumV2) reject `publicNetworkAccess = Disabled` at
+  # creation time (error: ActivateServiceWithPrivateEndpointAccessNotAllowed). To support a
+  # "secure-by-default" deployment - where the service is reachable only through a private
+  # endpoint and public network access is disabled from the first apply - the module creates
+  # the service with public access enabled and then disables it through an ordered post-creation
+  # update (azapi_update_resource.public_network_access) that depends on the private endpoints.
+  public_network_access_orchestrated = !var.public_network_access_enabled && length(var.private_endpoints) > 0
+  # Value applied to the azurerm resource at creation. When orchestration is required we must
+  # create with public access enabled; the azapi update then reconciles to the desired end-state.
+  public_network_access_enabled_at_create = local.public_network_access_orchestrated ? true : var.public_network_access_enabled
 }
