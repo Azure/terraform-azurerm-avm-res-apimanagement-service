@@ -49,6 +49,7 @@ resource "azurerm_api_management_api" "this" {
       url   = contact.value.url
     }
   }
+
   # Import configuration for OpenAPI, WSDL, WADL
   dynamic "import" {
     for_each = each.value.import != null ? [each.value.import] : []
@@ -67,6 +68,7 @@ resource "azurerm_api_management_api" "this" {
       }
     }
   }
+
   # License information
   dynamic "license" {
     for_each = each.value.license != null ? [each.value.license] : []
@@ -76,6 +78,7 @@ resource "azurerm_api_management_api" "this" {
       url  = license.value.url
     }
   }
+
   # OAuth2 Authorization
   dynamic "oauth2_authorization" {
     for_each = each.value.oauth2_authorization != null ? [each.value.oauth2_authorization] : []
@@ -85,6 +88,7 @@ resource "azurerm_api_management_api" "this" {
       scope                     = oauth2_authorization.value.scope
     }
   }
+
   # OpenID Connect Authentication
   dynamic "openid_authentication" {
     for_each = each.value.openid_authentication != null ? [each.value.openid_authentication] : []
@@ -94,6 +98,7 @@ resource "azurerm_api_management_api" "this" {
       bearer_token_sending_methods = openid_authentication.value.bearer_token_sending_methods
     }
   }
+
   # Subscription Key Configuration
   dynamic "subscription_key_parameter_names" {
     for_each = each.value.subscription_key_parameter_names != null ? [each.value.subscription_key_parameter_names] : []
@@ -178,6 +183,7 @@ resource "azurerm_api_management_api_operation" "this" {
       }
     }
   }
+
   # Response configuration
   dynamic "response" {
     for_each = each.value.responses != null ? each.value.responses : []
@@ -222,6 +228,7 @@ resource "azurerm_api_management_api_operation" "this" {
       }
     }
   }
+
   # Template parameters (URL path parameters)
   dynamic "template_parameter" {
     for_each = each.value.template_parameters != null ? each.value.template_parameters : []
