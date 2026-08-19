@@ -30,6 +30,7 @@ The following requirements are needed by this module:
 
 The following resources are used by this module:
 
+- [azapi_update_resource.public_network_access](https://registry.terraform.io/providers/Azure/azapi/latest/docs/resources/update_resource) (resource)
 - [azapi_update_resource.tls13](https://registry.terraform.io/providers/Azure/azapi/latest/docs/resources/update_resource) (resource)
 - [azurerm_api_management.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/api_management) (resource)
 - [azurerm_api_management_api.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/api_management_api) (resource)
