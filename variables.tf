@@ -321,7 +321,8 @@ DESCRIPTION
   validation {
     condition = alltrue([
       for k, v in var.apis :
-      can(v.path == "" || regex("^[^*#&+:<>?]+$", v.path))
+      length(v.path) == 0 ||
+      can(regex("^[^*#&+:<>?]+$", v.path))
     ])
     error_message = "API path must be empty or must not contain the following characters: *, #, &, +, :, <, >, ?."
   }
