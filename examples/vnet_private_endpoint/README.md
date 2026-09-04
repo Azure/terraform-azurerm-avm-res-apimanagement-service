@@ -35,7 +35,6 @@ module "naming" {
   version = "0.3.0"
 }
 
-
 # Create a virtual network for testing if needed
 module "virtual_network" {
   source  = "Azure/avm-res-network-virtualnetwork/azurerm"
@@ -60,7 +59,6 @@ module "virtual_network" {
   }
 }
 
-
 # Create a Private DNS Zone for API Management
 module "private_dns_apim" {
   source  = "Azure/avm-res-network-privatednszone/azurerm"
@@ -78,7 +76,6 @@ module "private_dns_apim" {
     }
   }
 }
-
 
 # This is required for resource modules
 resource "azurerm_resource_group" "this" {
@@ -124,7 +121,6 @@ module "test" {
   virtual_network_type = "None"
   zones                = ["1", "2", "3"] # For compliance with WAF
 }
-
 ```
 
 <!-- markdownlint-disable MD033 -->
