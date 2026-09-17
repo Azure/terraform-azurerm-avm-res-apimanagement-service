@@ -135,7 +135,7 @@ XML
       }
     }
   }
-  enable_telemetry = var.enable_telemetry
+  enable_telemetry = false
   # Enable managed identity (optional - useful for accessing other Azure resources)
   managed_identities = {
     system_assigned = true
