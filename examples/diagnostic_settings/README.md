@@ -81,7 +81,7 @@ module "test" {
       ]
     }
   }
-  enable_telemetry = var.enable_telemetry
+  enable_telemetry = false
   publisher_name   = "John Wick"
   sku_name         = "Premium_3"
   tags = {

@@ -76,7 +76,7 @@ module "private_dns_apim" {
 
   domain_name      = "privatelink.azure-api.net"
   parent_id        = azurerm_resource_group.this.id
-  enable_telemetry = var.enable_telemetry
+  enable_telemetry = false
   virtual_network_links = {
     dnslink = {
       name         = "dnslink-azure-apim"
@@ -103,7 +103,7 @@ module "test" {
   name                = module.naming.api_management.name_unique
   publisher_email     = var.publisher_email
   resource_group_name = azurerm_resource_group.this.name
-  enable_telemetry    = var.enable_telemetry
+  enable_telemetry    = false
   # Add private endpoint configuration
   private_endpoints = {
     endpoint1 = {
