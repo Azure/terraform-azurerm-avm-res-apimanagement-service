@@ -51,7 +51,7 @@ module "test" {
   name                = module.naming.api_management.name_unique
   publisher_email     = var.publisher_email
   resource_group_name = azurerm_resource_group.this.name
-  enable_telemetry    = false
+  enable_telemetry    = var.enable_telemetry
   managed_identities = {
     system_assigned = true
   }
@@ -103,7 +103,7 @@ If it is set to false, then no telemetry will be collected.
 
 Type: `bool`
 
-Default: `true`
+Default: `false`
 
 ### <a name="input_location"></a> [location](#input\_location)
 

@@ -36,7 +36,7 @@ module "virtual_network" {
   address_space       = ["10.0.0.0/16"]
   location            = azurerm_resource_group.this.location
   resource_group_name = azurerm_resource_group.this.name
-  enable_telemetry    = false
+  enable_telemetry    = var.enable_telemetry
   name                = module.naming.virtual_network.name_unique
   subnets = {
     default_subnet = {
@@ -61,7 +61,7 @@ module "private_dns_apim" {
   domain_name = "privatelink.azure-api.net"
   parent_id   = azurerm_resource_group.this.id
   # tags             = var.tags
-  enable_telemetry = false
+  enable_telemetry = var.enable_telemetry
   virtual_network_links = {
     dnslink = {
       name         = "dnslink-azure-apim"
@@ -87,7 +87,7 @@ module "test" {
   name                = module.naming.api_management.name_unique
   publisher_email     = var.publisher_email
   resource_group_name = azurerm_resource_group.this.name
-  enable_telemetry    = false
+  enable_telemetry    = var.enable_telemetry
   # private endpoints
   # Add private endpoint configuration
   private_endpoints = {

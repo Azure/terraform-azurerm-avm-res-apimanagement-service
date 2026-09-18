@@ -49,7 +49,7 @@ module "test" {
     location = "westeurope"
     capacity = 1
   }]
-  enable_telemetry = false
+  enable_telemetry = var.enable_telemetry
   publisher_name   = "Apim Example Publisher"
   sku_name         = "Premium_3"
   tags = {

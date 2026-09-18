@@ -44,7 +44,7 @@ module "test" {
   name                = module.naming.api_management.name_unique
   publisher_email     = var.publisher_email
   resource_group_name = azurerm_resource_group.this.name
-  enable_telemetry    = false
+  enable_telemetry    = var.enable_telemetry
   publisher_name      = "Apim Example Publisher"
   sku_name            = "Premium_3"
   tags = {
