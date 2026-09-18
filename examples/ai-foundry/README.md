@@ -305,7 +305,7 @@ XML
       resource_id = "https://management.azure.com${azurerm_ai_services.this.id}"
     }
   }
-  enable_telemetry = false
+  enable_telemetry = var.enable_telemetry
   # Enable system-assigned managed identity for backend authentication
   managed_identities = {
     system_assigned = true
@@ -388,7 +388,7 @@ If it is set to false, then no telemetry will be collected.
 
 Type: `bool`
 
-Default: `true`
+Default: `false`
 
 ### <a name="input_location"></a> [location](#input\_location)
 

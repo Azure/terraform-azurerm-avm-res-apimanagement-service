@@ -81,7 +81,7 @@ module "test" {
       ]
     }
   }
-  enable_telemetry = false
+  enable_telemetry = var.enable_telemetry
   publisher_name   = "John Wick"
   sku_name         = "Premium_3"
   tags = {
@@ -132,7 +132,7 @@ If it is set to false, then no telemetry will be collected.
 
 Type: `bool`
 
-Default: `true`
+Default: `false`
 
 ### <a name="input_location"></a> [location](#input\_location)
 

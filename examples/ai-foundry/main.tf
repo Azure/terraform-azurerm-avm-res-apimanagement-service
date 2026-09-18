@@ -298,7 +298,7 @@ XML
       resource_id = "https://management.azure.com${azurerm_ai_services.this.id}"
     }
   }
-  enable_telemetry = false
+  enable_telemetry = var.enable_telemetry
   # Enable system-assigned managed identity for backend authentication
   managed_identities = {
     system_assigned = true

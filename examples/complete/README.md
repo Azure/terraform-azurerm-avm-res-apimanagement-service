@@ -142,7 +142,7 @@ XML
       }
     }
   }
-  enable_telemetry = false
+  enable_telemetry = var.enable_telemetry
   # Enable managed identity (optional - useful for accessing other Azure resources)
   managed_identities = {
     system_assigned = true
@@ -271,7 +271,7 @@ If it is set to false, then no telemetry will be collected.
 
 Type: `bool`
 
-Default: `true`
+Default: `false`
 
 ## Outputs
 
