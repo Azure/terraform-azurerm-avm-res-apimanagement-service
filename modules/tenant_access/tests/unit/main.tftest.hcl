@@ -1,12 +1,10 @@
 mock_provider "azapi" {
-  mock_data "azapi_resource_action" {
+  mock_resource "azapi_update_resource" {
     defaults = {
       output = {
-        id = "tenant-access-id"
-      }
-      sensitive_output = {
-        primaryKey   = "generated-primary-key"
-        secondaryKey = "generated-secondary-key"
+        properties = {
+          id = "tenant-access-id"
+        }
       }
     }
   }
@@ -22,7 +20,7 @@ variables {
   parent_id        = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-test/providers/Microsoft.ApiManagement/service/apim-test"
 }
 
-run "tenant_access_maps_disabled_and_exports_keys_safely" {
+run "tenant_access_maps_disabled_without_reading_keys" {
   command = apply
 
   assert {
@@ -36,8 +34,8 @@ run "tenant_access_maps_disabled_and_exports_keys_safely" {
   }
 
   assert {
-    condition     = output.tenant_id == "tenant-access-id" && nonsensitive(output.primary_key) == "generated-primary-key" && nonsensitive(output.secondary_key) == "generated-secondary-key"
-    error_message = "Tenant access keys must be exported only through the AzAPI sensitive response channel."
+    condition     = output.tenant_id == "tenant-access-id"
+    error_message = "Tenant access must export the non-secret tenant identifier returned by the singleton resource."
   }
 }
 

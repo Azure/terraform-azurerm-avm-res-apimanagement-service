@@ -30,4 +30,12 @@ run "custom_keys_use_write_only_body" {
     ])
     error_message = "Custom subscription keys must use string change tokens."
   }
+
+  assert {
+    condition = (
+      nonsensitive(local.sensitive_body.properties.primaryKey) == "primary-test-key" &&
+      nonsensitive(local.sensitive_body.properties.secondaryKey) == "secondary-test-key"
+    )
+    error_message = "Custom subscription keys must be sent only through the write-only body."
+  }
 }

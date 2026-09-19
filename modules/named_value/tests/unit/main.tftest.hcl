@@ -9,6 +9,15 @@ variables {
   parent_id        = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-test/providers/Microsoft.ApiManagement/service/apim-test"
 }
 
+run "value_can_be_managed_outside_terraform" {
+  command = apply
+
+  assert {
+    condition     = local.resource_body.properties.value == null && local.resource_body.properties.keyVault == null
+    error_message = "A named value may omit both value sources so its value can be managed separately."
+  }
+}
+
 run "key_vault_reference_stores_metadata_only" {
   command = apply
 

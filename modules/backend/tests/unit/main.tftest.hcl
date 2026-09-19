@@ -50,6 +50,21 @@ run "single_backend_uses_write_only_credentials" {
   }
 }
 
+run "plain_backend_has_no_write_only_body" {
+  command = apply
+
+  variables {
+    protocol = "http"
+    type     = "Single"
+    url      = "https://backend.example.com"
+  }
+
+  assert {
+    condition     = nonsensitive(local.sensitive_body == null && local.sensitive_body_version == null)
+    error_message = "Backends without credentials or proxy settings must not create write-only body state."
+  }
+}
+
 run "backend_pool_uses_resource_ids" {
   command = apply
 
@@ -69,6 +84,11 @@ run "backend_pool_uses_resource_ids" {
   assert {
     condition     = local.resource_body.properties.type == "Pool" && local.resource_body.properties.pool.services[0].weight == 100
     error_message = "Backend pools must emit the stable APIM pool body shape."
+  }
+
+  assert {
+    condition     = nonsensitive(local.sensitive_body == null && local.sensitive_body_version == null)
+    error_message = "Backend pools must not create empty write-only body state."
   }
 }
 

@@ -28,8 +28,26 @@ run "delegation_uses_write_only_validation_key" {
   }
 
   assert {
-    condition     = local.resource_body.properties.validationKey == null && can(regex("^[0-9a-f]{64}$", nonsensitive(local.validation_key_version)))
+    condition     = !contains(keys(local.resource_body.properties), "validationKey") && can(regex("^[0-9a-f]{64}$", nonsensitive(local.validation_key_version)))
     error_message = "The delegation validation key must use an AzAPI write-only body and a string change token."
+  }
+}
+
+run "delegation_without_validation_key_has_no_write_only_body" {
+  command = apply
+
+  variables {
+    subscriptions_enabled     = false
+    user_registration_enabled = false
+  }
+
+  assert {
+    condition = (
+      !contains(keys(local.resource_body.properties), "validationKey") &&
+      nonsensitive(local.validation_key_write_only_body == null) &&
+      nonsensitive(local.validation_key_version == null)
+    )
+    error_message = "An omitted validation key must not be hashed, sent, or cleared."
   }
 }
 
@@ -90,5 +108,23 @@ run "ignored_portal_fields_are_omitted" {
   assert {
     condition     = !contains(keys(local.resource_body.properties.termsOfService), "text")
     error_message = "Ignored singleton properties must be omitted from the PATCH body."
+  }
+}
+
+run "ignored_validation_key_has_no_write_only_body" {
+  command = apply
+
+  variables {
+    ignore_body_changes = {
+      apimanagement_service_portalsettings = ["properties.validationKey"]
+    }
+    subscriptions_enabled     = true
+    user_registration_enabled = true
+    validation_key            = "externally-managed-key"
+  }
+
+  assert {
+    condition     = nonsensitive(local.validation_key_write_only_body == null && local.validation_key_version == null)
+    error_message = "An ignored validation key must not be sent through the write-only body."
   }
 }
