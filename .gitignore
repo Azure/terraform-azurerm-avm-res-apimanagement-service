@@ -52,3 +52,4 @@ avm.tflint_module.merged.hcl
 examples/*/policy
 *.mptfbackup
 .avm/managed-files.json
+.scaffold-azapi/

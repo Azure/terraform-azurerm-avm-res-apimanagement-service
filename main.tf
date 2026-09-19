@@ -1,139 +1,35 @@
-resource "azurerm_api_management" "this" {
+resource "azapi_resource" "this" {
   location            = var.location
   name                = var.name
-  publisher_email     = var.publisher_email
-  publisher_name      = var.publisher_name
-  resource_group_name = var.resource_group_name
-  sku_name            = var.sku_name
-  # Client certificate settings
-  client_certificate_enabled = var.client_certificate_enabled
-  # Gateway settings
-  gateway_disabled = var.gateway_disabled
-  min_api_version  = var.min_api_version
-  # Notification sender email
-  notification_sender_email = var.notification_sender_email
-  # Public IP and network access settings
-  public_ip_address_id          = var.public_ip_address_id
-  public_network_access_enabled = var.public_network_access_enabled
-  tags                          = var.tags
-  virtual_network_type          = var.virtual_network_type
-  # Availability Zones
-  zones = var.zones
+  parent_id           = var.parent_id
+  type                = var.resource_types.apimanagement_service
+  body                = local.resource_body
+  ignore_body_changes = length(var.ignore_body_changes.apimanagement_service) > 0 ? var.ignore_body_changes.apimanagement_service : null
+  response_export_values = [
+    "identity.principalId",
+    "identity.tenantId",
+    "properties.createdAtUtc",
+    "properties.developerPortalUrl",
+    "properties.gatewayRegionalUrl",
+    "properties.gatewayUrl",
+    "properties.managementApiUrl",
+    "properties.outboundPublicIPAddresses",
+    "properties.portalUrl",
+    "properties.privateIPAddresses",
+    "properties.provisioningState",
+    "properties.publicIPAddresses",
+    "properties.scmUrl",
+    "properties.targetProvisioningState",
+  ]
+  retry = var.retry
+  sensitive_body = length(local.sensitive_certificates) > 0 || length(local.sensitive_hostname_configurations) > 0 ? {
+    properties = merge(
+      length(local.sensitive_certificates) > 0 ? { certificates = local.sensitive_certificates } : {},
+      length(local.sensitive_hostname_configurations) > 0 ? { hostnameConfigurations = local.sensitive_hostname_configurations } : {}
+    )
+  } : null
+  tags = var.tags
 
-  # Additional locations
-  dynamic "additional_location" {
-    for_each = var.additional_location
-
-    content {
-      location             = additional_location.value.location
-      capacity             = additional_location.value.capacity
-      gateway_disabled     = additional_location.value.gateway_disabled
-      public_ip_address_id = additional_location.value.public_ip_address_id
-      zones                = additional_location.value.zones
-
-      dynamic "virtual_network_configuration" {
-        for_each = additional_location.value.virtual_network_configuration != null ? [additional_location.value.virtual_network_configuration] : []
-
-        content {
-          subnet_id = virtual_network_configuration.value.subnet_id
-        }
-      }
-    }
-  }
-
-  # Certificates
-  dynamic "certificate" {
-    for_each = var.certificate
-
-    content {
-      encoded_certificate  = certificate.value.encoded_certificate
-      store_name           = certificate.value.store_name
-      certificate_password = certificate.value.certificate_password
-    }
-  }
-
-  # Delegation settings
-  dynamic "delegation" {
-    for_each = var.delegation != null ? [var.delegation] : []
-
-    content {
-      subscriptions_enabled     = delegation.value.subscriptions_enabled
-      url                       = delegation.value.url
-      user_registration_enabled = delegation.value.user_registration_enabled
-      validation_key            = delegation.value.validation_key
-    }
-  }
-
-  # Hostname configuration
-  dynamic "hostname_configuration" {
-    for_each = var.hostname_configuration != null ? [var.hostname_configuration] : []
-
-    content {
-      dynamic "developer_portal" {
-        for_each = hostname_configuration.value.developer_portal
-
-        content {
-          host_name                       = developer_portal.value.host_name
-          certificate                     = developer_portal.value.certificate
-          certificate_password            = developer_portal.value.certificate_password
-          key_vault_id                    = developer_portal.value.key_vault_id
-          negotiate_client_certificate    = developer_portal.value.negotiate_client_certificate
-          ssl_keyvault_identity_client_id = developer_portal.value.ssl_keyvault_identity_client_id
-        }
-      }
-      dynamic "management" {
-        for_each = hostname_configuration.value.management
-
-        content {
-          host_name                       = management.value.host_name
-          certificate                     = management.value.certificate
-          certificate_password            = management.value.certificate_password
-          key_vault_id                    = management.value.key_vault_id
-          negotiate_client_certificate    = management.value.negotiate_client_certificate
-          ssl_keyvault_identity_client_id = management.value.ssl_keyvault_identity_client_id
-        }
-      }
-      dynamic "portal" {
-        for_each = hostname_configuration.value.portal
-
-        content {
-          host_name                       = portal.value.host_name
-          certificate                     = portal.value.certificate
-          certificate_password            = portal.value.certificate_password
-          key_vault_id                    = portal.value.key_vault_id
-          negotiate_client_certificate    = portal.value.negotiate_client_certificate
-          ssl_keyvault_identity_client_id = portal.value.ssl_keyvault_identity_client_id
-        }
-      }
-      dynamic "proxy" {
-        for_each = hostname_configuration.value.proxy
-
-        content {
-          host_name                       = proxy.value.host_name
-          certificate                     = proxy.value.certificate
-          certificate_password            = proxy.value.certificate_password
-          default_ssl_binding             = proxy.value.default_ssl_binding
-          key_vault_id                    = proxy.value.key_vault_id
-          negotiate_client_certificate    = proxy.value.negotiate_client_certificate
-          ssl_keyvault_identity_client_id = proxy.value.ssl_keyvault_identity_client_id
-        }
-      }
-      dynamic "scm" {
-        for_each = hostname_configuration.value.scm
-
-        content {
-          host_name                       = scm.value.host_name
-          certificate                     = scm.value.certificate
-          certificate_password            = scm.value.certificate_password
-          key_vault_id                    = scm.value.key_vault_id
-          negotiate_client_certificate    = scm.value.negotiate_client_certificate
-          ssl_keyvault_identity_client_id = scm.value.ssl_keyvault_identity_client_id
-        }
-      }
-    }
-  }
-
-  # Identity settings
   dynamic "identity" {
     for_each = local.managed_identities.system_assigned_user_assigned
 
@@ -143,143 +39,19 @@ resource "azurerm_api_management" "this" {
     }
   }
 
-  # HTTP protocol settings
-  dynamic "protocols" {
-    for_each = var.protocols != null ? [var.protocols] : []
+  dynamic "timeouts" {
+    for_each = var.timeouts == null ? [] : [var.timeouts]
 
     content {
-      enable_http2 = protocols.value.enable_http2
+      create = timeouts.value.create
+      read   = timeouts.value.read
+      update = timeouts.value.update
+      delete = timeouts.value.delete
     }
-  }
-
-  # Security settings
-  dynamic "security" {
-    for_each = var.security != null ? [var.security] : []
-
-    content {
-      backend_ssl30_enabled                               = security.value.enable_backend_ssl30
-      backend_tls10_enabled                               = security.value.enable_backend_tls10
-      backend_tls11_enabled                               = security.value.enable_backend_tls11
-      frontend_ssl30_enabled                              = security.value.enable_frontend_ssl30
-      frontend_tls10_enabled                              = security.value.enable_frontend_tls10
-      frontend_tls11_enabled                              = security.value.enable_frontend_tls11
-      tls_ecdhe_ecdsa_with_aes128_cbc_sha_ciphers_enabled = security.value.tls_ecdhe_ecdsa_with_aes128_cbc_sha_ciphers_enabled
-      tls_ecdhe_ecdsa_with_aes256_cbc_sha_ciphers_enabled = security.value.tls_ecdhe_ecdsa_with_aes256_cbc_sha_ciphers_enabled
-      tls_ecdhe_rsa_with_aes128_cbc_sha_ciphers_enabled   = security.value.tls_ecdhe_rsa_with_aes128_cbc_sha_ciphers_enabled
-      tls_ecdhe_rsa_with_aes256_cbc_sha_ciphers_enabled   = security.value.tls_ecdhe_rsa_with_aes256_cbc_sha_ciphers_enabled
-      tls_rsa_with_aes128_cbc_sha256_ciphers_enabled      = security.value.tls_rsa_with_aes128_cbc_sha256_ciphers_enabled
-      tls_rsa_with_aes128_cbc_sha_ciphers_enabled         = security.value.tls_rsa_with_aes128_cbc_sha_ciphers_enabled
-      tls_rsa_with_aes128_gcm_sha256_ciphers_enabled      = security.value.tls_rsa_with_aes128_gcm_sha256_ciphers_enabled
-      tls_rsa_with_aes256_cbc_sha256_ciphers_enabled      = security.value.tls_rsa_with_aes256_cbc_sha256_ciphers_enabled
-      tls_rsa_with_aes256_cbc_sha_ciphers_enabled         = security.value.tls_rsa_with_aes256_cbc_sha_ciphers_enabled
-      tls_rsa_with_aes256_gcm_sha384_ciphers_enabled      = security.value.tls_rsa_with_aes256_gcm_sha384_ciphers_enabled
-      triple_des_ciphers_enabled                          = security.value.triple_des_ciphers_enabled
-    }
-  }
-
-  # Sign-in settings
-  dynamic "sign_in" {
-    for_each = var.sign_in != null ? [var.sign_in] : []
-
-    content {
-      enabled = sign_in.value.enabled
-    }
-  }
-
-  # Sign-up settings
-  dynamic "sign_up" {
-    for_each = var.sign_up != null ? [var.sign_up] : []
-
-    content {
-      enabled = sign_up.value.enabled
-
-      terms_of_service {
-        consent_required = sign_up.value.terms_of_service.consent_required
-        enabled          = sign_up.value.terms_of_service.enabled
-        text             = sign_up.value.terms_of_service.text
-      }
-    }
-  }
-
-  # Tenant access settings
-  dynamic "tenant_access" {
-    for_each = var.tenant_access != null ? [var.tenant_access] : []
-
-    content {
-      enabled = tenant_access.value.enabled
-    }
-  }
-
-  # This implementation uses a dynamic block with for_each to conditionally create the virtual_network_configuration block only when virtual_network_type is either "Internal" or "External".
-  # If the type is "None", the block won't be included in the resource.
-  dynamic "virtual_network_configuration" {
-    for_each = contains(["Internal", "External"], var.virtual_network_type) ? [1] : []
-
-    content {
-      subnet_id = var.virtual_network_subnet_id
-    }
-  }
-
-  lifecycle {
-    # This prevents errors when deleting products with subscriptions
-    create_before_destroy = true
-    # Optional: If you want to skip destroying default products
-    ignore_changes = [
-      # product
-    ]
   }
 }
 
-# TLS 1.3 settings for backend and frontend connections.
-# TLS 1.3 is not exposed by the azurerm_api_management security block, so we use
-# azapi_update_resource to set the custom properties directly via the Azure REST API.
-# This resource is created only when at least one TLS 1.3 setting is explicitly
-# provided in the security variable, allowing opt-in management of TLS 1.3.
-#
-# Azure API Management PATCH merges customProperties at the individual key level,
-# so only the TLS 1.3 keys listed here are affected; all other customProperties
-# managed by the azurerm_api_management resource (or set externally) are preserved.
-resource "azapi_update_resource" "tls13" {
-  count = var.security != null && (var.security.enable_backend_tls13 != null || var.security.enable_frontend_tls13 != null) ? 1 : 0
-
-  resource_id = azurerm_api_management.this.id
-  type        = "Microsoft.ApiManagement/service@2024-05-01"
-  body = {
-    properties = {
-      customProperties = merge(
-        var.security.enable_backend_tls13 == null ? {} : {
-          "Microsoft.WindowsAzure.ApiManagement.Gateway.Security.Backend.Protocols.Tls13" = tostring(var.security.enable_backend_tls13)
-        },
-        var.security.enable_frontend_tls13 == null ? {} : {
-          "Microsoft.WindowsAzure.ApiManagement.Gateway.Security.Protocols.Tls13" = tostring(var.security.enable_frontend_tls13)
-        }
-      )
-    }
-  }
-
-  depends_on = [azurerm_api_management.this]
-}
-
-# Lock resource
-resource "azurerm_management_lock" "this" {
-  count = var.lock != null ? 1 : 0
-
-  lock_level = var.lock.kind
-  name       = coalesce(var.lock.name, "lock-${var.lock.kind}")
-  scope      = azurerm_api_management.this.id
-  notes      = var.lock.kind == "CanNotDelete" ? "Cannot delete resource or child resources." : "Cannot modify the resource or its children."
-}
-
-# Role assignments
-resource "azurerm_role_assignment" "this" {
-  for_each = var.role_assignments
-
-  principal_id                           = each.value.principal_id
-  scope                                  = azurerm_api_management.this.id
-  condition                              = each.value.condition
-  condition_version                      = each.value.condition_version
-  delegated_managed_identity_resource_id = each.value.delegated_managed_identity_resource_id
-  role_definition_id                     = strcontains(lower(each.value.role_definition_id_or_name), lower(local.role_definition_resource_substring)) ? each.value.role_definition_id_or_name : null
-  role_definition_name                   = strcontains(lower(each.value.role_definition_id_or_name), lower(local.role_definition_resource_substring)) ? null : each.value.role_definition_id_or_name
-  skip_service_principal_aad_check       = each.value.skip_service_principal_aad_check
+moved {
+  from = azurerm_api_management.this
+  to   = azapi_resource.this
 }

@@ -2,12 +2,18 @@ terraform {
   required_version = ">= 1.9, < 2.0"
 
   required_providers {
+    azapi = {
+      source  = "Azure/azapi"
+      version = "~> 2.12"
+    }
     azurerm = {
       source  = "hashicorp/azurerm"
       version = ">= 4.0"
     }
   }
 }
+
+provider "azapi" {}
 
 provider "azurerm" {
 
@@ -31,13 +37,12 @@ module "naming" {
 # Create a virtual network for testing if needed
 module "virtual_network" {
   source  = "Azure/avm-res-network-virtualnetwork/azurerm"
-  version = "0.9.2"
+  version = "~> 0.22"
 
-  address_space       = ["10.0.0.0/16"]
-  location            = azurerm_resource_group.this.location
-  resource_group_name = azurerm_resource_group.this.name
-  enable_telemetry    = var.enable_telemetry
-  name                = module.naming.virtual_network.name_unique
+  address_space    = ["10.0.0.0/16"]
+  location         = azurerm_resource_group.this.location
+  enable_telemetry = var.enable_telemetry
+  name             = module.naming.virtual_network.name_unique
   subnets = {
     default_subnet = {
       name             = "default_subnet"
@@ -51,12 +56,13 @@ module "virtual_network" {
       # delegations       = {}
     }
   }
+  parent_id = azurerm_resource_group.this.id
 }
 
 # Create a Private DNS Zone for API Management
 module "private_dns_apim" {
   source  = "Azure/avm-res-network-privatednszone/azurerm"
-  version = "0.4.0"
+  version = "~> 0.5"
 
   domain_name = "privatelink.azure-api.net"
   parent_id   = azurerm_resource_group.this.id
@@ -83,11 +89,11 @@ resource "azurerm_resource_group" "this" {
 module "test" {
   source = "../../"
 
-  location            = azurerm_resource_group.this.location
-  name                = module.naming.api_management.name_unique
-  publisher_email     = var.publisher_email
-  resource_group_name = azurerm_resource_group.this.name
-  enable_telemetry    = var.enable_telemetry
+  location         = azurerm_resource_group.this.location
+  name             = module.naming.api_management.name_unique
+  parent_id        = azurerm_resource_group.this.id
+  publisher_email  = var.publisher_email
+  enable_telemetry = var.enable_telemetry
   # private endpoints
   # Add private endpoint configuration
   private_endpoints = {

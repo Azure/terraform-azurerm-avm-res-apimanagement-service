@@ -12,12 +12,18 @@ terraform {
   required_version = ">= 1.9, < 2.0"
 
   required_providers {
+    azapi = {
+      source  = "Azure/azapi"
+      version = "~> 2.12"
+    }
     azurerm = {
       source  = "hashicorp/azurerm"
       version = ">= 4.0"
     }
   }
 }
+
+provider "azapi" {}
 
 provider "azurerm" {
 
@@ -45,14 +51,14 @@ resource "azurerm_resource_group" "this" {
 }
 
 resource "azurerm_log_analytics_workspace" "diag" {
-  location            = azurerm_resource_group.this.location
-  name                = "diag${module.naming.log_analytics_workspace.name_unique}"
+  location  = azurerm_resource_group.this.location
+  name      = "diag${module.naming.log_analytics_workspace.name_unique}"
   resource_group_name = azurerm_resource_group.this.name
 }
 
 resource "azurerm_log_analytics_workspace" "diag2" {
-  location            = azurerm_resource_group.this.location
-  name                = "diag2${module.naming.log_analytics_workspace.name_unique}"
+  location  = azurerm_resource_group.this.location
+  name      = "diag2${module.naming.log_analytics_workspace.name_unique}"
   resource_group_name = azurerm_resource_group.this.name
 }
 
@@ -62,10 +68,10 @@ resource "azurerm_log_analytics_workspace" "diag2" {
 module "test" {
   source = "../../"
 
-  location            = var.location
-  name                = module.naming.api_management.name_unique
-  publisher_email     = var.publisher_email
-  resource_group_name = azurerm_resource_group.this.name
+  location        = var.location
+  name            = module.naming.api_management.name_unique
+  parent_id       = azurerm_resource_group.this.id
+  publisher_email = var.publisher_email
   diagnostic_settings = {
     diag = {
       name                  = "aml${module.naming.monitor_diagnostic_setting.name_unique}"
@@ -98,6 +104,8 @@ module "test" {
 The following requirements are needed by this module:
 
 - <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) (>= 1.9, < 2.0)
+
+- <a name="requirement_azapi"></a> [azapi](#requirement\_azapi) (~> 2.12)
 
 - <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) (>= 4.0)
 
@@ -132,7 +140,7 @@ If it is set to false, then no telemetry will be collected.
 
 Type: `bool`
 
-Default: `false`
+Default: `true`
 
 ### <a name="input_location"></a> [location](#input\_location)
 

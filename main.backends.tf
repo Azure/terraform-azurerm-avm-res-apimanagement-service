@@ -3,80 +3,52 @@
 # Backends define the HTTP endpoint that API operations forward requests to,
 # including Azure AI Foundry endpoints, Function Apps, Logic Apps, and custom HTTP services.
 
-resource "azurerm_api_management_backend" "this" {
-  for_each = var.backends
+module "backend" {
+  source   = "./modules/backend"
+  for_each = local.single_backend_keys
 
-  api_management_name = azurerm_api_management.this.name
+  name                   = each.key
+  parent_id              = azapi_resource.this.id
+  credentials            = var.backends[each.key].credentials
+  description            = nonsensitive(var.backends[each.key].description)
+  enable_telemetry       = var.enable_telemetry
+  ignore_body_changes    = var.ignore_body_changes.apimanagement_service_backends
+  protocol               = nonsensitive(var.backends[each.key].protocol)
+  proxy                  = var.backends[each.key].proxy
+  resource_id            = nonsensitive(var.backends[each.key].resource_id)
+  resource_types         = var.resource_types.apimanagement_service_backends
+  retry                  = var.retry
+  service_fabric_cluster = nonsensitive(var.backends[each.key].service_fabric_cluster)
+  timeouts               = var.timeouts
+  title                  = nonsensitive(var.backends[each.key].title)
+  tls                    = nonsensitive(var.backends[each.key].tls)
+  type                   = nonsensitive(var.backends[each.key].type)
+  url                    = nonsensitive(var.backends[each.key].url)
+}
+
+module "backend_pool" {
+  source   = "./modules/backend"
+  for_each = local.backend_pool_keys
+
   name                = each.key
-  protocol            = each.value.protocol
-  resource_group_name = azurerm_api_management.this.resource_group_name
-  url                 = each.value.url
-  description         = each.value.description
-  resource_id         = each.value.resource_id
-  title               = each.value.title
-
-  # Credentials for backend authentication
-  dynamic "credentials" {
-    for_each = each.value.credentials != null ? [each.value.credentials] : []
-
-    content {
-      certificate = credentials.value.certificate
-      header      = credentials.value.header
-      query       = credentials.value.query
-
-      dynamic "authorization" {
-        for_each = credentials.value.authorization != null ? [credentials.value.authorization] : []
-
-        content {
-          parameter = authorization.value.parameter
-          scheme    = authorization.value.scheme
-        }
+  parent_id           = azapi_resource.this.id
+  description         = nonsensitive(var.backends[each.key].description)
+  enable_telemetry    = var.enable_telemetry
+  ignore_body_changes = var.ignore_body_changes.apimanagement_service_backends
+  pool = {
+    services = [
+      for service in nonsensitive(var.backends[each.key].pool.services) : {
+        id       = service.backend_id != null ? service.backend_id : module.backend[service.backend_name].resource_id
+        priority = service.priority
+        weight   = service.weight
       }
-    }
+    ]
   }
+  resource_types = var.resource_types.apimanagement_service_backends
+  retry          = var.retry
+  timeouts       = var.timeouts
+  title          = nonsensitive(var.backends[each.key].title)
+  type           = nonsensitive(var.backends[each.key].type)
 
-  # Proxy configuration
-  dynamic "proxy" {
-    for_each = each.value.proxy != null ? [each.value.proxy] : []
-
-    content {
-      url      = proxy.value.url
-      username = proxy.value.username
-      password = proxy.value.password
-    }
-  }
-
-  # Service Fabric cluster configuration
-  dynamic "service_fabric_cluster" {
-    for_each = each.value.service_fabric_cluster != null ? [each.value.service_fabric_cluster] : []
-
-    content {
-      management_endpoints             = service_fabric_cluster.value.management_endpoints
-      max_partition_resolution_retries = service_fabric_cluster.value.max_partition_resolution_retries
-      client_certificate_id            = service_fabric_cluster.value.client_certificate_id
-      client_certificate_thumbprint    = service_fabric_cluster.value.client_certificate_thumbprint
-      server_certificate_thumbprints   = service_fabric_cluster.value.server_certificate_thumbprints
-
-      dynamic "server_x509_name" {
-        for_each = service_fabric_cluster.value.server_x509_name
-
-        content {
-          issuer_certificate_thumbprint = server_x509_name.value.issuer_certificate_thumbprint
-          name                          = server_x509_name.value.name
-        }
-      }
-    }
-  }
-
-  # TLS validation settings
-  dynamic "tls" {
-    for_each = each.value.tls != null ? [each.value.tls] : []
-
-    content {
-      validate_certificate_chain = tls.value.validate_certificate_chain
-      validate_certificate_name  = tls.value.validate_certificate_name
-    }
-  }
-
-  depends_on = [azurerm_api_management.this]
+  depends_on = [module.backend]
 }

@@ -1,77 +1,92 @@
-resource "azurerm_private_endpoint" "this" {
-  for_each = { for k, v in var.private_endpoints : k => v if var.private_endpoints_manage_dns_zone_group }
+resource "azapi_resource" "private_endpoints" {
+  for_each = module.avm_interfaces.private_endpoints_azapi
 
-  location                      = each.value.location != null ? each.value.location : var.location
-  name                          = each.value.name != null ? each.value.name : "pe-${var.name}"
-  resource_group_name           = var.resource_group_name
-  subnet_id                     = each.value.subnet_resource_id
-  custom_network_interface_name = each.value.network_interface_name
-  tags                          = each.value.tags == null ? var.tags : each.value.tags == {} ? {} : each.value.tags
+  location               = coalesce(try(var.private_endpoints[each.key].location, null), var.location)
+  name                   = each.value.name
+  parent_id              = var.parent_id
+  type                   = coalesce(try(each.value.type, null), var.resource_types.network_private_endpoints)
+  body                   = each.value.body
+  ignore_body_changes    = length(var.ignore_body_changes.network_private_endpoints) > 0 ? var.ignore_body_changes.network_private_endpoints : null
+  response_export_values = ["properties.networkInterfaces", "properties.customDnsConfigs"]
+  retry                  = var.retry
+  tags                   = try(each.value.tags, null)
 
-  private_service_connection {
-    is_manual_connection           = false
-    name                           = each.value.private_service_connection_name != null ? each.value.private_service_connection_name : "psc-${var.name}"
-    private_connection_resource_id = azurerm_api_management.this.id
-    subresource_names              = ["Gateway"]
-  }
-
-  dynamic "ip_configuration" {
-    for_each = each.value.ip_configurations != null ? each.value.ip_configurations : {}
-
+  dynamic "timeouts" {
+    for_each = var.timeouts == null ? [] : [var.timeouts]
     content {
-      name               = ip_configuration.value.name
-      private_ip_address = ip_configuration.value.private_ip_address
-      member_name        = ip_configuration.value.member_name != null ? ip_configuration.value.member_name : "default"
-      subresource_name   = ip_configuration.value.subresource_name != null ? ip_configuration.value.subresource_name : "gateway"
-    }
-  }
-
-  dynamic "private_dns_zone_group" {
-    for_each = length(coalesce(each.value.private_dns_zone_resource_ids, [])) > 0 ? ["this"] : []
-
-    content {
-      name                 = each.value.private_dns_zone_group_name != null ? each.value.private_dns_zone_group_name : "default"
-      private_dns_zone_ids = each.value.private_dns_zone_resource_ids
+      create = timeouts.value.create
+      read   = timeouts.value.read
+      update = timeouts.value.update
+      delete = timeouts.value.delete
     }
   }
 }
 
-resource "azurerm_private_endpoint" "this_unmanaged_dns_zone_groups" {
-  for_each = { for k, v in var.private_endpoints : k => v if !var.private_endpoints_manage_dns_zone_group }
+resource "azapi_resource" "private_dns_zone_groups" {
+  for_each = var.private_endpoints_manage_dns_zone_group ? module.avm_interfaces.private_dns_zone_groups_azapi : {}
 
-  location                      = each.value.location != null ? each.value.location : var.location
-  name                          = each.value.name != null ? each.value.name : "pe-${var.name}"
-  resource_group_name           = var.resource_group_name
-  subnet_id                     = each.value.subnet_resource_id
-  custom_network_interface_name = each.value.network_interface_name
-  tags                          = each.value.tags == null ? var.tags : each.value.tags == {} ? {} : each.value.tags
+  name                   = each.value.name
+  parent_id              = azapi_resource.private_endpoints[each.key].id
+  type                   = coalesce(try(each.value.type, null), var.resource_types.network_private_dns_zone_groups)
+  body                   = each.value.body
+  ignore_body_changes    = length(var.ignore_body_changes.network_private_dns_zone_groups) > 0 ? var.ignore_body_changes.network_private_dns_zone_groups : null
+  response_export_values = []
+  retry                  = var.retry
 
-  private_service_connection {
-    is_manual_connection           = false
-    name                           = each.value.private_service_connection_name != null ? each.value.private_service_connection_name : "psc-${var.name}"
-    private_connection_resource_id = azurerm_api_management.this.id
-    subresource_names              = ["Gateway"]
-  }
-
-  dynamic "ip_configuration" {
-    for_each = each.value.ip_configurations != null ? each.value.ip_configurations : {}
-
+  dynamic "timeouts" {
+    for_each = var.timeouts == null ? [] : [var.timeouts]
     content {
-      name               = ip_configuration.value.name
-      private_ip_address = ip_configuration.value.private_ip_address
-      member_name        = ip_configuration.value.member_name != null ? ip_configuration.value.member_name : "default"
-      subresource_name   = ip_configuration.value.subresource_name != null ? ip_configuration.value.subresource_name : "gateway"
+      create = timeouts.value.create
+      read   = timeouts.value.read
+      update = timeouts.value.update
+      delete = timeouts.value.delete
     }
-  }
-
-  lifecycle {
-    ignore_changes = [private_dns_zone_group]
   }
 }
 
-resource "azurerm_private_endpoint_application_security_group_association" "this" {
-  for_each = local.private_endpoint_application_security_group_associations
+resource "azapi_resource" "private_endpoint_locks" {
+  for_each = module.avm_interfaces.lock_private_endpoint_azapi
 
-  application_security_group_id = each.value.asg_resource_id
-  private_endpoint_id           = var.private_endpoints_manage_dns_zone_group ? azurerm_private_endpoint.this[each.value.pe_key].id : azurerm_private_endpoint.this_unmanaged_dns_zone_groups[each.value.pe_key].id
+  name                   = each.value.name
+  parent_id              = azapi_resource.private_endpoints[each.value.pe_key].id
+  type                   = each.value.type
+  body                   = each.value.body
+  response_export_values = []
+  retry                  = var.retry
+
+  dynamic "timeouts" {
+    for_each = var.timeouts == null ? [] : [var.timeouts]
+    content {
+      create = timeouts.value.create
+      read   = timeouts.value.read
+      update = timeouts.value.update
+      delete = timeouts.value.delete
+    }
+  }
+
+  depends_on = [
+    azapi_resource.private_dns_zone_groups,
+    azapi_resource.private_endpoint_role_assignments,
+  ]
+}
+
+resource "azapi_resource" "private_endpoint_role_assignments" {
+  for_each = module.avm_interfaces.role_assignments_private_endpoint_azapi
+
+  name                   = each.value.name
+  parent_id              = azapi_resource.private_endpoints[each.value.pe_key].id
+  type                   = each.value.type
+  body                   = each.value.body
+  response_export_values = []
+  retry                  = var.retry
+
+  dynamic "timeouts" {
+    for_each = var.timeouts == null ? [] : [var.timeouts]
+    content {
+      create = timeouts.value.create
+      read   = timeouts.value.read
+      update = timeouts.value.update
+      delete = timeouts.value.delete
+    }
+  }
 }
