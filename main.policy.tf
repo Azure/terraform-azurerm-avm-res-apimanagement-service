@@ -1,15 +1,22 @@
 # API Management Service-Level Policy
 # This file implements the service-level (global) policy
 
-# Service-Level Policy - applies to all APIs
-resource "azurerm_api_management_policy" "this" {
-  count = var.policy != null ? 1 : 0
+module "policy" {
+  source = "./modules/policy"
+  count  = var.policy != null ? 1 : 0
 
-  api_management_id = azurerm_api_management.this.id
-  xml_content       = var.policy.xml_content
+  name                = "policy"
+  parent_id           = azapi_resource.this.id
+  value               = var.policy != null ? var.policy.xml_content : ""
+  enable_telemetry    = var.enable_telemetry
+  format              = "xml"
+  ignore_body_changes = var.ignore_body_changes.apimanagement_service_policies
+  resource_types      = var.resource_types.apimanagement_service_policies
+  retry               = var.retry
+  timeouts            = var.timeouts
 
   depends_on = [
-    azurerm_api_management.this,
-    azurerm_api_management_backend.this
+    azapi_resource.this,
+    module.backend,
   ]
 }

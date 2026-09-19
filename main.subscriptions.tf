@@ -1,30 +1,29 @@
 # API Management Subscriptions
 # This file implements API subscriptions for access control
 
-# Subscriptions - API access keys
-resource "azurerm_api_management_subscription" "this" {
+
+module "subscription" {
+  source   = "./modules/subscription"
   for_each = var.subscriptions
 
-  api_management_name = azurerm_api_management.this.name
   display_name        = each.value.display_name
-  resource_group_name = azurerm_api_management.this.resource_group_name
+  name                = each.key
+  parent_id           = azapi_resource.this.id
+  scope               = local.subscription_scopes[each.key]
   allow_tracing       = each.value.allow_tracing
-  api_id              = each.value.scope_type == "api" ? azurerm_api_management_api.this[each.value.scope_identifier].id : null
-  # Optional custom keys
-  primary_key = each.value.primary_key
-  # Scope to product, API, or all APIs
-  # Note: product_id and api_id are mutually exclusive
-  # For all_apis scope, both should be null
-  product_id      = each.value.scope_type == "product" ? azurerm_api_management_product.this[each.value.scope_identifier].id : null
-  secondary_key   = each.value.secondary_key
-  state           = each.value.state
-  subscription_id = each.key
-  # Optional user assignment
-  user_id = each.value.user_id
+  enable_telemetry    = var.enable_telemetry
+  ignore_body_changes = var.ignore_body_changes.apimanagement_service_subscriptions
+  owner_id            = each.value.user_id
+  primary_key         = each.value.primary_key
+  resource_types      = var.resource_types.apimanagement_service_subscriptions
+  retry               = var.retry
+  secondary_key       = each.value.secondary_key
+  state               = each.value.state
+  timeouts            = var.timeouts
 
   depends_on = [
-    azurerm_api_management.this,
-    azurerm_api_management_product.this,
-    azurerm_api_management_api.this
+    azapi_resource.this,
+    module.product,
+    module.api,
   ]
 }

@@ -9,6 +9,10 @@ terraform {
   required_version = ">= 1.9"
 
   required_providers {
+    azapi = {
+      source  = "Azure/azapi"
+      version = "~> 2.12"
+    }
     azurerm = {
       source  = "hashicorp/azurerm"
       version = ">= 4.0, < 5.0"
@@ -19,6 +23,8 @@ terraform {
     }
   }
 }
+
+provider "azapi" {}
 
 provider "azurerm" {
   features {}
@@ -60,10 +66,10 @@ resource "azurerm_resource_group" "this" {
 module "apim" {
   source = "../../"
 
-  location            = azurerm_resource_group.this.location
-  name                = module.naming.api_management.name_unique
-  publisher_email     = "admin@contoso.com"
-  resource_group_name = azurerm_resource_group.this.name
+  location        = azurerm_resource_group.this.location
+  name            = module.naming.api_management.name_unique
+  parent_id       = azurerm_resource_group.this.id
+  publisher_email = "admin@contoso.com"
   # =================================================================
   # APIs with Operations Configuration
   # =================================================================
@@ -235,6 +241,8 @@ The following requirements are needed by this module:
 
 - <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) (>= 1.9)
 
+- <a name="requirement_azapi"></a> [azapi](#requirement\_azapi) (~> 2.12)
+
 - <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) (>= 4.0, < 5.0)
 
 - <a name="requirement_random"></a> [random](#requirement\_random) (>= 3.6.0, < 4.0.0)
@@ -271,7 +279,7 @@ If it is set to false, then no telemetry will be collected.
 
 Type: `bool`
 
-Default: `false`
+Default: `true`
 
 ## Outputs
 

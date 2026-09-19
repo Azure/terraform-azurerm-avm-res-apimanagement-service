@@ -1,55 +1,47 @@
 terraform {
-  required_version = ">= 1.9, < 2.0"
+  required_version = "~> 1.12"
 
   required_providers {
-    azurerm = {
-      source  = "hashicorp/azurerm"
-      version = ">= 4.0"
+    azapi = {
+      source  = "Azure/azapi"
+      version = "~> 2.12"
+    }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.5"
     }
   }
 }
 
-provider "azurerm" {
+provider "azapi" {}
 
-  features {
-    key_vault {
-      purge_soft_delete_on_destroy = false
-    }
-    resource_group {
-      prevent_deletion_if_contains_resources = false
-    }
-
-  }
-}
-
-# This ensures we have unique CAF compliant names for our resources.
 module "naming" {
   source  = "Azure/naming/azurerm"
   version = "0.3.0"
 }
 
-# This is required for resource modules
-resource "azurerm_resource_group" "this" {
-  location = var.location
-  name     = module.naming.resource_group.name_unique
+data "azapi_client_config" "current" {}
+
+resource "azapi_resource" "rg" {
+  location  = var.location
+  name      = module.naming.resource_group.name_unique
+  parent_id = "/subscriptions/${data.azapi_client_config.current.subscription_id}"
+  type      = "Microsoft.Resources/resourceGroups@2024-03-01"
 }
 
-# This is the module call
-# Leaving location as `null` will cause the module to use the resource group location
-# with a data source.
 module "test" {
   source = "../../"
 
-  location            = azurerm_resource_group.this.location
-  name                = module.naming.api_management.name_unique
-  publisher_email     = var.publisher_email
-  resource_group_name = azurerm_resource_group.this.name
-  enable_telemetry    = var.enable_telemetry
-  publisher_name      = "Apim Example Publisher"
-  sku_name            = "Premium_3"
+  location         = var.location
+  name             = module.naming.api_management.name_unique
+  parent_id        = azapi_resource.rg.id
+  publisher_email  = var.publisher_email
+  enable_telemetry = var.enable_telemetry
+  publisher_name   = "Apim Example Publisher"
+  sku_name         = "Premium_3"
   tags = {
     environment = "test"
     cost_center = "test"
   }
-  zones = ["1", "2", "3"] # For compliance with WAF
+  zones = ["1", "2", "3"]
 }

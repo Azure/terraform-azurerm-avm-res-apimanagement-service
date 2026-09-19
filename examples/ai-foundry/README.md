@@ -9,12 +9,18 @@ terraform {
   required_version = ">= 1.9, < 2.0"
 
   required_providers {
+    azapi = {
+      source  = "Azure/azapi"
+      version = "~> 2.12"
+    }
     azurerm = {
       source  = "hashicorp/azurerm"
       version = ">= 4.0"
     }
   }
 }
+
+provider "azapi" {}
 
 provider "azurerm" {
   storage_use_azuread = true
@@ -52,10 +58,10 @@ resource "azurerm_resource_group" "this" {
 resource "azurerm_key_vault" "this" {
   location                 = azurerm_resource_group.this.location
   name                     = module.naming.key_vault.name_unique
-  resource_group_name      = azurerm_resource_group.this.name
   sku_name                 = "standard"
   tenant_id                = data.azurerm_client_config.current.tenant_id
   purge_protection_enabled = true
+  parent_id                = azurerm_resource_group.this.id
 }
 
 resource "azurerm_key_vault_access_policy" "deployer" {
@@ -76,27 +82,27 @@ resource "azurerm_storage_account" "this" {
   account_tier                    = "Standard"
   location                        = azurerm_resource_group.this.location
   name                            = module.naming.storage_account.name_unique
-  resource_group_name             = azurerm_resource_group.this.name
   allow_nested_items_to_be_public = false
   shared_access_key_enabled       = false
+  parent_id                       = azurerm_resource_group.this.id
 }
 
 resource "azurerm_ai_services" "this" {
-  location            = azurerm_resource_group.this.location
-  name                = "${module.naming.cognitive_account.name_unique}-ais"
-  resource_group_name = azurerm_resource_group.this.name
-  sku_name            = "S0"
+  location  = azurerm_resource_group.this.location
+  name      = "${module.naming.cognitive_account.name_unique}-ais"
+  sku_name  = "S0"
+  parent_id = azurerm_resource_group.this.id
 }
 
 # =================================================================
 # AI Foundry Hub
 # =================================================================
 resource "azurerm_ai_foundry" "this" {
-  key_vault_id        = azurerm_key_vault.this.id
-  location            = azurerm_resource_group.this.location
-  name                = "${module.naming.cognitive_account.name_unique}-hub"
-  resource_group_name = azurerm_resource_group.this.name
-  storage_account_id  = azurerm_storage_account.this.id
+  key_vault_id       = azurerm_key_vault.this.id
+  location           = azurerm_resource_group.this.location
+  name               = "${module.naming.cognitive_account.name_unique}-hub"
+  storage_account_id = azurerm_storage_account.this.id
+  parent_id          = azurerm_resource_group.this.id
 
   identity {
     type = "SystemAssigned"
@@ -132,10 +138,10 @@ resource "azurerm_role_assignment" "apim_cognitive_services" {
 module "apim" {
   source = "../../"
 
-  location            = azurerm_resource_group.this.location
-  name                = module.naming.api_management.name_unique
-  publisher_email     = var.publisher_email
-  resource_group_name = azurerm_resource_group.this.name
+  location        = azurerm_resource_group.this.location
+  name            = module.naming.api_management.name_unique
+  parent_id       = azurerm_resource_group.this.id
+  publisher_email = var.publisher_email
   # =================================================================
   # APIs Configuration
   # An API that proxies to the AI Foundry backend with managed identity auth
@@ -349,6 +355,8 @@ The following requirements are needed by this module:
 
 - <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) (>= 1.9, < 2.0)
 
+- <a name="requirement_azapi"></a> [azapi](#requirement\_azapi) (~> 2.12)
+
 - <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) (>= 4.0)
 
 ## Resources
@@ -388,7 +396,7 @@ If it is set to false, then no telemetry will be collected.
 
 Type: `bool`
 
-Default: `false`
+Default: `true`
 
 ### <a name="input_location"></a> [location](#input\_location)
 

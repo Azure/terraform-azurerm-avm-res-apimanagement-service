@@ -16,6 +16,17 @@ variable "name" {
   description = "The name of the this resource."
 }
 
+variable "parent_id" {
+  type        = string
+  description = "The fully-qualified ARM resource ID of the resource group into which the API Management service will be deployed."
+  nullable    = false
+
+  validation {
+    condition     = can(provider::azapi::parse_resource_id("Microsoft.Resources/resourceGroups", var.parent_id))
+    error_message = "`parent_id` must be a valid resource group resource ID."
+  }
+}
+
 variable "publisher_email" {
   type        = string
   description = "The email of the API Management service publisher."
@@ -24,12 +35,6 @@ variable "publisher_email" {
     condition     = can(regex("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$", var.publisher_email))
     error_message = "The publisher_email must be a valid email address."
   }
-}
-
-# This is required for most resource modules
-variable "resource_group_name" {
-  type        = string
-  description = "The resource group where the resources will be deployed."
 }
 
 variable "additional_location" {
@@ -620,6 +625,63 @@ variable "hostname_configuration" {
   description = "Hostname configuration for the API Management service."
 }
 
+variable "ignore_body_changes" {
+  type = object({
+    apimanagement_service           = optional(list(string), [])
+    authorization_locks             = optional(list(string), [])
+    authorization_role_assignments  = optional(list(string), [])
+    insights_diagnostic_settings    = optional(list(string), [])
+    network_private_endpoints       = optional(list(string), [])
+    network_private_dns_zone_groups = optional(list(string), [])
+
+    apimanagement_service_backends = optional(object({
+      apimanagement_service_backends = optional(list(string), [])
+    }), {})
+    apimanagement_service_named_values = optional(object({
+      apimanagement_service_named_values = optional(list(string), [])
+    }), {})
+    apimanagement_service_policies = optional(object({
+      apimanagement_service_policies = optional(list(string), [])
+    }), {})
+    apimanagement_service_subscriptions = optional(object({
+      apimanagement_service_subscriptions = optional(list(string), [])
+    }), {})
+    apimanagement_service_api_version_sets = optional(object({
+      apimanagement_service_api_version_sets = optional(list(string), [])
+    }), {})
+    apimanagement_service_apis = optional(object({
+      apimanagement_service_apis = optional(list(string), [])
+    }), {})
+    apimanagement_service_apis_operations = optional(object({
+      apimanagement_service_apis_operations = optional(list(string), [])
+    }), {})
+    apimanagement_service_apis_policies = optional(object({
+      apimanagement_service_apis_policies = optional(list(string), [])
+    }), {})
+    apimanagement_service_apis_operations_policies = optional(object({
+      apimanagement_service_apis_operations_policies = optional(list(string), [])
+    }), {})
+    apimanagement_service_products = optional(object({
+      apimanagement_service_products = optional(list(string), [])
+    }), {})
+    apimanagement_service_products_apis = optional(object({
+      apimanagement_service_products_apis = optional(list(string), [])
+    }), {})
+    apimanagement_service_products_groups = optional(object({
+      apimanagement_service_products_groups = optional(list(string), [])
+    }), {})
+  })
+  default     = {}
+  description = <<DESCRIPTION
+Body-relative paths to ignore for each AzAPI resource. Paths use dot notation.
+Changes take effect only after apply.
+
+- `apimanagement_service` - Paths ignored on the API Management service.
+- Nested `apimanagement_service_*` objects are passed unchanged to the matching submodule.
+DESCRIPTION
+  nullable    = false
+}
+
 variable "lock" {
   type = object({
     kind = string
@@ -936,6 +998,104 @@ variable "publisher_name" {
   description = "The name of the API Management service publisher."
 }
 
+variable "resource_types" {
+  type = object({
+    apimanagement_service           = optional(string, "Microsoft.ApiManagement/service@2024-05-01")
+    authorization_locks             = optional(string, "Microsoft.Authorization/locks@2020-05-01")
+    authorization_role_assignments  = optional(string, "Microsoft.Authorization/roleAssignments@2022-04-01")
+    insights_diagnostic_settings    = optional(string, "Microsoft.Insights/diagnosticSettings@2021-05-01-preview")
+    network_private_endpoints       = optional(string, "Microsoft.Network/privateEndpoints@2024-05-01")
+    network_private_dns_zone_groups = optional(string, "Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2024-05-01")
+
+    # Child submodule slots (no string defaults on parent — children own defaults)
+    apimanagement_service_backends = optional(object({
+      apimanagement_service_backends = optional(string)
+    }), {})
+    apimanagement_service_named_values = optional(object({
+      apimanagement_service_named_values = optional(string)
+    }), {})
+    apimanagement_service_policies = optional(object({
+      apimanagement_service_policies = optional(string)
+    }), {})
+    apimanagement_service_subscriptions = optional(object({
+      apimanagement_service_subscriptions = optional(string)
+    }), {})
+    apimanagement_service_api_version_sets = optional(object({
+      apimanagement_service_api_version_sets = optional(string)
+    }), {})
+    apimanagement_service_apis = optional(object({
+      apimanagement_service_apis = optional(string)
+    }), {})
+    apimanagement_service_apis_operations = optional(object({
+      apimanagement_service_apis_operations = optional(string)
+    }), {})
+    apimanagement_service_apis_policies = optional(object({
+      apimanagement_service_apis_policies = optional(string)
+    }), {})
+    apimanagement_service_apis_operations_policies = optional(object({
+      apimanagement_service_apis_operations_policies = optional(string)
+    }), {})
+    apimanagement_service_products = optional(object({
+      apimanagement_service_products = optional(string)
+    }), {})
+    apimanagement_service_products_apis = optional(object({
+      apimanagement_service_products_apis = optional(string)
+    }), {})
+    apimanagement_service_products_groups = optional(object({
+      apimanagement_service_products_groups = optional(string)
+    }), {})
+  })
+  default     = {}
+  description = <<DESCRIPTION
+AzAPI resource types and API versions used by the module.
+
+- `apimanagement_service` - Primary API Management service.
+- `authorization_locks` - Resource locks.
+- `authorization_role_assignments` - Role assignments.
+- `insights_diagnostic_settings` - Diagnostic settings.
+- `network_private_endpoints` - Private endpoints.
+- `network_private_dns_zone_groups` - Private DNS zone groups on private endpoints.
+- `apimanagement_service_backends` - Overrides for the backend submodule.
+- `apimanagement_service_named_values` - Overrides for the named_value submodule.
+- `apimanagement_service_policies` - Overrides for the policy submodule.
+- `apimanagement_service_subscriptions` - Overrides for the subscription submodule.
+- `apimanagement_service_api_version_sets` - Overrides for the api_version_set submodule.
+- `apimanagement_service_apis` - Overrides for the api submodule.
+- `apimanagement_service_apis_operations` - Overrides for the operation submodule.
+- `apimanagement_service_apis_policies` - Overrides for the api_policy submodule.
+- `apimanagement_service_apis_operations_policies` - Overrides for the operation_policy submodule.
+- `apimanagement_service_products` - Overrides for the product submodule.
+- `apimanagement_service_products_apis` - Overrides for the product_api submodule.
+- `apimanagement_service_products_groups` - Overrides for the product_group submodule.
+DESCRIPTION
+  nullable    = false
+}
+
+variable "retry" {
+  type = object({
+    error_message_regex  = optional(list(string), null)
+    interval_seconds     = optional(number, null)
+    max_interval_seconds = optional(number, null)
+    multiplier           = optional(number, null)
+    randomization_factor = optional(number, null)
+  })
+  default     = null
+  description = "Retry configuration for AzAPI resources. See AzAPI provider `retry` documentation."
+}
+
+variable "role_assignment_definition_lookup_enabled" {
+  type        = bool
+  default     = true
+  description = "Whether to look up role definition IDs from names via the Azure API when creating role assignments."
+  nullable    = false
+}
+
+variable "role_assignment_definition_scope" {
+  type        = string
+  default     = null
+  description = "Scope used to look up role definition IDs. Defaults to `parent_id` (the resource group)."
+}
+
 variable "role_assignments" {
   type = map(object({
     role_definition_id_or_name             = string
@@ -1114,6 +1274,17 @@ variable "tenant_access" {
   })
   default     = null
   description = "Controls whether access to the management API is enabled. When enabled, the primary/secondary keys provide access to this API."
+}
+
+variable "timeouts" {
+  type = object({
+    create = optional(string)
+    read   = optional(string)
+    update = optional(string)
+    delete = optional(string)
+  })
+  default     = null
+  description = "Timeouts for AzAPI resources."
 }
 
 variable "virtual_network_subnet_id" {

@@ -11,12 +11,18 @@ terraform {
   required_version = ">= 1.9, < 2.0"
 
   required_providers {
+    azapi = {
+      source  = "Azure/azapi"
+      version = "~> 2.12"
+    }
     azurerm = {
       source  = "hashicorp/azurerm"
       version = ">= 4.0"
     }
   }
 }
+
+provider "azapi" {}
 
 provider "azurerm" {
   features {
@@ -45,35 +51,35 @@ resource "azurerm_resource_group" "this" {
 
 # Create Virtual Network and Subnets
 resource "azurerm_virtual_network" "this" {
-  location            = azurerm_resource_group.this.location
-  name                = module.naming.virtual_network.name_unique
-  resource_group_name = azurerm_resource_group.this.name
-  address_space       = ["10.0.0.0/16"]
+  location      = azurerm_resource_group.this.location
+  name          = module.naming.virtual_network.name_unique
+  address_space = ["10.0.0.0/16"]
   tags = {
     environment = "test"
     cost_center = "test"
   }
+  parent_id = azurerm_resource_group.this.id
 }
 
 resource "azurerm_subnet" "private_endpoints" {
   name                 = "private_endpoints"
-  resource_group_name  = azurerm_resource_group.this.name
   virtual_network_name = azurerm_virtual_network.this.name
   address_prefixes     = ["10.0.1.0/24"]
+  parent_id            = azurerm_resource_group.this.id
 }
 
 resource "azurerm_subnet" "apim_subnet" {
   name                 = "apim_subnet"
-  resource_group_name  = azurerm_resource_group.this.name
   virtual_network_name = azurerm_virtual_network.this.name
   address_prefixes     = ["10.0.2.0/24"]
+  parent_id            = azurerm_resource_group.this.id
 }
 
 resource "azurerm_subnet" "default" {
   name                 = "default"
-  resource_group_name  = azurerm_resource_group.this.name
   virtual_network_name = azurerm_virtual_network.this.name
   address_prefixes     = ["10.0.3.0/24"]
+  parent_id            = azurerm_resource_group.this.id
 }
 
 # Private DNS Zone for API Management
@@ -94,9 +100,9 @@ module "private_dns_apim" {
 }
 
 resource "azurerm_user_assigned_identity" "cmk" {
-  location            = azurerm_resource_group.this.location
-  name                = module.naming.user_assigned_identity.name_unique
-  resource_group_name = azurerm_resource_group.this.name
+  location  = azurerm_resource_group.this.location
+  name      = module.naming.user_assigned_identity.name_unique
+  parent_id = azurerm_resource_group.this.id
 }
 
 # This is the module call
@@ -106,11 +112,11 @@ module "test" {
   source = "../../"
 
   # Remove the hardcoded location and use the resource group location
-  location            = azurerm_resource_group.this.location
-  name                = module.naming.api_management.name_unique
-  publisher_email     = var.publisher_email
-  resource_group_name = azurerm_resource_group.this.name
-  enable_telemetry    = var.enable_telemetry
+  location         = azurerm_resource_group.this.location
+  name             = module.naming.api_management.name_unique
+  parent_id        = azurerm_resource_group.this.id
+  publisher_email  = var.publisher_email
+  enable_telemetry = var.enable_telemetry
   # Add private endpoint configuration
   private_endpoints = {
     endpoint1 = {
@@ -161,6 +167,8 @@ module "test" {
 The following requirements are needed by this module:
 
 - <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) (>= 1.9, < 2.0)
+
+- <a name="requirement_azapi"></a> [azapi](#requirement\_azapi) (~> 2.12)
 
 - <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) (>= 4.0)
 
@@ -220,7 +228,7 @@ If it is set to false, then no telemetry will be collected.
 
 Type: `bool`
 
-Default: `false`
+Default: `true`
 
 ### <a name="input_location"></a> [location](#input\_location)
 

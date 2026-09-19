@@ -1,25 +1,19 @@
 output "additional_locations" {
-  description = "Information about additional locations for the API Management Service."
-  value = [
-    for location in azurerm_api_management.this.additional_location : {
-      gateway_regional_url = location.gateway_regional_url
-      public_ip_addresses  = location.public_ip_addresses
-      private_ip_addresses = location.private_ip_addresses
-    }
-  ]
+  description = "Configured additional locations for the API Management Service (input echo; computed regional URLs are not exported by AzAPI)."
+  value       = var.additional_location
 }
 
 output "api_ids" {
   description = "A map of API names to their resource IDs."
   value = {
-    for k, v in azurerm_api_management_api.this : k => v.id
+    for k, v in module.api : k => v.resource_id
   }
 }
 
 output "api_operation_ids" {
-  description = "A map of API operation keys to their operation IDs."
+  description = "A map of API operation keys to their operation IDs (ARM resource names)."
   value = {
-    for k, v in azurerm_api_management_api_operation.this : k => v.operation_id
+    for k, v in module.operation : k => v.name
   }
 }
 
@@ -27,10 +21,10 @@ output "api_operation_ids" {
 output "api_operations" {
   description = "A map of API operations created in the API Management service."
   value = {
-    for k, v in azurerm_api_management_api_operation.this : k => {
-      id           = v.id
-      operation_id = v.operation_id
-      api_name     = v.api_name
+    for k, v in module.operation : k => {
+      id           = v.resource_id
+      operation_id = v.name
+      api_name     = local.api_operations[k].api_key
       display_name = v.display_name
       method       = v.method
       url_template = v.url_template
@@ -40,50 +34,48 @@ output "api_operations" {
 
 output "api_version_set_ids" {
   description = "A map of API version set names to their resource IDs."
-  value = {
-    for k, v in azurerm_api_management_api_version_set.this : k => v.id
-  }
+  value       = { for k, v in module.api_version_set : k => v.resource_id }
 }
 
 # API Version Sets outputs
 output "api_version_sets" {
   description = "A map of API version sets created in the API Management service."
   value = {
-    for k, v in azurerm_api_management_api_version_set.this : k => {
-      id                  = v.id
+    for k, v in module.api_version_set : k => {
+      id                  = v.resource_id
       name                = v.name
-      display_name        = v.display_name
-      versioning_scheme   = v.versioning_scheme
-      version_header_name = v.version_header_name
-      version_query_name  = v.version_query_name
+      display_name        = var.api_version_sets[k].display_name
+      versioning_scheme   = var.api_version_sets[k].versioning_scheme
+      version_header_name = var.api_version_sets[k].version_header_name
+      version_query_name  = var.api_version_sets[k].version_query_name
     }
   }
 }
 
 output "apim_gateway_url" {
   description = "The gateway URL of the API Management service."
-  value       = azurerm_api_management.this.gateway_url
+  value       = try(azapi_resource.this.output.properties.gatewayUrl, null)
 }
 
 output "apim_management_url" {
   description = "The management URL of the API Management service."
-  value       = azurerm_api_management.this.management_api_url
+  value       = try(azapi_resource.this.output.properties.managementApiUrl, null)
 }
 
 # APIs outputs
 output "apis" {
   description = "A map of APIs created in the API Management service."
   value = {
-    for k, v in azurerm_api_management_api.this : k => {
-      id                    = v.id
+    for k, v in module.api : k => {
+      id                    = v.resource_id
       name                  = v.name
       api_type              = v.api_type
       display_name          = v.display_name
       path                  = v.path
       protocols             = v.protocols
-      revision              = v.revision
-      version               = v.version
-      version_set_id        = v.version_set_id
+      revision              = v.api_revision
+      version               = v.api_version
+      version_set_id        = v.api_version_set_id
       subscription_required = v.subscription_required
       service_url           = v.service_url
       is_current            = v.is_current
@@ -95,7 +87,7 @@ output "apis" {
 output "backend_ids" {
   description = "A map of backend names to their resource IDs."
   value = {
-    for k, v in azurerm_api_management_backend.this : k => v.id
+    for k, v in module.backend : k => v.resource_id
   }
 }
 
@@ -103,60 +95,47 @@ output "backend_ids" {
 output "backends" {
   description = "A map of backends created in the API Management service."
   value = {
-    for k, v in azurerm_api_management_backend.this : k => {
-      id          = v.id
+    for k, v in module.backend : k => {
+      id          = v.resource_id
       name        = v.name
       protocol    = v.protocol
       url         = v.url
       description = v.description
-      resource_id = v.resource_id
+      resource_id = v.backend_resource_id
       title       = v.title
     }
   }
 }
 
 output "certificates" {
-  description = "Certificate information for the API Management Service."
-  value = [
-    for cert in azurerm_api_management.this.certificate : {
-      expiry     = cert.expiry
-      thumbprint = cert.thumbprint
-      subject    = cert.subject
-    }
-  ]
+  description = "Configured certificates for the API Management Service (input echo; computed certificate metadata is not exported by AzAPI)."
+  value       = var.certificate
 }
 
 output "developer_portal_url" {
   description = "The publisher URL of the API Management service."
-  value       = azurerm_api_management.this.developer_portal_url
+  value       = try(azapi_resource.this.output.properties.developerPortalUrl, null)
 }
 
 output "gateway_regional_url" {
   description = "The Region URL for the Gateway of the API Management Service."
-  value       = azurerm_api_management.this.gateway_regional_url
+  value       = try(azapi_resource.this.output.properties.gatewayRegionalUrl, null)
 }
 
 output "hostname_configuration" {
-  description = "The hostname configuration for the API Management Service."
-  value = {
-    proxy = [
-      for proxy in try(azurerm_api_management.this.hostname_configuration[0].proxy, []) : {
-        certificate_source = proxy.certificate_source
-        certificate_status = proxy.certificate_status
-      }
-    ]
-  }
+  description = "Configured hostname configuration for the API Management Service (input echo)."
+  value       = var.hostname_configuration
 }
 
 output "name" {
   description = "The name of the API Management service."
-  value       = azurerm_api_management.this.name
+  value       = azapi_resource.this.name
 }
 
 output "named_value_ids" {
   description = "A map of named value keys to their resource IDs."
   value = {
-    for k, v in azurerm_api_management_named_value.this : k => v.id
+    for k, v in module.named_value : k => v.resource_id
   }
 }
 
@@ -164,8 +143,8 @@ output "named_value_ids" {
 output "named_values" {
   description = "A map of named values created in the API Management service."
   value = {
-    for k, v in azurerm_api_management_named_value.this : k => {
-      id           = v.id
+    for k, v in module.named_value : k => {
+      id           = v.resource_id
       name         = v.name
       display_name = v.display_name
       secret       = v.secret
@@ -175,90 +154,82 @@ output "named_values" {
 
 output "policy" {
   description = "Service-level policy details."
-  value = length(azurerm_api_management_policy.this) > 0 ? {
-    id = azurerm_api_management_policy.this[0].id
+  value = length(module.policy) > 0 ? {
+    id = module.policy[0].resource_id
   } : null
 }
 
 output "portal_url" {
   description = "The URL for the Publisher Portal associated with this API Management service."
-  value       = azurerm_api_management.this.portal_url
+  value       = try(azapi_resource.this.output.properties.portalUrl, null)
 }
 
 output "private_endpoints" {
   description = "A map of the private endpoints created."
-  value       = var.private_endpoints_manage_dns_zone_group ? azurerm_private_endpoint.this : azurerm_private_endpoint.this_unmanaged_dns_zone_groups
+  value       = azapi_resource.private_endpoints
 }
 
 output "private_ip_addresses" {
-  description = "The private IP addresses of the private endpoints created by this module"
-  value       = azurerm_api_management.this.private_ip_addresses
+  description = "Private Static Load Balanced IP addresses of the API Management service in the primary region."
+  value       = try(azapi_resource.this.output.properties.privateIPAddresses, [])
 }
 
 output "product_ids" {
   description = "A map of product keys to their resource IDs."
-  value = {
-    for k, v in azurerm_api_management_product.this : k => v.id
-  }
+  value       = { for k, product in module.product : k => product.resource_id }
 }
 
-# Products outputs
 output "products" {
   description = "A map of products created in the API Management service."
   value = {
-    for k, v in azurerm_api_management_product.this : k => {
-      id                    = v.id
-      product_id            = v.product_id
-      display_name          = v.display_name
-      description           = v.description
-      subscription_required = v.subscription_required
-      approval_required     = v.approval_required
-      published             = v.published
-      subscriptions_limit   = v.subscriptions_limit
-      terms                 = v.terms
+    for k, product in module.product : k => {
+      id                    = product.resource_id
+      product_id            = product.name
+      display_name          = var.products[k].display_name
+      description           = var.products[k].description
+      subscription_required = var.products[k].subscription_required
+      approval_required     = var.products[k].approval_required
+      published             = var.products[k].state == "published"
+      subscriptions_limit   = var.products[k].subscriptions_limit
+      terms                 = var.products[k].terms
     }
   }
 }
 
 output "public_ip_addresses" {
   description = "The Public IP addresses of the API Management Service."
-  value       = azurerm_api_management.this.public_ip_addresses
+  value       = try(azapi_resource.this.output.properties.publicIPAddresses, [])
 }
 
-# Module owners should include the full resource via a 'resource' output
-# https://azure.github.io/Azure-Verified-Modules/specs/terraform/#id-tffr2---category-outputs---additional-terraform-outputs
-# To include the full resource, uncomment the following block which is a sensitive output
 output "resource" {
-  description = "The API Management service resource."
+  description = "The API Management service AzAPI resource."
   sensitive   = true
-  value       = azurerm_api_management.this
+  value       = azapi_resource.this
 }
 
 output "resource_id" {
   description = "The ID of the API Management service."
-  value       = azurerm_api_management.this.id
+  value       = azapi_resource.this.id
 }
 
 output "scm_url" {
   description = "The URL for the SCM (Source Code Management) Endpoint associated with this API Management service."
-  value       = azurerm_api_management.this.scm_url
+  value       = try(azapi_resource.this.output.properties.scmUrl, null)
 }
 
 output "subscription_ids" {
   description = "A map of subscription keys to their resource IDs."
   sensitive   = true
-  value = {
-    for k, v in azurerm_api_management_subscription.this : k => v.id
-  }
+  value       = { for k, v in module.subscription : k => v.resource_id }
 }
 
 output "subscription_keys" {
-  description = "A map of subscription keys to their primary and secondary keys."
+  description = "Subscription primary/secondary keys are not exported by AzAPI; use the listSecrets data-plane operation if required. Values supplied via `var.subscriptions` primary_key/secondary_key are write-only."
   sensitive   = true
   value = {
-    for k, v in azurerm_api_management_subscription.this : k => {
-      primary_key   = v.primary_key
-      secondary_key = v.secondary_key
+    for k, v in module.subscription : k => {
+      primary_key   = null
+      secondary_key = null
     }
   }
 }
@@ -268,30 +239,30 @@ output "subscriptions" {
   description = "A map of subscriptions created in the API Management service."
   sensitive   = true
   value = {
-    for k, v in azurerm_api_management_subscription.this : k => {
-      id              = v.id
-      subscription_id = v.subscription_id
-      display_name    = v.display_name
-      state           = v.state
-      allow_tracing   = v.allow_tracing
+    for k, v in module.subscription : k => {
+      id              = v.resource_id
+      subscription_id = v.name
+      display_name    = var.subscriptions[k].display_name
+      state           = var.subscriptions[k].state
+      allow_tracing   = var.subscriptions[k].allow_tracing
     }
   }
 }
 
 output "tenant_access" {
-  description = "The tenant access information for the API Management Service."
+  description = "Tenant access keys are not exported by the AzAPI service resource; manage via the tenant/access child resource (not yet migrated)."
   sensitive   = true
   value = {
-    tenant_id     = try(azurerm_api_management.this.tenant_access[0].tenant_id, null)
-    primary_key   = try(azurerm_api_management.this.tenant_access[0].primary_key, null)
-    secondary_key = try(azurerm_api_management.this.tenant_access[0].secondary_key, null)
+    tenant_id     = null
+    primary_key   = null
+    secondary_key = null
   }
 }
 
 output "workspace_identity" {
-  description = "The identity for the created workspace."
+  description = "The managed identity of the API Management service."
   value = {
-    principal_id = try(azurerm_api_management.this.identity[0].principal_id, null)
-    type         = try(azurerm_api_management.this.identity[0].type, null)
+    principal_id = try(azapi_resource.this.output.identity.principalId, null)
+    tenant_id    = try(azapi_resource.this.output.identity.tenantId, null)
   }
 }
