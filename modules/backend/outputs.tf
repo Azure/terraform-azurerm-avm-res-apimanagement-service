@@ -18,6 +18,11 @@ output "protocol" {
   value       = var.protocol
 }
 
+output "backend_type" {
+  description = "The backend type (`Single` or `Pool`)."
+  value       = var.type
+}
+
 output "resource_id" {
   description = "The resource ID of the backend."
   value       = azapi_resource.this.id

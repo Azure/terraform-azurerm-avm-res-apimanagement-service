@@ -14,6 +14,7 @@ resource "azapi_resource" "this" {
       value = var.value
     }
   } : null
+  sensitive_body_version = local.sensitive_body_version
 
   dynamic "timeouts" {
     for_each = var.timeouts == null ? [] : [var.timeouts]

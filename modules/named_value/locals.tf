@@ -14,5 +14,9 @@ locals {
       value  = local.use_sensitive_value ? null : var.value
     }
   }
+
+  sensitive_body_version = !local.use_sensitive_value ? null : {
+    "properties.value" = parseint(substr(sha256(var.value), 0, 8), 16)
+  }
   main_location = "unknown"
 }

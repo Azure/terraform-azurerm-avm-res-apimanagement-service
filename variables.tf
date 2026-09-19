@@ -354,8 +354,9 @@ DESCRIPTION
 # Backends for API Management Service
 variable "backends" {
   type = map(object({
-    protocol    = string
-    url         = string
+    type        = optional(string, "Single")
+    protocol    = optional(string)
+    url         = optional(string)
     description = optional(string)
     resource_id = optional(string)
     title       = optional(string)
@@ -374,6 +375,15 @@ variable "backends" {
       url      = string
       username = string
       password = optional(string)
+    }))
+
+    pool = optional(object({
+      services = list(object({
+        backend_name = optional(string)
+        backend_id   = optional(string)
+        priority     = optional(number)
+        weight       = optional(number)
+      }))
     }))
 
     service_fabric_cluster = optional(object({
@@ -397,8 +407,9 @@ variable "backends" {
   description = <<DESCRIPTION
 Backends for the API Management service. Backends represent the backend HTTP endpoint that an API operation forwards requests to.
 
-- `protocol` - (Required) The protocol used by the backend host. Possible values are `http` or `soap`.
-- `url` - (Required) The backend host URL (e.g., `https://backend.example.com/api`). Avoid trailing slashes.
+- `type` - (Optional) `Single` or `Pool`. Defaults to `Single`.
+- `protocol` - Required for `Single`. The protocol used by the backend host: `http` or `soap`.
+- `url` - Required for `Single`. The backend host URL (e.g., `https://backend.example.com/api`). Avoid trailing slashes.
 - `description` - (Optional) Description of the backend.
 - `resource_id` - (Optional) The ARM Resource ID of the backend host in an external system (e.g., Logic Apps, Function Apps, AI Foundry / Cognitive Services).
 - `title` - (Optional) The title of the backend.
@@ -413,6 +424,11 @@ Backends for the API Management service. Backends represent the backend HTTP end
   - `url` - (Required) The URL of the proxy server.
   - `username` - (Required) The username to connect to the proxy server.
   - `password` - (Optional) The password to connect to the proxy server.
+- `pool` - Required for `Pool`. Backend services that receive traffic.
+  - `backend_name` - Key of another `backends` entry with `type = "Single"`.
+  - `backend_id` - Existing APIM backend resource ID. Exactly one of `backend_name` or `backend_id` is required.
+  - `priority` - Optional priority from 0 to 100.
+  - `weight` - Optional weight from 0 to 100.
 - `service_fabric_cluster` - (Optional) Service Fabric cluster backend configuration.
   - `client_certificate_thumbprint` - (Optional) Client certificate thumbprint for the management endpoint.
   - `client_certificate_id` - (Optional) Client certificate resource ID for the management endpoint.
@@ -450,9 +466,66 @@ DESCRIPTION
   validation {
     condition = alltrue([
       for k, v in var.backends :
-      contains(["http", "soap"], v.protocol)
+      contains(["Single", "Pool"], v.type)
     ])
-    error_message = "Backend protocol must be one of: http, soap."
+    error_message = "Backend type must be one of: Single, Pool."
+  }
+  validation {
+    condition = alltrue([
+      for k, v in var.backends :
+      v.type == "Single" ? (
+        v.protocol != null &&
+        v.url != null &&
+        v.pool == null &&
+        contains(["http", "soap"], v.protocol)
+      ) : (
+        v.protocol == null &&
+        v.url == null &&
+        v.pool != null &&
+        length(v.pool.services) > 0
+      )
+    ])
+    error_message = "Single backends require `protocol` and `url` and cannot set `pool`; Pool backends require non-empty `pool.services` and cannot set `protocol` or `url`."
+  }
+  validation {
+    condition = alltrue(flatten([
+      for _, backend in var.backends : backend.pool == null ? [] : [
+        for service in backend.pool.services :
+        (service.backend_name == null) != (service.backend_id == null)
+      ]
+    ]))
+    error_message = "Each backend pool service must set exactly one of `backend_name` or `backend_id`."
+  }
+  validation {
+    condition = alltrue(flatten([
+      for _, backend in var.backends : backend.pool == null ? [] : [
+        for service in backend.pool.services :
+        service.backend_name == null || (
+          contains(keys(var.backends), service.backend_name) &&
+          var.backends[service.backend_name].type == "Single"
+        )
+      ]
+    ]))
+    error_message = "Each `backend_name` in a pool must identify a Single backend in the same `backends` map."
+  }
+  validation {
+    condition = alltrue(flatten([
+      for _, backend in var.backends : backend.pool == null ? [] : [
+        for service in backend.pool.services :
+        service.backend_id == null || can(provider::azapi::parse_resource_id("Microsoft.ApiManagement/service/backends", service.backend_id))
+      ]
+    ]))
+    error_message = "Each `backend_id` in a pool must be a valid API Management backend resource ID."
+  }
+  validation {
+    condition = alltrue(flatten([
+      for _, backend in var.backends : backend.pool == null ? [] : [
+        for service in backend.pool.services :
+        (service.priority == null || (service.priority >= 0 && service.priority <= 100)) &&
+        (service.weight == null || (service.weight >= 0 && service.weight <= 100))
+      ]
+    ]))
+    error_message = "Backend pool priorities and weights must be between 0 and 100."
   }
   validation {
     condition = alltrue([
@@ -475,6 +548,7 @@ variable "certificate" {
   default     = []
   description = "Certificate configurations for the API Management service."
   nullable    = false
+  sensitive   = true
 
   validation {
     condition     = length(var.certificate) <= 10
@@ -643,6 +717,9 @@ variable "ignore_body_changes" {
     apimanagement_service_policies = optional(object({
       apimanagement_service_policies = optional(list(string), [])
     }), {})
+    apimanagement_service_policy_fragments = optional(object({
+      apimanagement_service_policy_fragments = optional(list(string), [])
+    }), {})
     apimanagement_service_subscriptions = optional(object({
       apimanagement_service_subscriptions = optional(list(string), [])
     }), {})
@@ -684,8 +761,9 @@ DESCRIPTION
 
 variable "lock" {
   type = object({
-    kind = string
-    name = optional(string, null)
+    kind  = string
+    name  = optional(string, null)
+    notes = optional(string, null)
   })
   default     = null
   description = <<DESCRIPTION
@@ -693,6 +771,7 @@ Controls the Resource Lock configuration for this resource. The following proper
 
 - `kind` - (Required) The type of lock. Possible values are `\"CanNotDelete\"` and `\"ReadOnly\"`.
 - `name` - (Optional) The name of the lock. If not specified, a name will be generated based on the `kind` value. Changing this forces the creation of a new resource.
+- `notes` - (Optional) Notes stored on the lock.
 DESCRIPTION
 
   validation {
@@ -839,6 +918,41 @@ policy = {
   </on-error>
 </policies>
 XML
+}
+
+variable "policy_fragments" {
+  type = map(object({
+    value       = string
+    description = optional(string)
+    format      = optional(string, "rawxml")
+  }))
+  default     = {}
+  description = <<DESCRIPTION
+Reusable API Management policy fragments.
+
+- `value` - XML policy fragment content.
+- `description` - Optional description, up to 1000 characters.
+- `format` - `xml` or `rawxml`. Defaults to `rawxml`.
+
+Policies can reference a fragment with `<include-fragment fragment-id="fragment-name" />`.
+DESCRIPTION
+  nullable    = false
+
+  validation {
+    condition = alltrue([
+      for _, fragment in var.policy_fragments :
+      contains(["xml", "rawxml"], fragment.format)
+    ])
+    error_message = "Policy fragment format must be `xml` or `rawxml`."
+  }
+
+  validation {
+    condition = alltrue([
+      for _, fragment in var.policy_fragments :
+      fragment.description == null || length(fragment.description) <= 1000
+    ])
+    error_message = "Policy fragment descriptions must not exceed 1000 characters."
+  }
 }
 ```
 DESCRIPTION
@@ -1017,6 +1131,9 @@ variable "resource_types" {
     apimanagement_service_policies = optional(object({
       apimanagement_service_policies = optional(string)
     }), {})
+    apimanagement_service_policy_fragments = optional(object({
+      apimanagement_service_policy_fragments = optional(string)
+    }), {})
     apimanagement_service_subscriptions = optional(object({
       apimanagement_service_subscriptions = optional(string)
     }), {})
@@ -1058,6 +1175,7 @@ AzAPI resource types and API versions used by the module.
 - `apimanagement_service_backends` - Overrides for the backend submodule.
 - `apimanagement_service_named_values` - Overrides for the named_value submodule.
 - `apimanagement_service_policies` - Overrides for the policy submodule.
+- `apimanagement_service_policy_fragments` - Overrides for the policy_fragment submodule.
 - `apimanagement_service_subscriptions` - Overrides for the subscription submodule.
 - `apimanagement_service_api_version_sets` - Overrides for the api_version_set submodule.
 - `apimanagement_service_apis` - Overrides for the api submodule.
@@ -1098,6 +1216,7 @@ variable "role_assignment_definition_scope" {
 
 variable "role_assignments" {
   type = map(object({
+    name                                   = optional(string, null)
     role_definition_id_or_name             = string
     principal_id                           = string
     description                            = optional(string, null)
@@ -1112,6 +1231,7 @@ variable "role_assignments" {
 A map of role assignments to create on this resource. The map key is deliberately arbitrary to avoid issues where map keys maybe unknown at plan time.
 
 - `role_definition_id_or_name` - The ID or name of the role definition to assign to the principal.
+- `name` - Optional deterministic role assignment GUID. A random UUID is generated when omitted.
 - `principal_id` - The ID of the principal to assign the role to.
 - `description` - The description of the role assignment.
 - `skip_service_principal_aad_check` - If set to true, skips the Azure Active Directory check for the service principal in the tenant. Defaults to false.

@@ -42,18 +42,18 @@ locals {
         name = var.license.name
         url  = var.license.url
       }
-      path       = var.path
-      protocols  = var.protocols
-      serviceUrl = var.service_url
+      path        = var.path
+      protocols   = var.protocols
+      serviceUrl  = var.service_url
       sourceApiId = var.source_api_id
       subscriptionKeyParameterNames = var.subscription_key_parameter_names == null ? null : {
         header = var.subscription_key_parameter_names.header
         query  = var.subscription_key_parameter_names.query
       }
-      subscriptionRequired              = var.subscription_required
-      termsOfServiceUrl                 = var.terms_of_service_url
+      subscriptionRequired             = var.subscription_required
+      termsOfServiceUrl                = var.terms_of_service_url
       translateRequiredQueryParameters = var.translate_required_query_parameters
-      type                              = var.type
+      type                             = var.type
     }
   }
 
@@ -70,8 +70,8 @@ locals {
 
   # Detect sensitive_body changes without persisting secret values in state comparisons.
   sensitive_body_version = !local.has_import ? null : {
-    "properties.format" = var.format != null ? parseint(substr(sha256(tostring(var.format)), 0, 8), 16) : null
-    "properties.value"  = var.value != null ? parseint(substr(sha256(var.value), 0, 8), 16) : null
+    "properties.format"       = var.format != null ? parseint(substr(sha256(tostring(var.format)), 0, 8), 16) : null
+    "properties.value"        = var.value != null ? parseint(substr(sha256(var.value), 0, 8), 16) : null
     "properties.wsdlSelector" = var.wsdl_selector != null ? parseint(substr(sha256(jsonencode(var.wsdl_selector)), 0, 8), 16) : null
   }
   main_location = "unknown"

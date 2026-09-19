@@ -122,6 +122,8 @@ module "api_policy" {
   depends_on = [
     module.operation,
     module.backend,
+    module.backend_pool,
+    module.policy_fragment,
   ]
 }
 
@@ -141,5 +143,7 @@ module "operation_policy" {
 
   depends_on = [
     module.backend,
+    module.backend_pool,
+    module.policy_fragment,
   ]
 }

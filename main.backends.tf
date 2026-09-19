@@ -5,7 +5,7 @@
 
 module "backend" {
   source   = "./modules/backend"
-  for_each = var.backends
+  for_each = local.single_backends
 
   name                   = each.key
   parent_id              = azapi_resource.this.id
@@ -23,4 +23,32 @@ module "backend" {
   timeouts               = var.timeouts
   title                  = each.value.title
   tls                    = each.value.tls
+  type                   = each.value.type
+}
+
+module "backend_pool" {
+  source   = "./modules/backend"
+  for_each = local.backend_pools
+
+  name                = each.key
+  parent_id           = azapi_resource.this.id
+  description         = each.value.description
+  enable_telemetry    = var.enable_telemetry
+  ignore_body_changes = var.ignore_body_changes.apimanagement_service_backends
+  pool = {
+    services = [
+      for service in each.value.pool.services : {
+        id       = service.backend_id != null ? service.backend_id : module.backend[service.backend_name].resource_id
+        priority = service.priority
+        weight   = service.weight
+      }
+    ]
+  }
+  resource_types = var.resource_types.apimanagement_service_backends
+  retry          = var.retry
+  timeouts       = var.timeouts
+  title          = each.value.title
+  type           = each.value.type
+
+  depends_on = [module.backend]
 }

@@ -1,13 +1,11 @@
 resource "azapi_resource" "this" {
   name                   = var.name
   parent_id              = var.parent_id
-  type                   = var.resource_types.apimanagement_service_backends
+  type                   = var.resource_types.apimanagement_service_policy_fragments
   body                   = local.resource_body
-  ignore_body_changes    = length(var.ignore_body_changes.apimanagement_service_backends) > 0 ? var.ignore_body_changes.apimanagement_service_backends : null
+  ignore_body_changes    = length(var.ignore_body_changes.apimanagement_service_policy_fragments) > 0 ? var.ignore_body_changes.apimanagement_service_policy_fragments : null
   response_export_values = []
   retry                  = var.retry
-  sensitive_body         = local.sensitive_body
-  sensitive_body_version = local.sensitive_body_version
 
   dynamic "timeouts" {
     for_each = var.timeouts == null ? [] : [var.timeouts]

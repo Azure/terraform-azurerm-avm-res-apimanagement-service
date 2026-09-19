@@ -24,26 +24,48 @@ locals {
     ] : null
   }
 
+  sensitive_body = var.credentials == null && var.proxy == null ? null : {
+    properties = merge(
+      var.credentials == null ? {} : { credentials = local.credentials_body },
+      var.proxy == null ? {} : {
+        proxy = {
+          password = var.proxy.password
+          url      = var.proxy.url
+          username = var.proxy.username
+        }
+      },
+    )
+  }
+
+  sensitive_body_version = local.sensitive_body == null ? null : {
+    "properties.credentials" = var.credentials == null ? null : parseint(substr(sha256(jsonencode(var.credentials)), 0, 8), 16)
+    "properties.proxy"       = var.proxy == null ? null : parseint(substr(sha256(jsonencode(var.proxy)), 0, 8), 16)
+  }
+
   resource_body = {
     properties = {
-      credentials = local.credentials_body
       description = var.description
+      pool = var.pool == null ? null : {
+        services = [
+          for service in var.pool.services : {
+            id       = service.id
+            priority = service.priority
+            weight   = service.weight
+          }
+        ]
+      }
       properties = local.service_fabric_cluster_body == null ? null : {
         serviceFabricCluster = local.service_fabric_cluster_body
       }
-      protocol = var.protocol
-      proxy = var.proxy == null ? null : {
-        password = var.proxy.password
-        url      = var.proxy.url
-        username = var.proxy.username
-      }
+      protocol   = var.protocol
       resourceId = var.resource_id
       title      = var.title
       tls = var.tls == null ? null : {
         validateCertificateChain = var.tls.validate_certificate_chain
         validateCertificateName  = var.tls.validate_certificate_name
       }
-      url = var.url
+      type = var.type
+      url  = var.url
     }
   }
   main_location = "unknown"

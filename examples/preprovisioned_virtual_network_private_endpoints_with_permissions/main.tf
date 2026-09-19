@@ -58,21 +58,21 @@ resource "azurerm_subnet" "private_endpoints" {
   name                 = "private_endpoints"
   virtual_network_name = azurerm_virtual_network.this.name
   address_prefixes     = ["10.0.1.0/24"]
-  resource_group_name = azurerm_resource_group.this.name
+  resource_group_name  = azurerm_resource_group.this.name
 }
 
 resource "azurerm_subnet" "apim_subnet" {
   name                 = "apim_subnet"
   virtual_network_name = azurerm_virtual_network.this.name
   address_prefixes     = ["10.0.2.0/24"]
-  resource_group_name = azurerm_resource_group.this.name
+  resource_group_name  = azurerm_resource_group.this.name
 }
 
 resource "azurerm_subnet" "default" {
   name                 = "default"
   virtual_network_name = azurerm_virtual_network.this.name
   address_prefixes     = ["10.0.3.0/24"]
-  resource_group_name = azurerm_resource_group.this.name
+  resource_group_name  = azurerm_resource_group.this.name
 }
 
 # Private DNS Zone for API Management
@@ -93,8 +93,8 @@ module "private_dns_apim" {
 }
 
 resource "azurerm_user_assigned_identity" "cmk" {
-  location  = azurerm_resource_group.this.location
-  name      = module.naming.user_assigned_identity.name_unique
+  location            = azurerm_resource_group.this.location
+  name                = module.naming.user_assigned_identity.name_unique
   resource_group_name = azurerm_resource_group.this.name
 }
 

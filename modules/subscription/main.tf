@@ -7,6 +7,7 @@ resource "azapi_resource" "this" {
   response_export_values = []
   retry                  = var.retry
   sensitive_body         = local.sensitive_body
+  sensitive_body_version = local.sensitive_body_version
 
   dynamic "timeouts" {
     for_each = var.timeouts == null ? [] : [var.timeouts]

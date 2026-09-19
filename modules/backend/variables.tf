@@ -17,14 +17,19 @@ variable "parent_id" {
 
 variable "protocol" {
   type        = string
+  default     = null
   description = "Backend communication protocol. Possible values are `http` or `soap`."
-  nullable    = false
+
+  validation {
+    condition     = var.protocol == null || contains(["http", "soap"], var.protocol)
+    error_message = "`protocol` must be `http`, `soap`, or null."
+  }
 }
 
 variable "url" {
   type        = string
+  default     = null
   description = "Runtime URL of the backend."
-  nullable    = false
 }
 
 variable "credentials" {
@@ -89,6 +94,42 @@ variable "proxy" {
   description = "Proxy server configuration for the backend."
 }
 
+variable "pool" {
+  type = object({
+    services = list(object({
+      id       = string
+      priority = optional(number)
+      weight   = optional(number)
+    }))
+  })
+  default     = null
+  description = <<DESCRIPTION
+Backend pool configuration. Each service references an existing APIM backend resource ID.
+
+- `services` - Backends that participate in the pool.
+  - `id` - Fully-qualified `Microsoft.ApiManagement/service/backends` resource ID.
+  - `priority` - Optional priority from 0 to 100.
+  - `weight` - Optional weight from 0 to 100.
+DESCRIPTION
+
+  validation {
+    condition = var.pool == null || alltrue([
+      for service in var.pool.services :
+      can(provider::azapi::parse_resource_id("Microsoft.ApiManagement/service/backends", service.id))
+    ])
+    error_message = "Each `pool.services[*].id` must be a valid API Management backend resource ID."
+  }
+
+  validation {
+    condition = var.pool == null || alltrue([
+      for service in var.pool.services :
+      (service.priority == null || (service.priority >= 0 && service.priority <= 100)) &&
+      (service.weight == null || (service.weight >= 0 && service.weight <= 100))
+    ])
+    error_message = "Backend pool priorities and weights must be between 0 and 100."
+  }
+}
+
 variable "resource_id" {
   type        = string
   default     = null
@@ -113,8 +154,6 @@ variable "retry" {
     error_message_regex  = optional(list(string), null)
     interval_seconds     = optional(number, null)
     max_interval_seconds = optional(number, null)
-    multiplier           = optional(number, null)
-    randomization_factor = optional(number, null)
   })
   default     = null
   description = "Retry configuration for AzAPI resources. See AzAPI provider `retry` documentation."
@@ -162,4 +201,16 @@ variable "tls" {
   })
   default     = null
   description = "TLS validation settings for self-signed certificates."
+}
+
+variable "type" {
+  type        = string
+  default     = "Single"
+  description = "Backend type. `Single` configures one endpoint; `Pool` distributes traffic across existing backends."
+  nullable    = false
+
+  validation {
+    condition     = contains(["Single", "Pool"], var.type)
+    error_message = "`type` must be `Single` or `Pool`."
+  }
 }

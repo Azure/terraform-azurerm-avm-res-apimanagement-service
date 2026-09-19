@@ -86,16 +86,17 @@ output "apis" {
 
 output "backend_ids" {
   description = "A map of backend names to their resource IDs."
-  value = {
-    for k, v in module.backend : k => v.resource_id
-  }
+  value = merge(
+    { for k, v in module.backend : k => v.resource_id },
+    { for k, v in module.backend_pool : k => v.resource_id },
+  )
 }
 
 # Backends outputs
 output "backends" {
   description = "A map of backends created in the API Management service."
-  value = {
-    for k, v in module.backend : k => {
+  value = merge(
+    { for k, v in module.backend : k => {
       id          = v.resource_id
       name        = v.name
       protocol    = v.protocol
@@ -103,12 +104,24 @@ output "backends" {
       description = v.description
       resource_id = v.backend_resource_id
       title       = v.title
-    }
-  }
+      type        = v.backend_type
+    } },
+    { for k, v in module.backend_pool : k => {
+      id          = v.resource_id
+      name        = v.name
+      protocol    = v.protocol
+      url         = v.url
+      description = v.description
+      resource_id = v.backend_resource_id
+      title       = v.title
+      type        = v.backend_type
+    } },
+  )
 }
 
 output "certificates" {
   description = "Configured certificates for the API Management Service (input echo; computed certificate metadata is not exported by AzAPI)."
+  sensitive   = true
   value       = var.certificate
 }
 
@@ -124,6 +137,7 @@ output "gateway_regional_url" {
 
 output "hostname_configuration" {
   description = "Configured hostname configuration for the API Management Service (input echo)."
+  sensitive   = true
   value       = var.hostname_configuration
 }
 
@@ -159,6 +173,23 @@ output "policy" {
   } : null
 }
 
+output "policy_fragment_ids" {
+  description = "A map of policy fragment names to resource IDs."
+  value       = { for k, v in module.policy_fragment : k => v.resource_id }
+}
+
+output "policy_fragments" {
+  description = "A map of policy fragments created in the API Management service."
+  value = {
+    for k, v in module.policy_fragment : k => {
+      id          = v.resource_id
+      name        = v.name
+      description = var.policy_fragments[k].description
+      format      = var.policy_fragments[k].format
+    }
+  }
+}
+
 output "portal_url" {
   description = "The URL for the Publisher Portal associated with this API Management service."
   value       = try(azapi_resource.this.output.properties.portalUrl, null)
@@ -166,7 +197,14 @@ output "portal_url" {
 
 output "private_endpoints" {
   description = "A map of the private endpoints created."
-  value       = azapi_resource.private_endpoints
+  value = {
+    for k, v in azapi_resource.private_endpoints : k => {
+      id                 = v.id
+      name               = v.name
+      custom_dns_configs = try(v.output.properties.customDnsConfigs, [])
+      network_interfaces = try(v.output.properties.networkInterfaces, [])
+    }
+  }
 }
 
 output "private_ip_addresses" {
@@ -199,12 +237,6 @@ output "products" {
 output "public_ip_addresses" {
   description = "The Public IP addresses of the API Management Service."
   value       = try(azapi_resource.this.output.properties.publicIPAddresses, [])
-}
-
-output "resource" {
-  description = "The API Management service AzAPI resource."
-  sensitive   = true
-  value       = azapi_resource.this
 }
 
 output "resource_id" {

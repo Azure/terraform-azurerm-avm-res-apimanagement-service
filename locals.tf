@@ -12,7 +12,7 @@ locals {
       type                       = "Management"
       hostName                   = item.host_name
       encodedCertificate         = item.certificate
-      certificatePassword        = null # moved to sensitive_body
+      certificatePassword        = item.certificate_password
       keyVaultId                 = item.key_vault_id
       negotiateClientCertificate = item.negotiate_client_certificate
       identityClientId           = item.ssl_keyvault_identity_client_id
@@ -22,7 +22,7 @@ locals {
       type                       = "Portal"
       hostName                   = item.host_name
       encodedCertificate         = item.certificate
-      certificatePassword        = null
+      certificatePassword        = item.certificate_password
       keyVaultId                 = item.key_vault_id
       negotiateClientCertificate = item.negotiate_client_certificate
       identityClientId           = item.ssl_keyvault_identity_client_id
@@ -32,7 +32,7 @@ locals {
       type                       = "DeveloperPortal"
       hostName                   = item.host_name
       encodedCertificate         = item.certificate
-      certificatePassword        = null
+      certificatePassword        = item.certificate_password
       keyVaultId                 = item.key_vault_id
       negotiateClientCertificate = item.negotiate_client_certificate
       identityClientId           = item.ssl_keyvault_identity_client_id
@@ -42,7 +42,7 @@ locals {
       type                       = "Proxy"
       hostName                   = item.host_name
       encodedCertificate         = item.certificate
-      certificatePassword        = null
+      certificatePassword        = item.certificate_password
       keyVaultId                 = item.key_vault_id
       negotiateClientCertificate = item.negotiate_client_certificate
       identityClientId           = item.ssl_keyvault_identity_client_id
@@ -52,7 +52,7 @@ locals {
       type                       = "Scm"
       hostName                   = item.host_name
       encodedCertificate         = item.certificate
-      certificatePassword        = null
+      certificatePassword        = item.certificate_password
       keyVaultId                 = item.key_vault_id
       negotiateClientCertificate = item.negotiate_client_certificate
       identityClientId           = item.ssl_keyvault_identity_client_id
@@ -60,38 +60,36 @@ locals {
     }],
   )
 
-  sensitive_hostname_configurations = var.hostname_configuration == null ? [] : concat(
-    [for item in coalesce(var.hostname_configuration.management, []) : { certificatePassword = item.certificate_password } if item.certificate_password != null],
-    [for item in coalesce(var.hostname_configuration.portal, []) : { certificatePassword = item.certificate_password } if item.certificate_password != null],
-    [for item in coalesce(var.hostname_configuration.developer_portal, []) : { certificatePassword = item.certificate_password } if item.certificate_password != null],
-    [for item in coalesce(var.hostname_configuration.proxy, []) : { certificatePassword = item.certificate_password } if item.certificate_password != null],
-    [for item in coalesce(var.hostname_configuration.scm, []) : { certificatePassword = item.certificate_password } if item.certificate_password != null],
-  )
-
-  certificates = length(var.certificate) == 0 ? null : [
+  certificates = [
     for item in var.certificate : {
       encodedCertificate  = item.encoded_certificate
       storeName           = item.store_name
-      certificatePassword = null # moved to sensitive_body when set
+      certificatePassword = item.certificate_password
     }
   ]
 
-  sensitive_certificates = [
-    for item in var.certificate : {
-      certificatePassword = item.certificate_password
-    } if item.certificate_password != null
-  ]
+  sensitive_body = length(local.certificates) == 0 && local.hostname_configurations == null ? null : {
+    properties = merge(
+      length(local.certificates) == 0 ? {} : { certificates = local.certificates },
+      local.hostname_configurations == null ? {} : { hostnameConfigurations = local.hostname_configurations },
+    )
+  }
+
+  sensitive_body_version = local.sensitive_body == null ? null : {
+    "properties.certificates"           = length(local.certificates) == 0 ? null : parseint(substr(sha256(jsonencode(var.certificate)), 0, 8), 16)
+    "properties.hostnameConfigurations" = local.hostname_configurations == null ? null : parseint(substr(sha256(jsonencode(var.hostname_configuration)), 0, 8), 16)
+  }
 
   # Map security + protocols into customProperties (ARM)
   custom_properties = merge(
     var.security == null ? {} : {
-      "Microsoft.WindowsAzure.ApiManagement.Gateway.Security.Backend.Protocols.Ssl30"  = tostring(var.security.enable_backend_ssl30)
-      "Microsoft.WindowsAzure.ApiManagement.Gateway.Security.Backend.Protocols.Tls10"  = tostring(var.security.enable_backend_tls10)
-      "Microsoft.WindowsAzure.ApiManagement.Gateway.Security.Backend.Protocols.Tls11"  = tostring(var.security.enable_backend_tls11)
-      "Microsoft.WindowsAzure.ApiManagement.Gateway.Security.Protocols.Ssl30"          = tostring(var.security.enable_frontend_ssl30)
-      "Microsoft.WindowsAzure.ApiManagement.Gateway.Security.Protocols.Tls10"          = tostring(var.security.enable_frontend_tls10)
-      "Microsoft.WindowsAzure.ApiManagement.Gateway.Security.Protocols.Tls11"          = tostring(var.security.enable_frontend_tls11)
-      "Microsoft.WindowsAzure.ApiManagement.Gateway.Security.Ciphers.TripleDes168"     = tostring(var.security.triple_des_ciphers_enabled)
+      "Microsoft.WindowsAzure.ApiManagement.Gateway.Security.Backend.Protocols.Ssl30"                      = tostring(var.security.enable_backend_ssl30)
+      "Microsoft.WindowsAzure.ApiManagement.Gateway.Security.Backend.Protocols.Tls10"                      = tostring(var.security.enable_backend_tls10)
+      "Microsoft.WindowsAzure.ApiManagement.Gateway.Security.Backend.Protocols.Tls11"                      = tostring(var.security.enable_backend_tls11)
+      "Microsoft.WindowsAzure.ApiManagement.Gateway.Security.Protocols.Ssl30"                              = tostring(var.security.enable_frontend_ssl30)
+      "Microsoft.WindowsAzure.ApiManagement.Gateway.Security.Protocols.Tls10"                              = tostring(var.security.enable_frontend_tls10)
+      "Microsoft.WindowsAzure.ApiManagement.Gateway.Security.Protocols.Tls11"                              = tostring(var.security.enable_frontend_tls11)
+      "Microsoft.WindowsAzure.ApiManagement.Gateway.Security.Ciphers.TripleDes168"                         = tostring(var.security.triple_des_ciphers_enabled)
       "Microsoft.WindowsAzure.ApiManagement.Gateway.Security.Ciphers.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA" = tostring(var.security.tls_ecdhe_ecdsa_with_aes128_cbc_sha_ciphers_enabled)
       "Microsoft.WindowsAzure.ApiManagement.Gateway.Security.Ciphers.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA" = tostring(var.security.tls_ecdhe_ecdsa_with_aes256_cbc_sha_ciphers_enabled)
       "Microsoft.WindowsAzure.ApiManagement.Gateway.Security.Ciphers.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA"   = tostring(var.security.tls_ecdhe_rsa_with_aes128_cbc_sha_ciphers_enabled)
@@ -116,14 +114,14 @@ locals {
 
   resource_body = {
     properties = {
-      publisherEmail      = var.publisher_email
-      publisherName       = var.publisher_name
+      publisherEmail          = var.publisher_email
+      publisherName           = var.publisher_name
       notificationSenderEmail = var.notification_sender_email
-      disableGateway      = var.gateway_disabled
+      disableGateway          = var.gateway_disabled
       enableClientCertificate = var.client_certificate_enabled
-      publicIpAddressId   = var.public_ip_address_id
-      publicNetworkAccess = var.public_network_access_enabled == null ? null : (var.public_network_access_enabled ? "Enabled" : "Disabled")
-      virtualNetworkType  = var.virtual_network_type
+      publicIpAddressId       = var.public_ip_address_id
+      publicNetworkAccess     = var.public_network_access_enabled == null ? null : (var.public_network_access_enabled ? "Enabled" : "Disabled")
+      virtualNetworkType      = var.virtual_network_type
       virtualNetworkConfiguration = contains(["Internal", "External"], var.virtual_network_type) ? {
         subnetResourceId = var.virtual_network_subnet_id
       } : null
@@ -145,8 +143,8 @@ locals {
           }
         }
       ]
-      certificates           = local.certificates
-      hostnameConfigurations = local.hostname_configurations
+      certificates           = null
+      hostnameConfigurations = null
       customProperties       = length(local.custom_properties) == 0 ? null : local.custom_properties
     }
     sku   = local.sku
@@ -158,6 +156,16 @@ locals {
       this = {
         type                       = var.managed_identities.system_assigned && length(var.managed_identities.user_assigned_resource_ids) > 0 ? "SystemAssigned, UserAssigned" : length(var.managed_identities.user_assigned_resource_ids) > 0 ? "UserAssigned" : "SystemAssigned"
         user_assigned_resource_ids = var.managed_identities.user_assigned_resource_ids
+      }
+
+      single_backends = {
+        for k, v in var.backends : k => v
+        if v.type == "Single"
+      }
+
+      backend_pools = {
+        for k, v in var.backends : k => v
+        if v.type == "Pool"
       }
     } : {}
     system_assigned = var.managed_identities.system_assigned ? {
