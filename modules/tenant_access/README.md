@@ -6,6 +6,8 @@ This submodule manages the API Management tenant access singleton (`Microsoft.Ap
 
 Azure does not expose a delete operation for this setting, so removing the submodule from configuration stops managing tenant access without resetting its current Azure value.
 
+The submodule does not call `listSecrets`; tenant-access keys are not read into Terraform state. Because AzAPI does not expose `ignore_body_changes` on update resources, supported ignored paths are omitted from the PATCH request.
+
 <!-- markdownlint-disable MD033 -->
 ## Requirements
 
@@ -27,7 +29,6 @@ The following resources are used by this module:
 - [modtm_telemetry.telemetry](https://registry.terraform.io/providers/Azure/modtm/latest/docs/resources/telemetry) (resource)
 - [random_uuid.telemetry](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/uuid) (resource)
 - [azapi_client_config.telemetry](https://registry.terraform.io/providers/Azure/azapi/latest/docs/data-sources/client_config) (data source)
-- [azapi_resource_action.secrets](https://registry.terraform.io/providers/Azure/azapi/latest/docs/data-sources/resource_action) (data source)
 - [modtm_module_source.telemetry](https://registry.terraform.io/providers/Azure/modtm/latest/docs/data-sources/module_source) (data source)
 
 <!-- markdownlint-disable MD013 -->
@@ -134,17 +135,9 @@ The following outputs are exported:
 
 Description: Whether direct tenant access is enabled.
 
-### <a name="output_primary_key"></a> [primary\_key](#output\_primary\_key)
-
-Description: The primary tenant access key.
-
 ### <a name="output_resource_id"></a> [resource\_id](#output\_resource\_id)
 
 Description: The resource ID of the tenant access setting.
-
-### <a name="output_secondary_key"></a> [secondary\_key](#output\_secondary\_key)
-
-Description: The secondary tenant access key.
 
 ### <a name="output_tenant_id"></a> [tenant\_id](#output\_tenant\_id)
 

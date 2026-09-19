@@ -15,7 +15,7 @@ The module manages the API Management service and its common control-plane child
 | Named values, including Key Vault references | `named_values` | `named_value_ids`, `named_values` |
 | Products and API/group associations | `products` | `product_ids`, `products` |
 | Service policy and reusable policy fragments | `policy`, `policy_fragments` | `policy`, `policy_fragment_ids`, `policy_fragments` |
-| Subscriptions | `subscriptions` | `subscription_ids`, `subscriptions` |
+| Subscriptions | `subscriptions` | `subscription_ids`, `subscriptions`, `subscription_keys` |
 | Developer portal delegation, sign-in, and sign-up settings | `delegation`, `sign_in`, `sign_up` | `delegation_id`, `sign_in_id`, `sign_up_id` and corresponding detail outputs |
 | Tenant access | `tenant_access` | `tenant_access_id`, `tenant_access` |
 
@@ -23,11 +23,13 @@ Backend pools can reference another `Single` entry in `backends` by `backend_nam
 
 ### Sensitive values and Terraform state
 
-Certificate payloads and passwords, hostname certificate configuration, API import payloads, backend credentials and proxy configuration, the delegation validation key, secret named-value values, and custom subscription keys are sent through AzAPI write-only `sensitive_body`. The corresponding AzAPI resources do not persist the raw payload in Terraform state; only SHA-256 change tokens are stored through `sensitive_body_version`.
+Backend credentials and proxy configuration, the delegation validation key, secret named-value values, and custom subscription keys are sent through AzAPI write-only `sensitive_body`. Those child resources store only SHA-256 change tokens through `sensitive_body_version`, not the supplied raw secret values.
 
 Key Vault-backed named values store the secret identifier and optional managed-identity client ID in state, but this module never reads the Key Vault secret value. Use an unversioned secret identifier for APIM automatic refresh or a versioned identifier to pin a version.
 
-These protections do not remove secrets from Terraform configuration, variable files, shell history, saved plan files, or the state of upstream resources and data sources that supply the values. Treat all of those artifacts as sensitive and use an encrypted remote backend. Non-secret named values (`secret = false`) are ordinary resource body values and are stored in Terraform state. Azure-generated subscription keys are not read or exported; `subscription_keys` intentionally returns null placeholders. When `tenant_access` is configured, its generated primary and secondary keys are read with the APIM `listSecrets` action and exposed through the sensitive `tenant_access` output. Those keys are necessarily stored in Terraform state.
+These protections do not remove secrets from Terraform configuration, variable files, shell history, saved plan files, or the state of upstream resources and data sources that supply the values. Treat all of those artifacts as sensitive and use an encrypted remote backend. Non-secret named values (`secret = false`) are ordinary resource body values and are stored in Terraform state.
+
+The module does not call APIM `listSecrets` operations. Azure-generated subscription and tenant-access keys are not read into Terraform state; `subscription_keys` and the key fields in `tenant_access` intentionally return null placeholders. Retrieve generated keys out-of-band when they are required.
 
 ### Developer portal and tenant access settings
 
@@ -551,7 +553,7 @@ Default: `null`
 
 ### <a name="input_diagnostic_settings"></a> [diagnostic\_settings](#input\_diagnostic\_settings)
 
-Description: A map of diagnostic settings to create on the API Management service. The map key is deliberately arbitrary to avoid issues where map keys may be unknown at plan time.
+Description: A map of diagnostic settings to create on the Key Vault. The map key is deliberately arbitrary to avoid issues where map keys maybe unknown at plan time.
 
 - `name` - (Optional) The name of the diagnostic setting. One will be generated if not set, however this will not be unique if you want to create multiple diagnostic setting resources.
 - `log_categories` - (Optional) A set of log categories to send to the log analytics workspace. Defaults to `[]`.
@@ -731,15 +733,13 @@ Description: Controls the Resource Lock configuration for this resource. The fol
 
 - `kind` - (Required) The type of lock. Possible values are `\"CanNotDelete\"` and `\"ReadOnly\"`.
 - `name` - (Optional) The name of the lock. If not specified, a name will be generated based on the `kind` value. Changing this forces the creation of a new resource.
-- `notes` - (Optional) Notes stored on the lock.
 
 Type:
 
 ```hcl
 object({
-    kind  = string
-    name  = optional(string, null)
-    notes = optional(string, null)
+    kind = string
+    name = optional(string, null)
   })
 ```
 
@@ -776,10 +776,10 @@ Default: `null`
 Description: Named values for the API Management service. Named values are a collection of key/value pairs that can be referenced in policies and API configurations.
 
 - `display_name` - (Required) The display name of the named value. Must be unique within the API Management service.
-- `value` - (Optional) The value of the named value. Exactly one of `value` or `value_from_key_vault` is required.
+- `value` - (Optional) The value of the named value. Conflicts with `value_from_key_vault`. If neither is specified, the named value must be set through other means.
 - `secret` - (Optional) Whether the value is a secret and should be encrypted. Defaults to `false`.
 - `tags` - (Optional) A list of tags that can be used to filter the named values list.
-- `value_from_key_vault` - (Optional) A Key Vault configuration for secret values. Exactly one of `value` or `value_from_key_vault` is required, and `secret` must be `true`.
+- `value_from_key_vault` - (Optional) A Key Vault configuration for secret values. Conflicts with `value`, and `secret` must be `true`.
   - `secret_id` - (Required) The secret ID from Key Vault. An unversioned ID enables APIM automatic refresh; a versioned ID pins the named value to that version.
   - `identity_client_id` - (Optional) The client ID of a user-assigned managed identity to use for Key Vault access. If not specified, the system-assigned identity will be used.
 
@@ -905,9 +905,8 @@ Description: A map of private endpoints to create on this resource. The map key 
 - `name` - (Optional) The name of the private endpoint. One will be generated if not set.
 - `role_assignments` - (Optional) A map of role assignments to create on the private endpoint. The map key is deliberately arbitrary to avoid issues where map keys maybe unknown at plan time. See `var.role_assignments` for more information.
 - `lock` - (Optional) The lock level to apply to the private endpoint. Default is `None`. Possible values are `None`, `CanNotDelete`, and `ReadOnly`.
-- `tags` - Reserved by the standard private endpoint interface. Private endpoints inherit the module-level `tags`.
+- `tags` - (Optional) A mapping of tags to assign to the private endpoint.
 - `subnet_resource_id` - The resource ID of the subnet to deploy the private endpoint in.
-- `subresource_name` - (Optional) APIM private-link subresource name. Defaults to `Gateway`.
 - `private_dns_zone_group_name` - (Optional) The name of the private DNS zone group. One will be generated if not set.
 - `private_dns_zone_resource_ids` - (Optional) A set of resource IDs of private DNS zones to associate with the private endpoint. If not set, no zone groups will be created and the private endpoint will not be associated with any private DNS zones. DNS records must be managed external to this module.
 - `application_security_group_resource_ids` - (Optional) A map of resource IDs of application security groups to associate with the private endpoint. The map key is deliberately arbitrary to avoid issues where map keys maybe unknown at plan time.
@@ -918,7 +917,6 @@ Description: A map of private endpoints to create on this resource. The map key 
 - `ip_configurations` - (Optional) A map of IP configurations to create on the private endpoint. If not specified the platform will create one. The map key is deliberately arbitrary to avoid issues where map keys maybe unknown at plan time.
   - `name` - The name of the IP configuration.
   - `private_ip_address` - The private IP address of the IP configuration.
-  - `member_name` - (Optional) Private-link member name. Defaults to `default`.
 
 Type:
 
@@ -926,7 +924,6 @@ Type:
 map(object({
     name = optional(string, null)
     role_assignments = optional(map(object({
-      name                                   = optional(string, null)
       role_definition_id_or_name             = string
       principal_id                           = string
       description                            = optional(string, null)
@@ -937,13 +934,11 @@ map(object({
       principal_type                         = optional(string, null)
     })), {})
     lock = optional(object({
-      kind  = string
-      name  = optional(string, null)
-      notes = optional(string, null)
+      kind = string
+      name = optional(string, null)
     }), null)
     tags                                    = optional(map(string), null)
     subnet_resource_id                      = string
-    subresource_name                        = optional(string, null)
     private_dns_zone_group_name             = optional(string, "default")
     private_dns_zone_resource_ids           = optional(set(string), [])
     application_security_group_associations = optional(map(string), {})
@@ -954,7 +949,6 @@ map(object({
     ip_configurations = optional(map(object({
       name               = string
       private_ip_address = string
-      member_name        = optional(string)
     })), {})
   }))
 ```
@@ -1152,9 +1146,11 @@ Type:
 
 ```hcl
 object({
-    error_message_regex  = optional(list(string))
-    interval_seconds     = optional(number)
-    max_interval_seconds = optional(number)
+    error_message_regex  = optional(list(string), null)
+    interval_seconds     = optional(number, null)
+    max_interval_seconds = optional(number, null)
+    multiplier           = optional(number, null)
+    randomization_factor = optional(number, null)
   })
 ```
 
@@ -1181,7 +1177,6 @@ Default: `null`
 Description: A map of role assignments to create on this resource. The map key is deliberately arbitrary to avoid issues where map keys maybe unknown at plan time.
 
 - `role_definition_id_or_name` - The ID or name of the role definition to assign to the principal.
-- `name` - Optional deterministic role assignment GUID. A random UUID is generated when omitted.
 - `principal_id` - The ID of the principal to assign the role to.
 - `description` - The description of the role assignment.
 - `skip_service_principal_aad_check` - If set to true, skips the Azure Active Directory check for the service principal in the tenant. Defaults to false.
@@ -1194,7 +1189,6 @@ Type:
 
 ```hcl
 map(object({
-    name                                   = optional(string, null)
     role_definition_id_or_name             = string
     principal_id                           = string
     description                            = optional(string, null)
@@ -1349,7 +1343,7 @@ Default: `null`
 
 ### <a name="input_tenant_access"></a> [tenant\_access](#input\_tenant\_access)
 
-Description: Controls whether direct access to the management API is enabled. The sensitive `tenant_access` output contains the generated primary and secondary keys when this input is configured.
+Description: Controls whether direct access to the management API is enabled. Access keys are intentionally not read into Terraform state.
 
 Type:
 
@@ -1526,6 +1520,10 @@ Description: A map of products created in the API Management service.
 
 Description: The Public IP addresses of the API Management Service.
 
+### <a name="output_resource"></a> [resource](#output\_resource)
+
+Description: The API Management service AzAPI resource.
+
 ### <a name="output_resource_id"></a> [resource\_id](#output\_resource\_id)
 
 Description: The ID of the API Management service.
@@ -1556,7 +1554,7 @@ Description: A map of subscription keys to their resource IDs.
 
 ### <a name="output_subscription_keys"></a> [subscription\_keys](#output\_subscription\_keys)
 
-Description: Subscription primary/secondary keys are not exported by AzAPI; use the listSecrets data-plane operation if required. Values supplied via `var.subscriptions` primary\_key/secondary\_key are write-only.
+Description: Subscription keys are intentionally not read into Terraform state. Custom keys supplied through `var.subscriptions` are write-only.
 
 ### <a name="output_subscriptions"></a> [subscriptions](#output\_subscriptions)
 
@@ -1564,7 +1562,7 @@ Description: A map of subscriptions created in the API Management service.
 
 ### <a name="output_tenant_access"></a> [tenant\_access](#output\_tenant\_access)
 
-Description: The tenant access information. Access keys are retrieved through the tenant/listSecrets action and stored in Terraform state as sensitive values.
+Description: The tenant access information. Access keys are intentionally not read into Terraform state.
 
 ### <a name="output_tenant_access_id"></a> [tenant\_access\_id](#output\_tenant\_access\_id)
 

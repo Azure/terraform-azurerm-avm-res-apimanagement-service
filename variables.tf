@@ -1365,7 +1365,7 @@ variable "role_assignments" {
   default     = {}
   description = <<DESCRIPTION
 A map of role assignments to create on this resource. The map key is deliberately arbitrary to avoid issues where map keys maybe unknown at plan time.
-- `role_definition_id_or_name` - The ID or name of the role definition to assign to the principal.
+
 - `role_definition_id_or_name` - The ID or name of the role definition to assign to the principal.
 - `principal_id` - The ID of the principal to assign the role to.
 - `description` - The description of the role assignment.
