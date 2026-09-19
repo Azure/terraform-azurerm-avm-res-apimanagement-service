@@ -18,5 +18,8 @@ module "policy" {
   depends_on = [
     azapi_resource.this,
     module.backend,
+    module.backend_pool,
+    module.named_value,
+    module.policy_fragment,
   ]
 }

@@ -14,6 +14,7 @@ resource "azapi_resource" "this" {
       value = var.value
     }
   } : null
+  sensitive_body_version = local.sensitive_body_version
 
   dynamic "timeouts" {
     for_each = var.timeouts == null ? [] : [var.timeouts]
@@ -23,6 +24,17 @@ resource "azapi_resource" "this" {
       read   = timeouts.value.read
       update = timeouts.value.update
       delete = timeouts.value.delete
+    }
+  }
+
+  lifecycle {
+    precondition {
+      condition     = !(nonsensitive(var.value != null) && var.key_vault != null)
+      error_message = "Only one of `value` or `key_vault` can be supplied."
+    }
+    precondition {
+      condition     = var.key_vault == null || var.secret == true
+      error_message = "`secret` must be true when `key_vault` is supplied."
     }
   }
 }

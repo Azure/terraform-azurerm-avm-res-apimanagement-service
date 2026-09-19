@@ -4,21 +4,21 @@
 
 module "subscription" {
   source   = "./modules/subscription"
-  for_each = var.subscriptions
+  for_each = toset(nonsensitive(keys(var.subscriptions)))
 
-  display_name        = each.value.display_name
+  display_name        = nonsensitive(var.subscriptions[each.key].display_name)
   name                = each.key
   parent_id           = azapi_resource.this.id
   scope               = local.subscription_scopes[each.key]
-  allow_tracing       = each.value.allow_tracing
+  allow_tracing       = nonsensitive(var.subscriptions[each.key].allow_tracing)
   enable_telemetry    = var.enable_telemetry
   ignore_body_changes = var.ignore_body_changes.apimanagement_service_subscriptions
-  owner_id            = each.value.user_id
-  primary_key         = each.value.primary_key
+  owner_id            = nonsensitive(var.subscriptions[each.key].user_id)
+  primary_key         = var.subscriptions[each.key].primary_key
   resource_types      = var.resource_types.apimanagement_service_subscriptions
   retry               = var.retry
-  secondary_key       = each.value.secondary_key
-  state               = each.value.state
+  secondary_key       = var.subscriptions[each.key].secondary_key
+  state               = nonsensitive(var.subscriptions[each.key].state)
   timeouts            = var.timeouts
 
   depends_on = [

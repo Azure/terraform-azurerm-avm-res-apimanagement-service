@@ -13,6 +13,11 @@ variable "name" {
   type        = string
   description = "The name (subscription identifier) of the API Management subscription."
   nullable    = false
+
+  validation {
+    condition     = length(var.name) >= 1 && length(var.name) <= 256 && can(regex("^[^*#&+:<>?]+$", var.name))
+    error_message = "name must be 1 to 256 characters and cannot contain `*`, `#`, `&`, `+`, `:`, `<`, `>`, or `?`."
+  }
 }
 
 variable "parent_id" {
@@ -30,6 +35,11 @@ variable "scope" {
   type        = string
   description = "ARM scope for the subscription, e.g. `/products/{productId}`, `/apis/{apiId}`, or `/apis`."
   nullable    = false
+
+  validation {
+    condition     = trimspace(var.scope) != ""
+    error_message = "scope must not be empty."
+  }
 }
 
 variable "allow_tracing" {

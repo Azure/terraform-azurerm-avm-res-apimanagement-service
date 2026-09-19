@@ -107,9 +107,17 @@ Type:
 ```hcl
 object({
     identity_client_id = optional(string)
-    secret_identifier  = optional(string)
+    secret_identifier  = string
   })
 ```
+
+Default: `null`
+
+### <a name="input_named_value_tags"></a> [named\_value\_tags](#input\_named\_value\_tags)
+
+Description: Optional API Management named-value tags used to filter named values.
+
+Type: `list(string)`
 
 Default: `null`
 
@@ -152,14 +160,6 @@ Default: `null`
 Description: Determines whether the value is a secret and should be encrypted or not. Default value is false.
 
 Type: `bool`
-
-Default: `null`
-
-### <a name="input_tags"></a> [tags](#input\_tags)
-
-Description: Optional tags that when provided can be used to filter the NamedValue list.
-
-Type: `list(string)`
 
 Default: `null`
 

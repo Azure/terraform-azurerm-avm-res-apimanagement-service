@@ -23,6 +23,11 @@ variable "name" {
   type        = string
   description = "The name of the named value resource."
   nullable    = false
+
+  validation {
+    condition     = length(var.name) >= 1 && length(var.name) <= 256 && can(regex("^[^*#&+:<>?]+$", var.name))
+    error_message = "name must be 1 to 256 characters and cannot contain `*`, `#`, `&`, `+`, `:`, `<`, `>`, or `?`."
+  }
 }
 
 variable "parent_id" {
@@ -64,7 +69,7 @@ DESCRIPTION
 variable "key_vault" {
   type = object({
     identity_client_id = optional(string)
-    secret_identifier  = optional(string)
+    secret_identifier  = string
   })
   default     = null
   description = <<DESCRIPTION
@@ -73,6 +78,17 @@ KeyVault location details of the namedValue.
 - `identity_client_id` - Null for SystemAssignedIdentity or Client Id for UserAssignedIdentity, which will be used to access key vault secret.
 - `secret_identifier` - Key vault secret identifier for fetching secret. Providing a versioned secret will prevent auto-refresh. This requires API Management service to be configured with aka.ms/apimmsi.
 DESCRIPTION
+}
+
+variable "named_value_tags" {
+  type        = list(string)
+  default     = null
+  description = "Optional API Management named-value tags used to filter named values."
+
+  validation {
+    condition     = var.named_value_tags == null || length(var.named_value_tags) <= 32
+    error_message = "named_value_tags must have at most 32 items."
+  }
 }
 
 variable "resource_types" {
@@ -106,17 +122,6 @@ variable "secret" {
   description = "Determines whether the value is a secret and should be encrypted or not. Default value is false."
 }
 
-variable "tags" {
-  type        = list(string)
-  default     = null
-  description = "Optional tags that when provided can be used to filter the NamedValue list."
-
-  validation {
-    condition     = var.tags == null || length(var.tags) <= 32
-    error_message = "tags must have at most 32 item(s)."
-  }
-}
-
 variable "timeouts" {
   type = object({
     create = optional(string)
@@ -138,7 +143,7 @@ DESCRIPTION
   sensitive   = true
 
   validation {
-    condition     = var.value == null || length(var.value) <= 4096
-    error_message = "value must have a maximum length of 4096."
+    condition     = var.value == null || (trimspace(var.value) != "" && length(var.value) <= 4096)
+    error_message = "value must contain a non-whitespace character and have a maximum length of 4096."
   }
 }

@@ -1,13 +1,13 @@
 locals {
-  # AzureRM header/query are map(string) of comma-separated values; ARM expects map(list(string)).
   credentials_body = var.credentials == null ? null : {
     authorization = var.credentials.authorization == null ? null : {
       parameter = var.credentials.authorization.parameter
       scheme    = var.credentials.authorization.scheme
     }
-    certificate = length(var.credentials.certificate) > 0 ? var.credentials.certificate : null
-    header      = length(var.credentials.header) > 0 ? { for k, v in var.credentials.header : k => split(v, ",") } : null
-    query       = length(var.credentials.query) > 0 ? { for k, v in var.credentials.query : k => split(v, ",") } : null
+    certificate    = length(var.credentials.certificate) > 0 ? var.credentials.certificate : null
+    certificateIds = length(var.credentials.certificate_ids) > 0 ? var.credentials.certificate_ids : null
+    header         = length(var.credentials.header) > 0 ? { for k, v in var.credentials.header : k => split(",", v) } : null
+    query          = length(var.credentials.query) > 0 ? { for k, v in var.credentials.query : k => split(",", v) } : null
   }
 
   service_fabric_cluster_body = var.service_fabric_cluster == null ? null : {
@@ -24,26 +24,56 @@ locals {
     ] : null
   }
 
-  resource_body = {
-    properties = {
+  sensitive_properties = merge(
+    var.credentials == null ? {} : {
       credentials = local.credentials_body
-      description = var.description
-      properties = local.service_fabric_cluster_body == null ? null : {
-        serviceFabricCluster = local.service_fabric_cluster_body
-      }
-      protocol = var.protocol
-      proxy = var.proxy == null ? null : {
+    },
+    var.proxy == null ? {} : {
+      proxy = {
         password = var.proxy.password
         url      = var.proxy.url
         username = var.proxy.username
       }
+    },
+  )
+
+  sensitive_body = length(local.sensitive_properties) == 0 ? null : {
+    properties = local.sensitive_properties
+  }
+
+  sensitive_body_version = length(local.sensitive_properties) == 0 ? null : merge(
+    var.credentials == null ? {} : {
+      "properties.credentials" = sha256(jsonencode(var.credentials))
+    },
+    var.proxy == null ? {} : {
+      "properties.proxy" = sha256(jsonencode(var.proxy))
+    },
+  )
+
+  resource_body = {
+    properties = {
+      description = var.description
+      pool = var.pool == null ? null : {
+        services = [
+          for service in var.pool.services : {
+            id       = service.id
+            priority = service.priority
+            weight   = service.weight
+          }
+        ]
+      }
+      properties = local.service_fabric_cluster_body == null ? null : {
+        serviceFabricCluster = local.service_fabric_cluster_body
+      }
+      protocol   = var.protocol
       resourceId = var.resource_id
       title      = var.title
       tls = var.tls == null ? null : {
         validateCertificateChain = var.tls.validate_certificate_chain
         validateCertificateName  = var.tls.validate_certificate_name
       }
-      url = var.url
+      type = var.type
+      url  = var.url
     }
   }
   main_location = "unknown"

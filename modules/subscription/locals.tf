@@ -15,5 +15,12 @@ locals {
       var.secondary_key != null ? { secondaryKey = var.secondary_key } : {}
     )
   } : null
+
+  sensitive_body_version = local.sensitive_body == null ? null : {
+    for path, version in {
+      "properties.primaryKey"   = var.primary_key == null ? null : sha256(var.primary_key)
+      "properties.secondaryKey" = var.secondary_key == null ? null : sha256(var.secondary_key)
+    } : path => version if version != null
+  }
   main_location = "unknown"
 }
