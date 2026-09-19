@@ -1,10 +1,3 @@
-# required AVM interfaces
-# remove only if not supported by the resource
-# tflint-ignore: terraform_unused_declarations
-
-# Below AI generated
-
-
 variable "location" {
   type        = string
   description = "Azure region where the resource should be deployed."
@@ -363,17 +356,18 @@ variable "backends" {
 
     credentials = optional(object({
       authorization = optional(object({
-        parameter = optional(string)
-        scheme    = optional(string)
+        parameter = string
+        scheme    = string
       }))
-      certificate = optional(list(string), [])
-      header      = optional(map(string), {})
-      query       = optional(map(string), {})
+      certificate     = optional(list(string), [])
+      certificate_ids = optional(list(string), [])
+      header          = optional(map(string), {})
+      query           = optional(map(string), {})
     }))
 
     proxy = optional(object({
       url      = string
-      username = string
+      username = optional(string)
       password = optional(string)
     }))
 
@@ -415,14 +409,15 @@ Backends for the API Management service. Backends represent the backend HTTP end
 - `title` - (Optional) The title of the backend.
 - `credentials` - (Optional) Credentials for the backend.
   - `authorization` - (Optional) Authorization header configuration.
-    - `parameter` - (Optional) The authentication parameter value.
-    - `scheme` - (Optional) The authentication scheme name.
+    - `parameter` - (Required) The authentication parameter value.
+    - `scheme` - (Required) The authentication scheme name.
   - `certificate` - (Optional) List of client certificate thumbprints for the backend.
+  - `certificate_ids` - (Optional) List of APIM certificate resource IDs for the backend.
   - `header` - (Optional) Map of header name to comma-separated header values.
   - `query` - (Optional) Map of query parameter name to comma-separated values.
 - `proxy` - (Optional) Proxy server configuration.
   - `url` - (Required) The URL of the proxy server.
-  - `username` - (Required) The username to connect to the proxy server.
+  - `username` - (Optional) The username to connect to the proxy server.
   - `password` - (Optional) The password to connect to the proxy server.
 - `pool` - Required for `Pool`. Backend services that receive traffic.
   - `backend_name` - Key of another `backends` entry with `type = "Single"`.
@@ -472,13 +467,20 @@ DESCRIPTION
   }
   validation {
     condition = alltrue([
+      for name in keys(var.backends) :
+      length(name) >= 1 && length(name) <= 80
+    ])
+    error_message = "Backend names must be between 1 and 80 characters."
+  }
+  validation {
+    condition = alltrue([
       for k, v in var.backends :
       v.type == "Single" ? (
         v.protocol != null &&
         v.url != null &&
         v.pool == null &&
         contains(["http", "soap"], v.protocol)
-      ) : (
+        ) : (
         v.protocol == null &&
         v.url == null &&
         v.pool != null &&
@@ -500,10 +502,7 @@ DESCRIPTION
     condition = alltrue(flatten([
       for _, backend in var.backends : backend.pool == null ? [] : [
         for service in backend.pool.services :
-        service.backend_name == null || (
-          contains(keys(var.backends), service.backend_name) &&
-          var.backends[service.backend_name].type == "Single"
-        )
+        service.backend_name == null || try(var.backends[service.backend_name].type == "Single", false)
       ]
     ]))
     error_message = "Each `backend_name` in a pool must identify a Single backend in the same `backends` map."
@@ -522,10 +521,95 @@ DESCRIPTION
       for _, backend in var.backends : backend.pool == null ? [] : [
         for service in backend.pool.services :
         (service.priority == null || (service.priority >= 0 && service.priority <= 100)) &&
-        (service.weight == null || (service.weight >= 0 && service.weight <= 100))
+        (service.weight == null || (service.weight >= 0 && service.weight <= 100)) &&
+        (service.priority == null || service.priority == floor(service.priority)) &&
+        (service.weight == null || service.weight == floor(service.weight))
       ]
     ]))
-    error_message = "Backend pool priorities and weights must be between 0 and 100."
+    error_message = "Backend pool priorities and weights must be whole numbers between 0 and 100."
+  }
+  validation {
+    condition = alltrue([
+      for _, backend in var.backends :
+      backend.type == "Single" || (
+        backend.credentials == null &&
+        backend.proxy == null &&
+        backend.resource_id == null &&
+        backend.service_fabric_cluster == null &&
+        backend.tls == null
+      )
+    ])
+    error_message = "Pool backends cannot set `credentials`, `proxy`, `resource_id`, `service_fabric_cluster`, or `tls`."
+  }
+  validation {
+    condition = alltrue([
+      for _, backend in var.backends :
+      backend.credentials == null || length(backend.credentials.certificate) <= 32
+    ])
+    error_message = "Backend credentials may contain at most 32 certificate thumbprints."
+  }
+  validation {
+    condition = alltrue([
+      for _, backend in var.backends :
+      backend.credentials == null || length(backend.credentials.certificate_ids) <= 32
+    ])
+    error_message = "Backend credentials may contain at most 32 certificate resource IDs."
+  }
+  validation {
+    condition = alltrue(flatten([
+      for _, backend in var.backends : backend.credentials == null ? [] : [
+        for id in backend.credentials.certificate_ids :
+        can(provider::azapi::parse_resource_id("Microsoft.ApiManagement/service/certificates", id))
+      ]
+    ]))
+    error_message = "Each backend credentials.certificate_ids item must be a valid API Management certificate resource ID."
+  }
+  validation {
+    condition = alltrue([
+      for _, backend in var.backends :
+      backend.credentials == null || backend.credentials.authorization == null || (
+        length(backend.credentials.authorization.parameter) >= 1 &&
+        length(backend.credentials.authorization.parameter) <= 300 &&
+        length(backend.credentials.authorization.scheme) >= 1 &&
+        length(backend.credentials.authorization.scheme) <= 100
+      )
+    ])
+    error_message = "Backend authorization parameters must be 1 to 300 characters and schemes must be 1 to 100 characters."
+  }
+  validation {
+    condition = alltrue([
+      for _, backend in var.backends :
+      backend.description == null || (length(backend.description) >= 1 && length(backend.description) <= 2000)
+    ])
+    error_message = "Backend descriptions must be between 1 and 2000 characters when set."
+  }
+  validation {
+    condition = alltrue([
+      for _, backend in var.backends :
+      backend.resource_id == null || (length(backend.resource_id) >= 1 && length(backend.resource_id) <= 2000)
+    ])
+    error_message = "Backend resource IDs must be between 1 and 2000 characters when set."
+  }
+  validation {
+    condition = alltrue([
+      for _, backend in var.backends :
+      backend.title == null || (length(backend.title) >= 1 && length(backend.title) <= 300)
+    ])
+    error_message = "Backend titles must be between 1 and 300 characters when set."
+  }
+  validation {
+    condition = alltrue([
+      for _, backend in var.backends :
+      backend.url == null || (length(backend.url) >= 1 && length(backend.url) <= 2000)
+    ])
+    error_message = "Backend URLs must be between 1 and 2000 characters when set."
+  }
+  validation {
+    condition = alltrue([
+      for _, backend in var.backends :
+      backend.proxy == null || (length(backend.proxy.url) >= 1 && length(backend.proxy.url) <= 2000)
+    ])
+    error_message = "Backend proxy URLs must be between 1 and 2000 characters."
   }
   validation {
     condition = alltrue([
@@ -580,7 +664,19 @@ variable "delegation" {
     validation_key            = optional(string, null)
   })
   default     = null
-  description = "Delegation settings for the API Management service."
+  description = <<DESCRIPTION
+Developer portal delegation settings for the API Management service.
+
+- `subscriptions_enabled` - Whether subscription delegation is enabled. Defaults to `false`.
+- `user_registration_enabled` - Whether user-registration delegation is enabled. Defaults to `false`.
+- `url` - Optional delegation endpoint URL.
+- `validation_key` - Optional base64-encoded validation key. The module sends this value through AzAPI's write-only body and stores only a SHA-256 change token on the resource.
+DESCRIPTION
+
+  validation {
+    condition     = var.delegation == null || !can(regex("^(Consumption|BasicV2|StandardV2|PremiumV2)_", var.sku_name))
+    error_message = "delegation is not supported for Consumption or V2 SKU tiers."
+  }
 }
 
 variable "diagnostic_settings" {
@@ -598,7 +694,7 @@ variable "diagnostic_settings" {
   }))
   default     = {}
   description = <<DESCRIPTION
-A map of diagnostic settings to create on the Key Vault. The map key is deliberately arbitrary to avoid issues where map keys maybe unknown at plan time.
+A map of diagnostic settings to create on the API Management service. The map key is deliberately arbitrary to avoid issues where map keys may be unknown at plan time.
 
 - `name` - (Optional) The name of the diagnostic setting. One will be generated if not set, however this will not be unique if you want to create multiple diagnostic setting resources.
 - `log_categories` - (Optional) A set of log categories to send to the log analytics workspace. Defaults to `[]`.
@@ -697,6 +793,7 @@ variable "hostname_configuration" {
   })
   default     = null
   description = "Hostname configuration for the API Management service."
+  sensitive   = true
 }
 
 variable "ignore_body_changes" {
@@ -720,8 +817,14 @@ variable "ignore_body_changes" {
     apimanagement_service_policy_fragments = optional(object({
       apimanagement_service_policy_fragments = optional(list(string), [])
     }), {})
+    apimanagement_service_portalsettings = optional(object({
+      apimanagement_service_portalsettings = optional(list(string), [])
+    }), {})
     apimanagement_service_subscriptions = optional(object({
       apimanagement_service_subscriptions = optional(list(string), [])
+    }), {})
+    apimanagement_service_tenant = optional(object({
+      apimanagement_service_tenant = optional(list(string), [])
     }), {})
     apimanagement_service_api_version_sets = optional(object({
       apimanagement_service_api_version_sets = optional(list(string), [])
@@ -755,6 +858,7 @@ Changes take effect only after apply.
 
 - `apimanagement_service` - Paths ignored on the API Management service.
 - Nested `apimanagement_service_*` objects are passed unchanged to the matching submodule.
+- The portal setting and tenant access singleton submodules omit ignored paths from their PATCH request because their Azure APIs do not expose DELETE operations.
 DESCRIPTION
   nullable    = false
 }
@@ -780,7 +884,6 @@ DESCRIPTION
   }
 }
 
-# tflint-ignore: terraform_unused_declarations
 variable "managed_identities" {
   type = object({
     system_assigned            = optional(bool, false)
@@ -819,11 +922,11 @@ variable "named_values" {
 Named values for the API Management service. Named values are a collection of key/value pairs that can be referenced in policies and API configurations.
 
 - `display_name` - (Required) The display name of the named value. Must be unique within the API Management service.
-- `value` - (Optional) The value of the named value. Conflicts with `value_from_key_vault`. If neither is specified, the named value must be set through other means.
+- `value` - (Optional) The value of the named value. Exactly one of `value` or `value_from_key_vault` is required.
 - `secret` - (Optional) Whether the value is a secret and should be encrypted. Defaults to `false`.
 - `tags` - (Optional) A list of tags that can be used to filter the named values list.
-- `value_from_key_vault` - (Optional) A Key Vault configuration for secret values. Conflicts with `value`.
-  - `secret_id` - (Required) The versioned secret ID from Key Vault (e.g., `https://myvault.vault.azure.net/secrets/mysecret/version`).
+- `value_from_key_vault` - (Optional) A Key Vault configuration for secret values. Exactly one of `value` or `value_from_key_vault` is required, and `secret` must be `true`.
+  - `secret_id` - (Required) The secret ID from Key Vault. An unversioned ID enables APIM automatic refresh; a versioned ID pins the named value to that version.
   - `identity_client_id` - (Optional) The client ID of a user-assigned managed identity to use for Key Vault access. If not specified, the system-assigned identity will be used.
 
 Example:
@@ -850,18 +953,18 @@ DESCRIPTION
   validation {
     condition = alltrue([
       for k, v in var.named_values :
-      v.display_name != null && v.display_name != ""
+      length(v.display_name) >= 1 &&
+      length(v.display_name) <= 256 &&
+      can(regex("^[A-Za-z0-9-._]+$", v.display_name))
     ])
-    error_message = "All named values must have a non-empty display_name."
+    error_message = "Named-value display names must be 1 to 256 characters and contain only letters, digits, periods, dashes, and underscores."
   }
   validation {
     condition = alltrue([
       for k, v in var.named_values :
-      (v.value != null && v.value_from_key_vault == null) ||
-      (v.value == null && v.value_from_key_vault != null) ||
-      (v.value == null && v.value_from_key_vault == null)
+      (v.value != null) != (v.value_from_key_vault != null)
     ])
-    error_message = "Each named value must specify either 'value' or 'value_from_key_vault', but not both."
+    error_message = "Each named value must specify exactly one of `value` or `value_from_key_vault`."
   }
   validation {
     condition = alltrue([
@@ -869,6 +972,27 @@ DESCRIPTION
       can(regex("^[a-zA-Z0-9-._]+$", k))
     ])
     error_message = "Named value keys can only contain letters, numbers, hyphens, periods, and underscores."
+  }
+  validation {
+    condition = alltrue([
+      for k in keys(var.named_values) :
+      length(k) >= 1 && length(k) <= 256
+    ])
+    error_message = "Named value keys must be between 1 and 256 characters."
+  }
+  validation {
+    condition = alltrue([
+      for _, v in var.named_values :
+      v.value_from_key_vault == null || v.secret
+    ])
+    error_message = "Named values using `value_from_key_vault` must set `secret = true`."
+  }
+  validation {
+    condition = alltrue([
+      for _, v in var.named_values :
+      v.value == null || (trimspace(v.value) != "" && length(v.value) <= 4096)
+    ])
+    error_message = "Named values must contain a non-whitespace character and have a maximum length of 4096."
   }
 }
 
@@ -919,6 +1043,9 @@ policy = {
 </policies>
 XML
 }
+```
+DESCRIPTION
+}
 
 variable "policy_fragments" {
   type = map(object({
@@ -945,7 +1072,6 @@ DESCRIPTION
     ])
     error_message = "Policy fragment format must be `xml` or `rawxml`."
   }
-
   validation {
     condition = alltrue([
       for _, fragment in var.policy_fragments :
@@ -953,15 +1079,20 @@ DESCRIPTION
     ])
     error_message = "Policy fragment descriptions must not exceed 1000 characters."
   }
-}
-```
-DESCRIPTION
+  validation {
+    condition = alltrue([
+      for name in keys(var.policy_fragments) :
+      length(name) >= 1 && length(name) <= 80 && can(regex("(^[\\w]+$)|(^[\\w][\\w\\-]+[\\w]$)", name))
+    ])
+    error_message = "Policy fragment names must be 1 to 80 characters and contain only letters, numbers, underscores, and internal hyphens."
+  }
 }
 
 variable "private_endpoints" {
   type = map(object({
     name = optional(string, null)
     role_assignments = optional(map(object({
+      name                                   = optional(string, null)
       role_definition_id_or_name             = string
       principal_id                           = string
       description                            = optional(string, null)
@@ -972,11 +1103,13 @@ variable "private_endpoints" {
       principal_type                         = optional(string, null)
     })), {})
     lock = optional(object({
-      kind = string
-      name = optional(string, null)
+      kind  = string
+      name  = optional(string, null)
+      notes = optional(string, null)
     }), null)
     tags                                    = optional(map(string), null)
     subnet_resource_id                      = string
+    subresource_name                        = optional(string, null)
     private_dns_zone_group_name             = optional(string, "default")
     private_dns_zone_resource_ids           = optional(set(string), [])
     application_security_group_associations = optional(map(string), {})
@@ -987,6 +1120,7 @@ variable "private_endpoints" {
     ip_configurations = optional(map(object({
       name               = string
       private_ip_address = string
+      member_name        = optional(string)
     })), {})
   }))
   default     = {}
@@ -996,8 +1130,9 @@ A map of private endpoints to create on this resource. The map key is deliberate
 - `name` - (Optional) The name of the private endpoint. One will be generated if not set.
 - `role_assignments` - (Optional) A map of role assignments to create on the private endpoint. The map key is deliberately arbitrary to avoid issues where map keys maybe unknown at plan time. See `var.role_assignments` for more information.
 - `lock` - (Optional) The lock level to apply to the private endpoint. Default is `None`. Possible values are `None`, `CanNotDelete`, and `ReadOnly`.
-- `tags` - (Optional) A mapping of tags to assign to the private endpoint.
+- `tags` - Reserved by the standard private endpoint interface. Private endpoints inherit the module-level `tags`.
 - `subnet_resource_id` - The resource ID of the subnet to deploy the private endpoint in.
+- `subresource_name` - (Optional) APIM private-link subresource name. Defaults to `Gateway`.
 - `private_dns_zone_group_name` - (Optional) The name of the private DNS zone group. One will be generated if not set.
 - `private_dns_zone_resource_ids` - (Optional) A set of resource IDs of private DNS zones to associate with the private endpoint. If not set, no zone groups will be created and the private endpoint will not be associated with any private DNS zones. DNS records must be managed external to this module.
 - `application_security_group_resource_ids` - (Optional) A map of resource IDs of application security groups to associate with the private endpoint. The map key is deliberately arbitrary to avoid issues where map keys maybe unknown at plan time.
@@ -1008,6 +1143,7 @@ A map of private endpoints to create on this resource. The map key is deliberate
 - `ip_configurations` - (Optional) A map of IP configurations to create on the private endpoint. If not specified the platform will create one. The map key is deliberately arbitrary to avoid issues where map keys maybe unknown at plan time.
   - `name` - The name of the IP configuration.
   - `private_ip_address` - The private IP address of the IP configuration.
+  - `member_name` - (Optional) Private-link member name. Defaults to `default`.
 DESCRIPTION
   nullable    = false
 
@@ -1022,7 +1158,6 @@ DESCRIPTION
 # or if it is to be managed externally, e.g. using Azure Policy.
 # https://github.com/Azure/terraform-azurerm-avm-res-keyvault-vault/issues/32
 # Alternatively you can use AzAPI, which does not have this issue.
-#TODO: add DNS zone if enabled
 variable "private_endpoints_manage_dns_zone_group" {
   type        = bool
   default     = true
@@ -1134,8 +1269,14 @@ variable "resource_types" {
     apimanagement_service_policy_fragments = optional(object({
       apimanagement_service_policy_fragments = optional(string)
     }), {})
+    apimanagement_service_portalsettings = optional(object({
+      apimanagement_service_portalsettings = optional(string)
+    }), {})
     apimanagement_service_subscriptions = optional(object({
       apimanagement_service_subscriptions = optional(string)
+    }), {})
+    apimanagement_service_tenant = optional(object({
+      apimanagement_service_tenant = optional(string)
     }), {})
     apimanagement_service_api_version_sets = optional(object({
       apimanagement_service_api_version_sets = optional(string)
@@ -1176,7 +1317,9 @@ AzAPI resource types and API versions used by the module.
 - `apimanagement_service_named_values` - Overrides for the named_value submodule.
 - `apimanagement_service_policies` - Overrides for the policy submodule.
 - `apimanagement_service_policy_fragments` - Overrides for the policy_fragment submodule.
+- `apimanagement_service_portalsettings` - Overrides for the portal_setting submodule.
 - `apimanagement_service_subscriptions` - Overrides for the subscription submodule.
+- `apimanagement_service_tenant` - Overrides for the tenant_access submodule.
 - `apimanagement_service_api_version_sets` - Overrides for the api_version_set submodule.
 - `apimanagement_service_apis` - Overrides for the api submodule.
 - `apimanagement_service_apis_operations` - Overrides for the operation submodule.
@@ -1191,11 +1334,9 @@ DESCRIPTION
 
 variable "retry" {
   type = object({
-    error_message_regex  = optional(list(string), null)
-    interval_seconds     = optional(number, null)
-    max_interval_seconds = optional(number, null)
-    multiplier           = optional(number, null)
-    randomization_factor = optional(number, null)
+    error_message_regex  = optional(list(string))
+    interval_seconds     = optional(number)
+    max_interval_seconds = optional(number)
   })
   default     = null
   description = "Retry configuration for AzAPI resources. See AzAPI provider `retry` documentation."
@@ -1286,6 +1427,11 @@ variable "sign_in" {
   })
   default     = null
   description = "Sign-in settings for the API Management service. When enabled, anonymous users will be redirected to the sign-in page."
+
+  validation {
+    condition     = var.sign_in == null || !can(regex("^(Consumption|BasicV2|StandardV2|PremiumV2)_", var.sku_name))
+    error_message = "sign_in is not supported for Consumption or V2 SKU tiers."
+  }
 }
 
 variable "sign_up" {
@@ -1299,6 +1445,11 @@ variable "sign_up" {
   })
   default     = null
   description = "Sign-up settings for the API Management service."
+
+  validation {
+    condition     = var.sign_up == null || !can(regex("^(Consumption|BasicV2|StandardV2|PremiumV2)_", var.sku_name))
+    error_message = "sign_up is not supported for Consumption or V2 SKU tiers."
+  }
 }
 
 variable "sku_name" {
@@ -1334,7 +1485,7 @@ Subscriptions for the API Management service. The map key is the subscription id
 - `user_id` - (Optional) The user ID for this subscription (format: /users/{userId}).
 - `primary_key` - (Optional) Custom primary subscription key.
 - `secondary_key` - (Optional) Custom secondary subscription key.
-- `state` - (Optional) The state of the subscription. Valid values: `active`, `suspended`, `submitted`, `rejected`, `cancelled`. Default is `active`.
+- `state` - (Optional) The state of the subscription. Valid values: `active`, `cancelled`, `expired`, `rejected`, `submitted`, `suspended`. Default is `active`.
 - `allow_tracing` - (Optional) Whether tracing is allowed. Default is `false`.
 
 Example:
@@ -1368,20 +1519,47 @@ DESCRIPTION
   validation {
     condition = alltrue([
       for k, v in var.subscriptions :
-      v.scope_type == "all_apis" || v.scope_identifier != null
+      (v.scope_type == "all_apis") == (v.scope_identifier == null)
     ])
-    error_message = "Subscription scope_identifier is required when scope_type is 'product' or 'api'."
+    error_message = "Subscription scope_identifier is required for `product` and `api` scopes and must be omitted for `all_apis`."
   }
   validation {
     condition = alltrue([
       for k, v in var.subscriptions :
-      contains(["active", "suspended", "submitted", "rejected", "cancelled"], v.state)
+      contains(["active", "cancelled", "expired", "rejected", "submitted", "suspended"], v.state)
     ])
-    error_message = "Subscription state must be one of: active, suspended, submitted, rejected, cancelled."
+    error_message = "Subscription state must be one of: active, cancelled, expired, rejected, submitted, suspended."
+  }
+  validation {
+    condition = alltrue([
+      for name in keys(var.subscriptions) :
+      length(name) >= 1 && length(name) <= 256 && can(regex("^[^*#&+:<>?]+$", name))
+    ])
+    error_message = "Subscription identifiers must be 1 to 256 characters and cannot contain `*`, `#`, `&`, `+`, `:`, `<`, `>`, or `?`."
+  }
+  validation {
+    condition = alltrue([
+      for _, subscription in var.subscriptions :
+      length(subscription.display_name) >= 1 && length(subscription.display_name) <= 100
+    ])
+    error_message = "Subscription display names must be between 1 and 100 characters."
+  }
+  validation {
+    condition = alltrue([
+      for _, subscription in var.subscriptions :
+      subscription.primary_key == null || (length(subscription.primary_key) >= 1 && length(subscription.primary_key) <= 256)
+    ])
+    error_message = "Custom primary subscription keys must be between 1 and 256 characters."
+  }
+  validation {
+    condition = alltrue([
+      for _, subscription in var.subscriptions :
+      subscription.secondary_key == null || (length(subscription.secondary_key) >= 1 && length(subscription.secondary_key) <= 256)
+    ])
+    error_message = "Custom secondary subscription keys must be between 1 and 256 characters."
   }
 }
 
-# tflint-ignore: terraform_unused_declarations
 variable "tags" {
   type        = map(string)
   default     = null
@@ -1393,7 +1571,12 @@ variable "tenant_access" {
     enabled = bool
   })
   default     = null
-  description = "Controls whether access to the management API is enabled. When enabled, the primary/secondary keys provide access to this API."
+  description = "Controls whether direct access to the management API is enabled. The sensitive `tenant_access` output contains the generated primary and secondary keys when this input is configured."
+
+  validation {
+    condition     = var.tenant_access == null || !can(regex("^(Consumption|BasicV2|StandardV2|PremiumV2)_", var.sku_name))
+    error_message = "tenant_access is not supported for Consumption or V2 SKU tiers."
+  }
 }
 
 variable "timeouts" {

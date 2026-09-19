@@ -1,7 +1,40 @@
+variable "name" {
+  type        = string
+  description = "The name of the policy fragment."
+  nullable    = false
+
+  validation {
+    condition     = length(var.name) >= 1 && length(var.name) <= 80 && can(regex("(^[\\w]+$)|(^[\\w][\\w\\-]+[\\w]$)", var.name))
+    error_message = "`name` must be 1 to 80 characters and contain only letters, numbers, underscores, and internal hyphens."
+  }
+}
+
+variable "parent_id" {
+  type        = string
+  description = "The fully-qualified ARM resource ID of the API Management service that will contain the policy fragment."
+  nullable    = false
+
+  validation {
+    condition     = can(provider::azapi::parse_resource_id("Microsoft.ApiManagement/service", var.parent_id))
+    error_message = "`parent_id` must be a valid API Management service resource ID."
+  }
+}
+
+variable "value" {
+  type        = string
+  description = "XML contents of the reusable policy fragment."
+  nullable    = false
+}
+
 variable "description" {
   type        = string
   default     = null
   description = "Description of the policy fragment."
+
+  validation {
+    condition     = var.description == null || length(var.description) <= 1000
+    error_message = "`description` must not exceed 1000 characters."
+  }
 }
 
 variable "enable_telemetry" {
@@ -41,28 +74,6 @@ DESCRIPTION
   nullable    = false
 }
 
-variable "name" {
-  type        = string
-  description = "The name of the policy fragment."
-  nullable    = false
-
-  validation {
-    condition     = can(regex("(^[\\w]+$)|(^[\\w][\\w\\-]+[\\w]$)", var.name))
-    error_message = "`name` must contain only letters, numbers, underscores, and internal hyphens."
-  }
-}
-
-variable "parent_id" {
-  type        = string
-  description = "The fully-qualified ARM resource ID of the API Management service that will contain the policy fragment."
-  nullable    = false
-
-  validation {
-    condition     = can(provider::azapi::parse_resource_id("Microsoft.ApiManagement/service", var.parent_id))
-    error_message = "`parent_id` must be a valid API Management service resource ID."
-  }
-}
-
 variable "resource_types" {
   type = object({
     apimanagement_service_policy_fragments = optional(string, "Microsoft.ApiManagement/service/policyFragments@2024-05-01")
@@ -95,10 +106,4 @@ variable "timeouts" {
   })
   default     = null
   description = "Timeouts for AzAPI resources."
-}
-
-variable "value" {
-  type        = string
-  description = "XML contents of the reusable policy fragment."
-  nullable    = false
 }

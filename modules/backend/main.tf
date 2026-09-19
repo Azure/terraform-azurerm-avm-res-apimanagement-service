@@ -19,4 +19,19 @@ resource "azapi_resource" "this" {
       delete = timeouts.value.delete
     }
   }
+
+  lifecycle {
+    precondition {
+      condition     = var.type != "Single" || (var.protocol != null && var.url != null && var.pool == null)
+      error_message = "Single backends require `protocol` and `url` and cannot set `pool`."
+    }
+    precondition {
+      condition     = var.type != "Pool" || (var.protocol == null && var.url == null && var.pool != null && length(var.pool.services) > 0)
+      error_message = "Pool backends require non-empty `pool.services` and cannot set `protocol` or `url`."
+    }
+    precondition {
+      condition     = var.type != "Pool" || (var.credentials == null && var.proxy == null && var.resource_id == null && var.service_fabric_cluster == null && var.tls == null)
+      error_message = "Pool backends cannot set `credentials`, `proxy`, `resource_id`, `service_fabric_cluster`, or `tls`."
+    }
+  }
 }

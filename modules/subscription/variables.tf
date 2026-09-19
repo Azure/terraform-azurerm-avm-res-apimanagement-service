@@ -13,6 +13,11 @@ variable "name" {
   type        = string
   description = "The name (subscription identifier) of the API Management subscription."
   nullable    = false
+
+  validation {
+    condition     = length(var.name) >= 1 && length(var.name) <= 256 && can(regex("^[^*#&+:<>?]+$", var.name))
+    error_message = "name must be 1 to 256 characters and cannot contain `*`, `#`, `&`, `+`, `:`, `<`, `>`, or `?`."
+  }
 }
 
 variable "parent_id" {
@@ -30,6 +35,11 @@ variable "scope" {
   type        = string
   description = "ARM scope for the subscription, e.g. `/products/{productId}`, `/apis/{apiId}`, or `/apis`."
   nullable    = false
+
+  validation {
+    condition     = trimspace(var.scope) != ""
+    error_message = "scope must not be empty."
+  }
 }
 
 variable "allow_tracing" {
@@ -96,11 +106,9 @@ DESCRIPTION
 
 variable "retry" {
   type = object({
-    error_message_regex  = optional(list(string), null)
-    interval_seconds     = optional(number, null)
-    max_interval_seconds = optional(number, null)
-    multiplier           = optional(number, null)
-    randomization_factor = optional(number, null)
+    error_message_regex  = optional(list(string))
+    interval_seconds     = optional(number)
+    max_interval_seconds = optional(number)
   })
   default     = null
   description = "Retry configuration for AzAPI resources. See AzAPI provider `retry` documentation."

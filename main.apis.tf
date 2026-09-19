@@ -1,82 +1,46 @@
-# API Management APIs, operations, and policies (AzAPI submodules).
-#
-# BREAKING (composition): AzureRM root collections were extracted into for_each
-# submodules. Addresses change from `azurerm_api_management_api.this["key"]` to
-# `module.api["key"].azapi_resource.this` (and similarly for operations/policies).
-#
-# This AVM module cannot ship a reusable `moved` block that preserves arbitrary
-# consumer keys across that resource→module boundary. State continuity belongs in
-# the *calling* (solution) module, where keys are known:
-#
-#   # In the solution module that consumes this AVM (preferred for CI):
-#   moved {
-#     from = module.apim.azurerm_api_management_api.this["petstore"]
-#     to   = module.apim.module.api["petstore"].azapi_resource.this
-#   }
-#   moved {
-#     from = module.apim.azurerm_api_management_api_operation.this["petstore-get"]
-#     to   = module.apim.module.operation["petstore-get"].azapi_resource.this
-#   }
-#   moved {
-#     from = module.apim.azurerm_api_management_api_policy.this["petstore"]
-#     to   = module.apim.module.api_policy["petstore"].azapi_resource.this
-#   }
-#   moved {
-#     from = module.apim.azurerm_api_management_api_operation_policy.this["petstore-get"]
-#     to   = module.apim.module.operation_policy["petstore-get"].azapi_resource.this
-#   }
-#
-# Equivalent imperative form (harder in CI; use when `moved` is impractical):
-#   terraform state mv \
-#     'module.apim.azurerm_api_management_api.this["petstore"]' \
-#     'module.apim.module.api["petstore"].azapi_resource.this'
-#
-# Replace `module.apim` with the local module label used to call this AVM.
-# Repeat per known for_each key. Provider-only address moves (same cardinality,
-# same module boundary) may still use `moved` inside this AVM where applicable
-# (see root `moved` for azurerm_api_management.this → azapi_resource.this).
+# API Management APIs, operations, and policies.
 
 module "api" {
   source   = "./modules/api"
-  for_each = var.apis
+  for_each = local.api_keys
 
-  name                     = "${each.key};rev=${coalesce(each.value.revision, "1")}"
+  name                     = "${each.key};rev=${coalesce(nonsensitive(var.apis[each.key].revision), "1")}"
   parent_id                = azapi_resource.this.id
-  path                     = each.value.path
-  api_revision             = each.value.revision
-  api_revision_description = each.value.revision_description
-  api_version              = each.value.api_version
-  api_version_set_id       = each.value.api_version_set_name != null ? module.api_version_set[each.value.api_version_set_name].resource_id : null
-  authentication_settings = each.value.oauth2_authorization != null || each.value.openid_authentication != null ? {
-    o_auth2 = each.value.oauth2_authorization == null ? null : {
-      authorization_server_id = each.value.oauth2_authorization.authorization_server_name
-      scope                   = each.value.oauth2_authorization.scope
+  path                     = nonsensitive(var.apis[each.key].path)
+  api_revision             = nonsensitive(var.apis[each.key].revision)
+  api_revision_description = nonsensitive(var.apis[each.key].revision_description)
+  api_version              = nonsensitive(var.apis[each.key].api_version)
+  api_version_set_id       = nonsensitive(var.apis[each.key].api_version_set_name) != null ? module.api_version_set[nonsensitive(var.apis[each.key].api_version_set_name)].resource_id : null
+  authentication_settings = nonsensitive(var.apis[each.key].oauth2_authorization) != null || nonsensitive(var.apis[each.key].openid_authentication) != null ? {
+    o_auth2 = nonsensitive(var.apis[each.key].oauth2_authorization) == null ? null : {
+      authorization_server_id = nonsensitive(var.apis[each.key].oauth2_authorization.authorization_server_name)
+      scope                   = nonsensitive(var.apis[each.key].oauth2_authorization.scope)
     }
-    openid = each.value.openid_authentication == null ? null : {
-      openid_provider_id           = each.value.openid_authentication.openid_provider_name
-      bearer_token_sending_methods = each.value.openid_authentication.bearer_token_sending_methods
+    openid = nonsensitive(var.apis[each.key].openid_authentication) == null ? null : {
+      openid_provider_id           = nonsensitive(var.apis[each.key].openid_authentication.openid_provider_name)
+      bearer_token_sending_methods = nonsensitive(var.apis[each.key].openid_authentication.bearer_token_sending_methods)
     }
   } : null
-  contact                          = each.value.contact
-  description                      = each.value.description
-  display_name                     = each.value.display_name
+  contact                          = nonsensitive(var.apis[each.key].contact)
+  description                      = nonsensitive(var.apis[each.key].description)
+  display_name                     = nonsensitive(var.apis[each.key].display_name)
   enable_telemetry                 = var.enable_telemetry
-  format                           = try(each.value.import.content_format, null)
+  format                           = nonsensitive(try(var.apis[each.key].import.content_format, null))
   ignore_body_changes              = var.ignore_body_changes.apimanagement_service_apis
-  license                          = each.value.license
-  protocols                        = each.value.protocols
+  license                          = nonsensitive(var.apis[each.key].license)
+  protocols                        = nonsensitive(var.apis[each.key].protocols)
   resource_types                   = var.resource_types.apimanagement_service_apis
   retry                            = var.retry
-  service_url                      = each.value.service_url
-  source_api_id                    = each.value.source_api_id
-  subscription_key_parameter_names = each.value.subscription_key_parameter_names
-  subscription_required            = each.value.subscription_required
-  terms_of_service_url             = each.value.terms_of_service_url
+  service_url                      = nonsensitive(var.apis[each.key].service_url)
+  source_api_id                    = nonsensitive(var.apis[each.key].source_api_id)
+  subscription_key_parameter_names = nonsensitive(var.apis[each.key].subscription_key_parameter_names)
+  subscription_required            = nonsensitive(var.apis[each.key].subscription_required)
+  terms_of_service_url             = nonsensitive(var.apis[each.key].terms_of_service_url)
   timeouts                         = var.timeouts
-  value                            = try(each.value.import.content_value, null)
-  wsdl_selector = try(each.value.import.wsdl_selector, null) == null ? null : {
-    wsdl_endpoint_name = each.value.import.wsdl_selector.endpoint_name
-    wsdl_service_name  = each.value.import.wsdl_selector.service_name
+  value                            = try(var.apis[each.key].import.content_value, null)
+  wsdl_selector = nonsensitive(try(var.apis[each.key].import.wsdl_selector, null)) == null ? null : {
+    wsdl_endpoint_name = nonsensitive(var.apis[each.key].import.wsdl_selector.endpoint_name)
+    wsdl_service_name  = nonsensitive(var.apis[each.key].import.wsdl_selector.service_name)
   }
 
   depends_on = [
@@ -123,6 +87,7 @@ module "api_policy" {
     module.operation,
     module.backend,
     module.backend_pool,
+    module.named_value,
     module.policy_fragment,
   ]
 }
@@ -144,6 +109,7 @@ module "operation_policy" {
   depends_on = [
     module.backend,
     module.backend_pool,
+    module.named_value,
     module.policy_fragment,
   ]
 }

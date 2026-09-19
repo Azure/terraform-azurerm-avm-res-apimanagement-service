@@ -26,4 +26,15 @@ resource "azapi_resource" "this" {
       delete = timeouts.value.delete
     }
   }
+
+  lifecycle {
+    precondition {
+      condition     = (var.value != null) != (var.key_vault != null)
+      error_message = "Exactly one of `value` or `key_vault` must be supplied."
+    }
+    precondition {
+      condition     = var.key_vault == null || var.secret == true
+      error_message = "`secret` must be true when `key_vault` is supplied."
+    }
+  }
 }

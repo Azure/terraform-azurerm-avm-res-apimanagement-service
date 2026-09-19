@@ -44,25 +44,6 @@ resource "azapi_resource" "this" {
       update = timeouts.value.update
       delete = timeouts.value.delete
     }
-
-    lifecycle {
-      precondition {
-        condition     = var.delegation == null
-        error_message = "`delegation` is not implemented by the AzAPI migration preview. Manage `Microsoft.ApiManagement/service/delegationSettings` directly until the child submodule is migrated."
-      }
-      precondition {
-        condition     = var.sign_in == null
-        error_message = "`sign_in` is not implemented by the AzAPI migration preview. Manage `Microsoft.ApiManagement/service/portalsettings` directly until the child submodule is migrated."
-      }
-      precondition {
-        condition     = var.sign_up == null
-        error_message = "`sign_up` is not implemented by the AzAPI migration preview. Manage `Microsoft.ApiManagement/service/portalsettings` directly until the child submodule is migrated."
-      }
-      precondition {
-        condition     = var.tenant_access == null
-        error_message = "`tenant_access` is not implemented by the AzAPI migration preview. Manage `Microsoft.ApiManagement/service/tenant/access` directly until the child submodule is migrated."
-      }
-    }
   }
 }
 

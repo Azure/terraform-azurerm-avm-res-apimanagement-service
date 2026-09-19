@@ -214,11 +214,9 @@ Type:
 
 ```hcl
 object({
-    error_message_regex  = optional(list(string), null)
-    interval_seconds     = optional(number, null)
-    max_interval_seconds = optional(number, null)
-    multiplier           = optional(number, null)
-    randomization_factor = optional(number, null)
+    error_message_regex  = optional(list(string))
+    interval_seconds     = optional(number)
+    max_interval_seconds = optional(number)
   })
 ```
 

@@ -4,6 +4,44 @@
 
 This module deploys Azure API Management (`Microsoft.ApiManagement/service`) using the AzAPI provider.
 
+## AzAPI-managed capabilities
+
+The module manages the API Management service and its common control-plane children with AzAPI `2024-05-01`.
+
+| Capability | Input | Stable ID/output |
+| --- | --- | --- |
+| APIs, operations, and API/operation policies | `apis` | `api_ids`, `api_operation_ids`, `apis`, `api_operations` |
+| Backends and backend pools | `backends` (`type = "Single"` or `"Pool"`) | `backend_ids`, `backend_pool_ids`, `backends` |
+| Named values, including Key Vault references | `named_values` | `named_value_ids`, `named_values` |
+| Products and API/group associations | `products` | `product_ids`, `products` |
+| Service policy and reusable policy fragments | `policy`, `policy_fragments` | `policy`, `policy_fragment_ids`, `policy_fragments` |
+| Subscriptions | `subscriptions` | `subscription_ids`, `subscriptions` |
+| Developer portal delegation, sign-in, and sign-up settings | `delegation`, `sign_in`, `sign_up` | `delegation_id`, `sign_in_id`, `sign_up_id` and corresponding detail outputs |
+| Tenant access | `tenant_access` | `tenant_access_id`, `tenant_access` |
+
+Backend pools can reference another `Single` entry in `backends` by `backend_name`, or an existing API Management backend resource ID by `backend_id`. The module orders in-module backends before pools and orders named values, fragments, and backends before policies that may reference them.
+
+### Sensitive values and Terraform state
+
+Certificate payloads and passwords, hostname certificate configuration, API import payloads, backend credentials and proxy configuration, the delegation validation key, secret named-value values, and custom subscription keys are sent through AzAPI write-only `sensitive_body`. The corresponding AzAPI resources do not persist the raw payload in Terraform state; only SHA-256 change tokens are stored through `sensitive_body_version`.
+
+Key Vault-backed named values store the secret identifier and optional managed-identity client ID in state, but this module never reads the Key Vault secret value. Use an unversioned secret identifier for APIM automatic refresh or a versioned identifier to pin a version.
+
+These protections do not remove secrets from Terraform configuration, variable files, shell history, saved plan files, or the state of upstream resources and data sources that supply the values. Treat all of those artifacts as sensitive and use an encrypted remote backend. Non-secret named values (`secret = false`) are ordinary resource body values and are stored in Terraform state. Azure-generated subscription keys are not read or exported; `subscription_keys` intentionally returns null placeholders. When `tenant_access` is configured, its generated primary and secondary keys are read with the APIM `listSecrets` action and exposed through the sensitive `tenant_access` output. Those keys are necessarily stored in Terraform state.
+
+### Developer portal and tenant access settings
+
+The module manages `delegation`, `sign_in`, `sign_up`, and `tenant_access` through the stable `2024-05-01` singleton child APIs:
+
+- `Microsoft.ApiManagement/service/portalsettings@2024-05-01`, child name `delegation`
+- `Microsoft.ApiManagement/service/portalsettings@2024-05-01`, child name `signin`
+- `Microsoft.ApiManagement/service/portalsettings@2024-05-01`, child name `signup`
+- `Microsoft.ApiManagement/service/tenant@2024-05-01`, child name `access`
+
+Set an input to `null` to leave that singleton unmanaged. Because Azure does not expose DELETE operations for these settings, changing a configured value to `null` stops Terraform management without resetting the current Azure value. Set `enabled = false` explicitly when the setting must be disabled.
+
+The reusable module contains no AzureRM resource or data-source exceptions.
+
 > [!IMPORTANT]
 > As the overall AVM framework is not GA (generally available) yet - the CI framework and test automation is not fully functional and implemented across all supported languages yet - breaking changes are expected, and additional customer feedback is yet to be gathered and incorporated. Hence, modules **MUST NOT** be published at version `1.0.0` or higher at this time.
 >
@@ -352,22 +390,29 @@ Default: `{}`
 
 Description: Backends for the API Management service. Backends represent the backend HTTP endpoint that an API operation forwards requests to.
 
-- `protocol` - (Required) The protocol used by the backend host. Possible values are `http` or `soap`.
-- `url` - (Required) The backend host URL (e.g., `https://backend.example.com/api`). Avoid trailing slashes.
+- `type` - (Optional) `Single` or `Pool`. Defaults to `Single`.
+- `protocol` - Required for `Single`. The protocol used by the backend host: `http` or `soap`.
+- `url` - Required for `Single`. The backend host URL (e.g., `https://backend.example.com/api`). Avoid trailing slashes.
 - `description` - (Optional) Description of the backend.
 - `resource_id` - (Optional) The ARM Resource ID of the backend host in an external system (e.g., Logic Apps, Function Apps, AI Foundry / Cognitive Services).
 - `title` - (Optional) The title of the backend.
 - `credentials` - (Optional) Credentials for the backend.
   - `authorization` - (Optional) Authorization header configuration.
-    - `parameter` - (Optional) The authentication parameter value.
-    - `scheme` - (Optional) The authentication scheme name.
+    - `parameter` - (Required) The authentication parameter value.
+    - `scheme` - (Required) The authentication scheme name.
   - `certificate` - (Optional) List of client certificate thumbprints for the backend.
+  - `certificate_ids` - (Optional) List of APIM certificate resource IDs for the backend.
   - `header` - (Optional) Map of header name to comma-separated header values.
   - `query` - (Optional) Map of query parameter name to comma-separated values.
 - `proxy` - (Optional) Proxy server configuration.
   - `url` - (Required) The URL of the proxy server.
-  - `username` - (Required) The username to connect to the proxy server.
+  - `username` - (Optional) The username to connect to the proxy server.
   - `password` - (Optional) The password to connect to the proxy server.
+- `pool` - Required for `Pool`. Backend services that receive traffic.
+  - `backend_name` - Key of another `backends` entry with `type = "Single"`.
+  - `backend_id` - Existing APIM backend resource ID. Exactly one of `backend_name` or `backend_id` is required.
+  - `priority` - Optional priority from 0 to 100.
+  - `weight` - Optional weight from 0 to 100.
 - `service_fabric_cluster` - (Optional) Service Fabric cluster backend configuration.
   - `client_certificate_thumbprint` - (Optional) Client certificate thumbprint for the management endpoint.
   - `client_certificate_id` - (Optional) Client certificate resource ID for the management endpoint.
@@ -404,26 +449,37 @@ Type:
 
 ```hcl
 map(object({
-    protocol    = string
-    url         = string
+    type        = optional(string, "Single")
+    protocol    = optional(string)
+    url         = optional(string)
     description = optional(string)
     resource_id = optional(string)
     title       = optional(string)
 
     credentials = optional(object({
       authorization = optional(object({
-        parameter = optional(string)
-        scheme    = optional(string)
+        parameter = string
+        scheme    = string
       }))
-      certificate = optional(list(string), [])
-      header      = optional(map(string), {})
-      query       = optional(map(string), {})
+      certificate     = optional(list(string), [])
+      certificate_ids = optional(list(string), [])
+      header          = optional(map(string), {})
+      query           = optional(map(string), {})
     }))
 
     proxy = optional(object({
       url      = string
-      username = string
+      username = optional(string)
       password = optional(string)
+    }))
+
+    pool = optional(object({
+      services = list(object({
+        backend_name = optional(string)
+        backend_id   = optional(string)
+        priority     = optional(number)
+        weight       = optional(number)
+      }))
     }))
 
     service_fabric_cluster = optional(object({
@@ -473,7 +529,12 @@ Default: `false`
 
 ### <a name="input_delegation"></a> [delegation](#input\_delegation)
 
-Description: Delegation settings for the API Management service.
+Description: Developer portal delegation settings for the API Management service.
+
+- `subscriptions_enabled` - Whether subscription delegation is enabled. Defaults to `false`.
+- `user_registration_enabled` - Whether user-registration delegation is enabled. Defaults to `false`.
+- `url` - Optional delegation endpoint URL.
+- `validation_key` - Optional base64-encoded validation key. The module sends this value through AzAPI's write-only body and stores only a SHA-256 change token on the resource.
 
 Type:
 
@@ -490,7 +551,7 @@ Default: `null`
 
 ### <a name="input_diagnostic_settings"></a> [diagnostic\_settings](#input\_diagnostic\_settings)
 
-Description: A map of diagnostic settings to create on the Key Vault. The map key is deliberately arbitrary to avoid issues where map keys maybe unknown at plan time.
+Description: A map of diagnostic settings to create on the API Management service. The map key is deliberately arbitrary to avoid issues where map keys may be unknown at plan time.
 
 - `name` - (Optional) The name of the diagnostic setting. One will be generated if not set, however this will not be unique if you want to create multiple diagnostic setting resources.
 - `log_categories` - (Optional) A set of log categories to send to the log analytics workspace. Defaults to `[]`.
@@ -601,6 +662,7 @@ Changes take effect only after apply.
 
 - `apimanagement_service` - Paths ignored on the API Management service.
 - Nested `apimanagement_service_*` objects are passed unchanged to the matching submodule.
+- The portal setting and tenant access singleton submodules omit ignored paths from their PATCH request because their Azure APIs do not expose DELETE operations.
 
 Type:
 
@@ -622,8 +684,17 @@ object({
     apimanagement_service_policies = optional(object({
       apimanagement_service_policies = optional(list(string), [])
     }), {})
+    apimanagement_service_policy_fragments = optional(object({
+      apimanagement_service_policy_fragments = optional(list(string), [])
+    }), {})
+    apimanagement_service_portalsettings = optional(object({
+      apimanagement_service_portalsettings = optional(list(string), [])
+    }), {})
     apimanagement_service_subscriptions = optional(object({
       apimanagement_service_subscriptions = optional(list(string), [])
+    }), {})
+    apimanagement_service_tenant = optional(object({
+      apimanagement_service_tenant = optional(list(string), [])
     }), {})
     apimanagement_service_api_version_sets = optional(object({
       apimanagement_service_api_version_sets = optional(list(string), [])
@@ -660,13 +731,15 @@ Description: Controls the Resource Lock configuration for this resource. The fol
 
 - `kind` - (Required) The type of lock. Possible values are `\"CanNotDelete\"` and `\"ReadOnly\"`.
 - `name` - (Optional) The name of the lock. If not specified, a name will be generated based on the `kind` value. Changing this forces the creation of a new resource.
+- `notes` - (Optional) Notes stored on the lock.
 
 Type:
 
 ```hcl
 object({
-    kind = string
-    name = optional(string, null)
+    kind  = string
+    name  = optional(string, null)
+    notes = optional(string, null)
   })
 ```
 
@@ -703,11 +776,11 @@ Default: `null`
 Description: Named values for the API Management service. Named values are a collection of key/value pairs that can be referenced in policies and API configurations.
 
 - `display_name` - (Required) The display name of the named value. Must be unique within the API Management service.
-- `value` - (Optional) The value of the named value. Conflicts with `value_from_key_vault`. If neither is specified, the named value must be set through other means.
+- `value` - (Optional) The value of the named value. Exactly one of `value` or `value_from_key_vault` is required.
 - `secret` - (Optional) Whether the value is a secret and should be encrypted. Defaults to `false`.
 - `tags` - (Optional) A list of tags that can be used to filter the named values list.
-- `value_from_key_vault` - (Optional) A Key Vault configuration for secret values. Conflicts with `value`.
-  - `secret_id` - (Required) The versioned secret ID from Key Vault (e.g., `https://myvault.vault.azure.net/secrets/mysecret/version`).
+- `value_from_key_vault` - (Optional) A Key Vault configuration for secret values. Exactly one of `value` or `value_from_key_vault` is required, and `secret` must be `true`.
+  - `secret_id` - (Required) The secret ID from Key Vault. An unversioned ID enables APIM automatic refresh; a versioned ID pins the named value to that version.
   - `identity_client_id` - (Optional) The client ID of a user-assigned managed identity to use for Key Vault access. If not specified, the system-assigned identity will be used.
 
 Example:
@@ -803,6 +876,28 @@ object({
 
 Default: `null`
 
+### <a name="input_policy_fragments"></a> [policy\_fragments](#input\_policy\_fragments)
+
+Description: Reusable API Management policy fragments.
+
+- `value` - XML policy fragment content.
+- `description` - Optional description, up to 1000 characters.
+- `format` - `xml` or `rawxml`. Defaults to `rawxml`.
+
+Policies can reference a fragment with `<include-fragment fragment-id="fragment-name" />`.
+
+Type:
+
+```hcl
+map(object({
+    value       = string
+    description = optional(string)
+    format      = optional(string, "rawxml")
+  }))
+```
+
+Default: `{}`
+
 ### <a name="input_private_endpoints"></a> [private\_endpoints](#input\_private\_endpoints)
 
 Description: A map of private endpoints to create on this resource. The map key is deliberately arbitrary to avoid issues where map keys maybe unknown at plan time.
@@ -810,8 +905,9 @@ Description: A map of private endpoints to create on this resource. The map key 
 - `name` - (Optional) The name of the private endpoint. One will be generated if not set.
 - `role_assignments` - (Optional) A map of role assignments to create on the private endpoint. The map key is deliberately arbitrary to avoid issues where map keys maybe unknown at plan time. See `var.role_assignments` for more information.
 - `lock` - (Optional) The lock level to apply to the private endpoint. Default is `None`. Possible values are `None`, `CanNotDelete`, and `ReadOnly`.
-- `tags` - (Optional) A mapping of tags to assign to the private endpoint.
+- `tags` - Reserved by the standard private endpoint interface. Private endpoints inherit the module-level `tags`.
 - `subnet_resource_id` - The resource ID of the subnet to deploy the private endpoint in.
+- `subresource_name` - (Optional) APIM private-link subresource name. Defaults to `Gateway`.
 - `private_dns_zone_group_name` - (Optional) The name of the private DNS zone group. One will be generated if not set.
 - `private_dns_zone_resource_ids` - (Optional) A set of resource IDs of private DNS zones to associate with the private endpoint. If not set, no zone groups will be created and the private endpoint will not be associated with any private DNS zones. DNS records must be managed external to this module.
 - `application_security_group_resource_ids` - (Optional) A map of resource IDs of application security groups to associate with the private endpoint. The map key is deliberately arbitrary to avoid issues where map keys maybe unknown at plan time.
@@ -822,6 +918,7 @@ Description: A map of private endpoints to create on this resource. The map key 
 - `ip_configurations` - (Optional) A map of IP configurations to create on the private endpoint. If not specified the platform will create one. The map key is deliberately arbitrary to avoid issues where map keys maybe unknown at plan time.
   - `name` - The name of the IP configuration.
   - `private_ip_address` - The private IP address of the IP configuration.
+  - `member_name` - (Optional) Private-link member name. Defaults to `default`.
 
 Type:
 
@@ -829,6 +926,7 @@ Type:
 map(object({
     name = optional(string, null)
     role_assignments = optional(map(object({
+      name                                   = optional(string, null)
       role_definition_id_or_name             = string
       principal_id                           = string
       description                            = optional(string, null)
@@ -839,11 +937,13 @@ map(object({
       principal_type                         = optional(string, null)
     })), {})
     lock = optional(object({
-      kind = string
-      name = optional(string, null)
+      kind  = string
+      name  = optional(string, null)
+      notes = optional(string, null)
     }), null)
     tags                                    = optional(map(string), null)
     subnet_resource_id                      = string
+    subresource_name                        = optional(string, null)
     private_dns_zone_group_name             = optional(string, "default")
     private_dns_zone_resource_ids           = optional(set(string), [])
     application_security_group_associations = optional(map(string), {})
@@ -854,6 +954,7 @@ map(object({
     ip_configurations = optional(map(object({
       name               = string
       private_ip_address = string
+      member_name        = optional(string)
     })), {})
   }))
 ```
@@ -968,7 +1069,10 @@ Description: AzAPI resource types and API versions used by the module.
 - `apimanagement_service_backends` - Overrides for the backend submodule.
 - `apimanagement_service_named_values` - Overrides for the named\_value submodule.
 - `apimanagement_service_policies` - Overrides for the policy submodule.
+- `apimanagement_service_policy_fragments` - Overrides for the policy\_fragment submodule.
+- `apimanagement_service_portalsettings` - Overrides for the portal\_setting submodule.
 - `apimanagement_service_subscriptions` - Overrides for the subscription submodule.
+- `apimanagement_service_tenant` - Overrides for the tenant\_access submodule.
 - `apimanagement_service_api_version_sets` - Overrides for the api\_version\_set submodule.
 - `apimanagement_service_apis` - Overrides for the api submodule.
 - `apimanagement_service_apis_operations` - Overrides for the operation submodule.
@@ -999,8 +1103,17 @@ object({
     apimanagement_service_policies = optional(object({
       apimanagement_service_policies = optional(string)
     }), {})
+    apimanagement_service_policy_fragments = optional(object({
+      apimanagement_service_policy_fragments = optional(string)
+    }), {})
+    apimanagement_service_portalsettings = optional(object({
+      apimanagement_service_portalsettings = optional(string)
+    }), {})
     apimanagement_service_subscriptions = optional(object({
       apimanagement_service_subscriptions = optional(string)
+    }), {})
+    apimanagement_service_tenant = optional(object({
+      apimanagement_service_tenant = optional(string)
     }), {})
     apimanagement_service_api_version_sets = optional(object({
       apimanagement_service_api_version_sets = optional(string)
@@ -1039,11 +1152,9 @@ Type:
 
 ```hcl
 object({
-    error_message_regex  = optional(list(string), null)
-    interval_seconds     = optional(number, null)
-    max_interval_seconds = optional(number, null)
-    multiplier           = optional(number, null)
-    randomization_factor = optional(number, null)
+    error_message_regex  = optional(list(string))
+    interval_seconds     = optional(number)
+    max_interval_seconds = optional(number)
   })
 ```
 
@@ -1070,6 +1181,7 @@ Default: `null`
 Description: A map of role assignments to create on this resource. The map key is deliberately arbitrary to avoid issues where map keys maybe unknown at plan time.
 
 - `role_definition_id_or_name` - The ID or name of the role definition to assign to the principal.
+- `name` - Optional deterministic role assignment GUID. A random UUID is generated when omitted.
 - `principal_id` - The ID of the principal to assign the role to.
 - `description` - The description of the role assignment.
 - `skip_service_principal_aad_check` - If set to true, skips the Azure Active Directory check for the service principal in the tenant. Defaults to false.
@@ -1082,6 +1194,7 @@ Type:
 
 ```hcl
 map(object({
+    name                                   = optional(string, null)
     role_definition_id_or_name             = string
     principal_id                           = string
     description                            = optional(string, null)
@@ -1187,7 +1300,7 @@ Description: Subscriptions for the API Management service. The map key is the su
 - `user_id` - (Optional) The user ID for this subscription (format: /users/{userId}).
 - `primary_key` - (Optional) Custom primary subscription key.
 - `secondary_key` - (Optional) Custom secondary subscription key.
-- `state` - (Optional) The state of the subscription. Valid values: `active`, `suspended`, `submitted`, `rejected`, `cancelled`. Default is `active`.
+- `state` - (Optional) The state of the subscription. Valid values: `active`, `cancelled`, `expired`, `rejected`, `submitted`, `suspended`. Default is `active`.
 - `allow_tracing` - (Optional) Whether tracing is allowed. Default is `false`.
 
 Example:
@@ -1236,7 +1349,7 @@ Default: `null`
 
 ### <a name="input_tenant_access"></a> [tenant\_access](#input\_tenant\_access)
 
-Description: Controls whether access to the management API is enabled. When enabled, the primary/secondary keys provide access to this API.
+Description: Controls whether direct access to the management API is enabled. The sensitive `tenant_access` output contains the generated primary and secondary keys when this input is configured.
 
 Type:
 
@@ -1333,6 +1446,10 @@ Description: A map of APIs created in the API Management service.
 
 Description: A map of backend names to their resource IDs.
 
+### <a name="output_backend_pool_ids"></a> [backend\_pool\_ids](#output\_backend\_pool\_ids)
+
+Description: A map of backend pool names to their resource IDs.
+
 ### <a name="output_backends"></a> [backends](#output\_backends)
 
 Description: A map of backends created in the API Management service.
@@ -1340,6 +1457,14 @@ Description: A map of backends created in the API Management service.
 ### <a name="output_certificates"></a> [certificates](#output\_certificates)
 
 Description: Configured certificates for the API Management Service (input echo; computed certificate metadata is not exported by AzAPI).
+
+### <a name="output_delegation"></a> [delegation](#output\_delegation)
+
+Description: The non-secret developer portal delegation setting.
+
+### <a name="output_delegation_id"></a> [delegation\_id](#output\_delegation\_id)
+
+Description: The resource ID of the developer portal delegation setting.
 
 ### <a name="output_developer_portal_url"></a> [developer\_portal\_url](#output\_developer\_portal\_url)
 
@@ -1369,6 +1494,14 @@ Description: A map of named values created in the API Management service.
 
 Description: Service-level policy details.
 
+### <a name="output_policy_fragment_ids"></a> [policy\_fragment\_ids](#output\_policy\_fragment\_ids)
+
+Description: A map of policy fragment names to resource IDs.
+
+### <a name="output_policy_fragments"></a> [policy\_fragments](#output\_policy\_fragments)
+
+Description: A map of policy fragments created in the API Management service.
+
 ### <a name="output_portal_url"></a> [portal\_url](#output\_portal\_url)
 
 Description: The URL for the Publisher Portal associated with this API Management service.
@@ -1393,10 +1526,6 @@ Description: A map of products created in the API Management service.
 
 Description: The Public IP addresses of the API Management Service.
 
-### <a name="output_resource"></a> [resource](#output\_resource)
-
-Description: The API Management service AzAPI resource.
-
 ### <a name="output_resource_id"></a> [resource\_id](#output\_resource\_id)
 
 Description: The ID of the API Management service.
@@ -1404,6 +1533,22 @@ Description: The ID of the API Management service.
 ### <a name="output_scm_url"></a> [scm\_url](#output\_scm\_url)
 
 Description: The URL for the SCM (Source Code Management) Endpoint associated with this API Management service.
+
+### <a name="output_sign_in"></a> [sign\_in](#output\_sign\_in)
+
+Description: The developer portal sign-in setting.
+
+### <a name="output_sign_in_id"></a> [sign\_in\_id](#output\_sign\_in\_id)
+
+Description: The resource ID of the developer portal sign-in setting.
+
+### <a name="output_sign_up"></a> [sign\_up](#output\_sign\_up)
+
+Description: The developer portal sign-up setting.
+
+### <a name="output_sign_up_id"></a> [sign\_up\_id](#output\_sign\_up\_id)
+
+Description: The resource ID of the developer portal sign-up setting.
 
 ### <a name="output_subscription_ids"></a> [subscription\_ids](#output\_subscription\_ids)
 
@@ -1419,7 +1564,11 @@ Description: A map of subscriptions created in the API Management service.
 
 ### <a name="output_tenant_access"></a> [tenant\_access](#output\_tenant\_access)
 
-Description: Tenant access keys are not exported by the AzAPI service resource; manage via the tenant/access child resource (not yet migrated).
+Description: The tenant access information. Access keys are retrieved through the tenant/listSecrets action and stored in Terraform state as sensitive values.
+
+### <a name="output_tenant_access_id"></a> [tenant\_access\_id](#output\_tenant\_access\_id)
+
+Description: The resource ID of the tenant access setting.
 
 ### <a name="output_workspace_identity"></a> [workspace\_identity](#output\_workspace\_identity)
 
@@ -1459,6 +1608,18 @@ Source: ./modules/backend
 
 Version:
 
+### <a name="module_backend_pool"></a> [backend\_pool](#module\_backend\_pool)
+
+Source: ./modules/backend
+
+Version:
+
+### <a name="module_delegation"></a> [delegation](#module\_delegation)
+
+Source: ./modules/portal_setting
+
+Version:
+
 ### <a name="module_named_value"></a> [named\_value](#module\_named\_value)
 
 Source: ./modules/named_value
@@ -1483,6 +1644,12 @@ Source: ./modules/policy
 
 Version:
 
+### <a name="module_policy_fragment"></a> [policy\_fragment](#module\_policy\_fragment)
+
+Source: ./modules/policy_fragment
+
+Version:
+
 ### <a name="module_product"></a> [product](#module\_product)
 
 Source: ./modules/product
@@ -1501,9 +1668,27 @@ Source: ./modules/product_group
 
 Version:
 
+### <a name="module_sign_in"></a> [sign\_in](#module\_sign\_in)
+
+Source: ./modules/portal_setting
+
+Version:
+
+### <a name="module_sign_up"></a> [sign\_up](#module\_sign\_up)
+
+Source: ./modules/portal_setting
+
+Version:
+
 ### <a name="module_subscription"></a> [subscription](#module\_subscription)
 
 Source: ./modules/subscription
+
+Version:
+
+### <a name="module_tenant_access"></a> [tenant\_access](#module\_tenant\_access)
+
+Source: ./modules/tenant_access
 
 Version:
 

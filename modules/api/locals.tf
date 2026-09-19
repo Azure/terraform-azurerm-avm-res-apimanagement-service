@@ -70,9 +70,11 @@ locals {
 
   # Detect sensitive_body changes without persisting secret values in state comparisons.
   sensitive_body_version = !local.has_import ? null : {
-    "properties.format"       = var.format != null ? parseint(substr(sha256(tostring(var.format)), 0, 8), 16) : null
-    "properties.value"        = var.value != null ? parseint(substr(sha256(var.value), 0, 8), 16) : null
-    "properties.wsdlSelector" = var.wsdl_selector != null ? parseint(substr(sha256(jsonencode(var.wsdl_selector)), 0, 8), 16) : null
+    for path, version in {
+      "properties.format"       = var.format == null ? null : sha256(var.format)
+      "properties.value"        = var.value == null ? null : sha256(var.value)
+      "properties.wsdlSelector" = var.wsdl_selector == null ? null : sha256(jsonencode(var.wsdl_selector))
+    } : path => version if version != null
   }
   main_location = "unknown"
 }

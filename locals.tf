@@ -6,7 +6,7 @@ locals {
     capacity = tonumber(local.sku_parts[1])
   }
 
-  # Flatten nested azurerm-style hostname_configuration into ARM hostnameConfigurations list
+  # Flatten hostname_configuration into the ARM hostnameConfigurations list.
   hostname_configurations = var.hostname_configuration == null ? null : concat(
     [for item in coalesce(var.hostname_configuration.management, []) : {
       type                       = "Management"
@@ -75,10 +75,14 @@ locals {
     )
   }
 
-  sensitive_body_version = local.sensitive_body == null ? null : {
-    "properties.certificates"           = length(local.certificates) == 0 ? null : parseint(substr(sha256(jsonencode(var.certificate)), 0, 8), 16)
-    "properties.hostnameConfigurations" = local.hostname_configurations == null ? null : parseint(substr(sha256(jsonencode(var.hostname_configuration)), 0, 8), 16)
-  }
+  sensitive_body_version = local.sensitive_body == null ? null : merge(
+    length(local.certificates) == 0 ? {} : {
+      "properties.certificates" = sha256(jsonencode(var.certificate))
+    },
+    local.hostname_configurations == null ? {} : {
+      "properties.hostnameConfigurations" = sha256(jsonencode(var.hostname_configuration))
+    },
+  )
 
   # Map security + protocols into customProperties (ARM)
   custom_properties = merge(
@@ -157,16 +161,6 @@ locals {
         type                       = var.managed_identities.system_assigned && length(var.managed_identities.user_assigned_resource_ids) > 0 ? "SystemAssigned, UserAssigned" : length(var.managed_identities.user_assigned_resource_ids) > 0 ? "UserAssigned" : "SystemAssigned"
         user_assigned_resource_ids = var.managed_identities.user_assigned_resource_ids
       }
-
-      single_backends = {
-        for k, v in var.backends : k => v
-        if v.type == "Single"
-      }
-
-      backend_pools = {
-        for k, v in var.backends : k => v
-        if v.type == "Pool"
-      }
     } : {}
     system_assigned = var.managed_identities.system_assigned ? {
       this = {
@@ -181,10 +175,22 @@ locals {
     } : {}
   }
 
+  single_backend_keys = toset([
+    for k, v in nonsensitive(var.backends) : k
+    if v.type == "Single"
+  ])
+
+  backend_pool_keys = toset([
+    for k, v in nonsensitive(var.backends) : k
+    if v.type == "Pool"
+  ])
+
+  api_keys = toset(nonsensitive(keys(var.apis)))
+
   # Flatten API operations into a single map for resource creation
   api_operations = merge([
-    for api_key, api in var.apis : {
-      for operation_key, operation in coalesce(api.operations, {}) : "${api_key}-${operation_key}" => merge(operation, {
+    for api_key in local.api_keys : {
+      for operation_key, operation in nonsensitive(coalesce(var.apis[api_key].operations, {})) : "${api_key}-${operation_key}" => merge(operation, {
         api_key       = api_key
         operation_key = operation_key
       })
@@ -193,8 +199,8 @@ locals {
 
   # Flatten operation-level policies into a single map
   operation_policies = merge([
-    for api_key, api in var.apis : {
-      for operation_key, operation in coalesce(api.operations, {}) : "${api_key}-${operation_key}" => {
+    for api_key in local.api_keys : {
+      for operation_key, operation in nonsensitive(coalesce(var.apis[api_key].operations, {})) : "${api_key}-${operation_key}" => {
         api_key     = api_key
         xml_content = operation.policy != null ? operation.policy.xml_content : null
         xml_link    = operation.policy != null ? operation.policy.xml_link : null
@@ -202,18 +208,7 @@ locals {
     }
   ]...)
 
-  # Private endpoint application security group associations.
-  private_endpoint_application_security_group_associations = { for assoc in flatten([
-    for pe_k, pe_v in var.private_endpoints : [
-      for asg_k, asg_v in pe_v.application_security_group_associations : {
-        asg_key         = asg_k
-        pe_key          = pe_k
-        asg_resource_id = asg_v
-      }
-    ]
-  ]) : "${assoc.pe_key}-${assoc.asg_key}" => assoc }
-
-  # Transform legacy diagnostic_settings shape → diagnostic_settings_v2 for avm-utl-interfaces
+  # Transform diagnostic_settings into the avm-utl-interfaces shape.
   diagnostic_settings_v2 = {
     for k, v in var.diagnostic_settings : k => {
       name                                     = v.name
@@ -231,16 +226,25 @@ locals {
     }
   }
 
-  # Inject Gateway subresource for PE interface (APIM default)
+  private_endpoint_parent_ids = {
+    for k, v in var.private_endpoints : k => v.resource_group_name == null ? var.parent_id : format(
+      "/subscriptions/%s/resourceGroups/%s",
+      provider::azapi::parse_resource_id("Microsoft.Resources/resourceGroups", var.parent_id).subscription_id,
+      v.resource_group_name,
+    )
+  }
+
+  # Use Gateway as the APIM private-link subresource unless explicitly overridden.
   private_endpoints_for_interfaces = {
     for k, v in var.private_endpoints : k => merge(v, {
-      subresource_name = "Gateway"
+      subresource_name = coalesce(v.subresource_name, "Gateway")
     })
   }
 
   # API-level policies (apis with policy set)
   api_policies = {
-    for k, v in var.apis : k => v.policy if v.policy != null
+    for k in local.api_keys : k => nonsensitive(var.apis[k].policy)
+    if nonsensitive(var.apis[k].policy != null)
   }
 
   # Product-API associations
@@ -271,7 +275,7 @@ locals {
 
   # Subscription ARM scopes for AzAPI subscription submodule
   subscription_scopes = {
-    for k, v in var.subscriptions : k => (
+    for k, v in nonsensitive(var.subscriptions) : k => (
       v.scope_type == "product" ? "/products/${v.scope_identifier}" :
       v.scope_type == "api" ? "/apis/${v.scope_identifier}" :
       "/apis"

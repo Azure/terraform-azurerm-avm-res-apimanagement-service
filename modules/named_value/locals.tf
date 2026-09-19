@@ -10,13 +10,13 @@ locals {
         secretIdentifier = var.key_vault.secret_identifier
       }
       secret = var.secret
-      tags   = var.tags
+      tags   = var.named_value_tags
       value  = local.use_sensitive_value ? null : var.value
     }
   }
 
   sensitive_body_version = !local.use_sensitive_value ? null : {
-    "properties.value" = parseint(substr(sha256(var.value), 0, 8), 16)
+    "properties.value" = sha256(var.value)
   }
   main_location = "unknown"
 }

@@ -18,7 +18,7 @@ resource "azapi_resource" "lock" {
 
   name                   = coalesce(module.avm_interfaces.lock_azapi.name, "lock-${var.name}")
   parent_id              = azapi_resource.this.id
-  type                   = module.avm_interfaces.lock_azapi.type
+  type                   = var.resource_types.authorization_locks
   body                   = module.avm_interfaces.lock_azapi.body
   ignore_body_changes    = length(var.ignore_body_changes.authorization_locks) > 0 ? var.ignore_body_changes.authorization_locks : null
   response_export_values = []
@@ -40,7 +40,7 @@ resource "azapi_resource" "role_assignments" {
 
   name                   = each.value.name
   parent_id              = azapi_resource.this.id
-  type                   = each.value.type
+  type                   = var.resource_types.authorization_role_assignments
   body                   = each.value.body
   ignore_body_changes    = length(var.ignore_body_changes.authorization_role_assignments) > 0 ? var.ignore_body_changes.authorization_role_assignments : null
   response_export_values = []
@@ -62,7 +62,7 @@ resource "azapi_resource" "diagnostic_settings" {
 
   name                   = each.value.name
   parent_id              = azapi_resource.this.id
-  type                   = coalesce(try(each.value.type, null), var.resource_types.insights_diagnostic_settings)
+  type                   = var.resource_types.insights_diagnostic_settings
   body                   = each.value.body
   ignore_body_changes    = length(var.ignore_body_changes.insights_diagnostic_settings) > 0 ? var.ignore_body_changes.insights_diagnostic_settings : null
   response_export_values = []

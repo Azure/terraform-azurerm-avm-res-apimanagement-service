@@ -3,6 +3,11 @@ output "backend_resource_id" {
   value       = var.resource_id
 }
 
+output "backend_type" {
+  description = "The backend type (`Single` or `Pool`)."
+  value       = var.type
+}
+
 output "description" {
   description = "The backend description."
   value       = var.description
@@ -16,11 +21,6 @@ output "name" {
 output "protocol" {
   description = "The backend protocol."
   value       = var.protocol
-}
-
-output "backend_type" {
-  description = "The backend type (`Single` or `Pool`)."
-  value       = var.type
 }
 
 output "resource_id" {

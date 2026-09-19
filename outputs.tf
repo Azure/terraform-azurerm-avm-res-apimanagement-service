@@ -92,6 +92,11 @@ output "backend_ids" {
   )
 }
 
+output "backend_pool_ids" {
+  description = "A map of backend pool names to their resource IDs."
+  value       = { for k, v in module.backend_pool : k => v.resource_id }
+}
+
 # Backends outputs
 output "backends" {
   description = "A map of backends created in the API Management service."
@@ -123,6 +128,19 @@ output "certificates" {
   description = "Configured certificates for the API Management Service (input echo; computed certificate metadata is not exported by AzAPI)."
   sensitive   = true
   value       = var.certificate
+}
+
+output "delegation" {
+  description = "The non-secret developer portal delegation setting."
+  value = length(module.delegation) == 0 ? null : merge(
+    module.delegation[0].settings,
+    { resource_id = module.delegation[0].resource_id },
+  )
+}
+
+output "delegation_id" {
+  description = "The resource ID of the developer portal delegation setting."
+  value       = try(module.delegation[0].resource_id, null)
 }
 
 output "developer_portal_url" {
@@ -249,9 +267,35 @@ output "scm_url" {
   value       = try(azapi_resource.this.output.properties.scmUrl, null)
 }
 
+output "sign_in" {
+  description = "The developer portal sign-in setting."
+  value = length(module.sign_in) == 0 ? null : {
+    enabled     = module.sign_in[0].settings.enabled
+    resource_id = module.sign_in[0].resource_id
+  }
+}
+
+output "sign_in_id" {
+  description = "The resource ID of the developer portal sign-in setting."
+  value       = try(module.sign_in[0].resource_id, null)
+}
+
+output "sign_up" {
+  description = "The developer portal sign-up setting."
+  value = length(module.sign_up) == 0 ? null : {
+    enabled          = module.sign_up[0].settings.enabled
+    resource_id      = module.sign_up[0].resource_id
+    terms_of_service = module.sign_up[0].settings.terms_of_service
+  }
+}
+
+output "sign_up_id" {
+  description = "The resource ID of the developer portal sign-up setting."
+  value       = try(module.sign_up[0].resource_id, null)
+}
+
 output "subscription_ids" {
   description = "A map of subscription keys to their resource IDs."
-  sensitive   = true
   value       = { for k, v in module.subscription : k => v.resource_id }
 }
 
@@ -269,26 +313,30 @@ output "subscription_keys" {
 # Subscriptions outputs
 output "subscriptions" {
   description = "A map of subscriptions created in the API Management service."
-  sensitive   = true
   value = {
     for k, v in module.subscription : k => {
       id              = v.resource_id
       subscription_id = v.name
-      display_name    = var.subscriptions[k].display_name
-      state           = var.subscriptions[k].state
-      allow_tracing   = var.subscriptions[k].allow_tracing
+      display_name    = nonsensitive(var.subscriptions[k].display_name)
+      state           = nonsensitive(var.subscriptions[k].state)
+      allow_tracing   = nonsensitive(var.subscriptions[k].allow_tracing)
     }
   }
 }
 
 output "tenant_access" {
-  description = "Tenant access keys are not exported by the AzAPI service resource; manage via the tenant/access child resource (not yet migrated)."
+  description = "The tenant access information. Access keys are retrieved through the tenant/listSecrets action and stored in Terraform state as sensitive values."
   sensitive   = true
   value = {
-    tenant_id     = null
-    primary_key   = null
-    secondary_key = null
+    tenant_id     = try(module.tenant_access[0].tenant_id, null)
+    primary_key   = try(module.tenant_access[0].primary_key, null)
+    secondary_key = try(module.tenant_access[0].secondary_key, null)
   }
+}
+
+output "tenant_access_id" {
+  description = "The resource ID of the tenant access setting."
+  value       = try(module.tenant_access[0].resource_id, null)
 }
 
 output "workspace_identity" {

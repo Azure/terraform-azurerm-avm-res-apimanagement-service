@@ -1,13 +1,13 @@
 locals {
-  # AzureRM header/query are map(string) of comma-separated values; ARM expects map(list(string)).
   credentials_body = var.credentials == null ? null : {
     authorization = var.credentials.authorization == null ? null : {
       parameter = var.credentials.authorization.parameter
       scheme    = var.credentials.authorization.scheme
     }
-    certificate = length(var.credentials.certificate) > 0 ? var.credentials.certificate : null
-    header      = length(var.credentials.header) > 0 ? { for k, v in var.credentials.header : k => split(v, ",") } : null
-    query       = length(var.credentials.query) > 0 ? { for k, v in var.credentials.query : k => split(v, ",") } : null
+    certificate    = length(var.credentials.certificate) > 0 ? var.credentials.certificate : null
+    certificateIds = length(var.credentials.certificate_ids) > 0 ? var.credentials.certificate_ids : null
+    header         = length(var.credentials.header) > 0 ? { for k, v in var.credentials.header : k => split(",", v) } : null
+    query          = length(var.credentials.query) > 0 ? { for k, v in var.credentials.query : k => split(",", v) } : null
   }
 
   service_fabric_cluster_body = var.service_fabric_cluster == null ? null : {
@@ -24,22 +24,20 @@ locals {
     ] : null
   }
 
-  sensitive_body = var.credentials == null && var.proxy == null ? null : {
-    properties = merge(
-      var.credentials == null ? {} : { credentials = local.credentials_body },
-      var.proxy == null ? {} : {
-        proxy = {
-          password = var.proxy.password
-          url      = var.proxy.url
-          username = var.proxy.username
-        }
-      },
-    )
+  sensitive_body = {
+    properties = {
+      credentials = local.credentials_body
+      proxy = var.proxy == null ? null : {
+        password = var.proxy.password
+        url      = var.proxy.url
+        username = var.proxy.username
+      }
+    }
   }
 
-  sensitive_body_version = local.sensitive_body == null ? null : {
-    "properties.credentials" = var.credentials == null ? null : parseint(substr(sha256(jsonencode(var.credentials)), 0, 8), 16)
-    "properties.proxy"       = var.proxy == null ? null : parseint(substr(sha256(jsonencode(var.proxy)), 0, 8), 16)
+  sensitive_body_version = {
+    "properties.credentials" = sha256(jsonencode(var.credentials))
+    "properties.proxy"       = sha256(jsonencode(var.proxy))
   }
 
   resource_body = {

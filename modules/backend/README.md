@@ -44,18 +44,6 @@ Description: The fully-qualified ARM resource ID of the API Management service t
 
 Type: `string`
 
-### <a name="input_protocol"></a> [protocol](#input\_protocol)
-
-Description: Backend communication protocol. Possible values are `http` or `soap`.
-
-Type: `string`
-
-### <a name="input_url"></a> [url](#input\_url)
-
-Description: Runtime URL of the backend.
-
-Type: `string`
-
 ## Optional Inputs
 
 The following input variables are optional (have default values):
@@ -66,20 +54,22 @@ Description: Credentials for the backend.
 
 - `authorization` - Authorization header configuration.
 - `certificate` - List of client certificate thumbprints.
-- `header` - Map of header name to comma-separated values (AzureRM shape; converted to string arrays for ARM).
-- `query` - Map of query parameter name to comma-separated values (AzureRM shape; converted to string arrays for ARM).
+- `certificate_ids` - List of APIM certificate resource IDs.
+- `header` - Map of header names to comma-separated values; values are converted to ARM string arrays.
+- `query` - Map of query parameter names to comma-separated values; values are converted to ARM string arrays.
 
 Type:
 
 ```hcl
 object({
     authorization = optional(object({
-      parameter = optional(string)
-      scheme    = optional(string)
+      parameter = string
+      scheme    = string
     }))
-    certificate = optional(list(string), [])
-    header      = optional(map(string), {})
-    query       = optional(map(string), {})
+    certificate     = optional(list(string), [])
+    certificate_ids = optional(list(string), [])
+    header          = optional(map(string), {})
+    query           = optional(map(string), {})
   })
 ```
 
@@ -120,6 +110,37 @@ object({
 
 Default: `{}`
 
+### <a name="input_pool"></a> [pool](#input\_pool)
+
+Description: Backend pool configuration. Each service references an existing APIM backend resource ID.
+
+- `services` - Backends that participate in the pool.
+  - `id` - Fully-qualified `Microsoft.ApiManagement/service/backends` resource ID.
+  - `priority` - Optional priority from 0 to 100.
+  - `weight` - Optional weight from 0 to 100.
+
+Type:
+
+```hcl
+object({
+    services = list(object({
+      id       = string
+      priority = optional(number)
+      weight   = optional(number)
+    }))
+  })
+```
+
+Default: `null`
+
+### <a name="input_protocol"></a> [protocol](#input\_protocol)
+
+Description: Backend communication protocol. Possible values are `http` or `soap`.
+
+Type: `string`
+
+Default: `null`
+
 ### <a name="input_proxy"></a> [proxy](#input\_proxy)
 
 Description: Proxy server configuration for the backend.
@@ -129,7 +150,7 @@ Type:
 ```hcl
 object({
     url      = string
-    username = string
+    username = optional(string)
     password = optional(string)
   })
 ```
@@ -171,8 +192,6 @@ object({
     error_message_regex  = optional(list(string), null)
     interval_seconds     = optional(number, null)
     max_interval_seconds = optional(number, null)
-    multiplier           = optional(number, null)
-    randomization_factor = optional(number, null)
   })
 ```
 
@@ -240,6 +259,22 @@ object({
 
 Default: `null`
 
+### <a name="input_type"></a> [type](#input\_type)
+
+Description: Backend type. `Single` configures one endpoint; `Pool` distributes traffic across existing backends.
+
+Type: `string`
+
+Default: `"Single"`
+
+### <a name="input_url"></a> [url](#input\_url)
+
+Description: Runtime URL of the backend.
+
+Type: `string`
+
+Default: `null`
+
 ## Outputs
 
 The following outputs are exported:
@@ -247,6 +282,10 @@ The following outputs are exported:
 ### <a name="output_backend_resource_id"></a> [backend\_resource\_id](#output\_backend\_resource\_id)
 
 Description: The external system resource ID configured on the backend.
+
+### <a name="output_backend_type"></a> [backend\_type](#output\_backend\_type)
+
+Description: The backend type (`Single` or `Pool`).
 
 ### <a name="output_description"></a> [description](#output\_description)
 
