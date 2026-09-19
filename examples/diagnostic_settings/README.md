@@ -53,13 +53,13 @@ resource "azurerm_resource_group" "this" {
 resource "azurerm_log_analytics_workspace" "diag" {
   location  = azurerm_resource_group.this.location
   name      = "diag${module.naming.log_analytics_workspace.name_unique}"
-  parent_id = azurerm_resource_group.this.id
+  resource_group_name = azurerm_resource_group.this.name
 }
 
 resource "azurerm_log_analytics_workspace" "diag2" {
   location  = azurerm_resource_group.this.location
   name      = "diag2${module.naming.log_analytics_workspace.name_unique}"
-  parent_id = azurerm_resource_group.this.id
+  resource_group_name = azurerm_resource_group.this.name
 }
 
 # This is the module call

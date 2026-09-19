@@ -58,34 +58,34 @@ resource "azurerm_virtual_network" "this" {
     environment = "test"
     cost_center = "test"
   }
-  parent_id = azurerm_resource_group.this.id
+  resource_group_name = azurerm_resource_group.this.name
 }
 
 resource "azurerm_subnet" "private_endpoints" {
   name                 = "private_endpoints"
   virtual_network_name = azurerm_virtual_network.this.name
   address_prefixes     = ["10.0.1.0/24"]
-  parent_id            = azurerm_resource_group.this.id
+  resource_group_name = azurerm_resource_group.this.name
 }
 
 resource "azurerm_subnet" "apim_subnet" {
   name                 = "apim_subnet"
   virtual_network_name = azurerm_virtual_network.this.name
   address_prefixes     = ["10.0.2.0/24"]
-  parent_id            = azurerm_resource_group.this.id
+  resource_group_name = azurerm_resource_group.this.name
 }
 
 resource "azurerm_subnet" "default" {
   name                 = "default"
   virtual_network_name = azurerm_virtual_network.this.name
   address_prefixes     = ["10.0.3.0/24"]
-  parent_id            = azurerm_resource_group.this.id
+  resource_group_name = azurerm_resource_group.this.name
 }
 
 # Private DNS Zone for API Management
 module "private_dns_apim" {
   source  = "Azure/avm-res-network-privatednszone/azurerm"
-  version = "0.4.0"
+  version = "~> 0.5"
 
   domain_name      = "privatelink.azure-api.net"
   parent_id        = azurerm_resource_group.this.id
@@ -102,7 +102,7 @@ module "private_dns_apim" {
 resource "azurerm_user_assigned_identity" "cmk" {
   location  = azurerm_resource_group.this.location
   name      = module.naming.user_assigned_identity.name_unique
-  parent_id = azurerm_resource_group.this.id
+  resource_group_name = azurerm_resource_group.this.name
 }
 
 # This is the module call
@@ -296,7 +296,7 @@ Version: 0.3.0
 
 Source: Azure/avm-res-network-privatednszone/azurerm
 
-Version: 0.4.0
+Version: ~> 0.5
 
 ### <a name="module_test"></a> [test](#module\_test)
 

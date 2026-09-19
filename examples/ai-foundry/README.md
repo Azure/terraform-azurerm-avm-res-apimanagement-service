@@ -61,7 +61,7 @@ resource "azurerm_key_vault" "this" {
   sku_name                 = "standard"
   tenant_id                = data.azurerm_client_config.current.tenant_id
   purge_protection_enabled = true
-  parent_id                = azurerm_resource_group.this.id
+  resource_group_name = azurerm_resource_group.this.name
 }
 
 resource "azurerm_key_vault_access_policy" "deployer" {
@@ -84,14 +84,14 @@ resource "azurerm_storage_account" "this" {
   name                            = module.naming.storage_account.name_unique
   allow_nested_items_to_be_public = false
   shared_access_key_enabled       = false
-  parent_id                       = azurerm_resource_group.this.id
+  resource_group_name = azurerm_resource_group.this.name
 }
 
 resource "azurerm_ai_services" "this" {
   location  = azurerm_resource_group.this.location
   name      = "${module.naming.cognitive_account.name_unique}-ais"
   sku_name  = "S0"
-  parent_id = azurerm_resource_group.this.id
+  resource_group_name = azurerm_resource_group.this.name
 }
 
 # =================================================================
@@ -102,8 +102,7 @@ resource "azurerm_ai_foundry" "this" {
   location           = azurerm_resource_group.this.location
   name               = "${module.naming.cognitive_account.name_unique}-hub"
   storage_account_id = azurerm_storage_account.this.id
-  parent_id          = azurerm_resource_group.this.id
-
+  resource_group_name = azurerm_resource_group.this.name
   identity {
     type = "SystemAssigned"
   }
