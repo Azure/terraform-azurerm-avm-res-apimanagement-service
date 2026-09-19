@@ -1,6 +1,6 @@
 locals {
   # Secret values are write-only and must not live in `body` (or Terraform state).
-  use_sensitive_value = var.secret == true && var.value != null
+  use_sensitive_value = var.secret == true && nonsensitive(var.value != null)
 
   resource_body = {
     properties = {
