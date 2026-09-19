@@ -9,7 +9,6 @@ locals {
       userRegistration = {
         enabled = var.user_registration_enabled
       }
-      validationKey = null
     } : key => value
     if !contains(local.ignored_paths, "properties") &&
     !contains(local.ignored_paths, "properties.${key}") &&
@@ -46,7 +45,7 @@ locals {
     jsonencode({ properties = local.signup_properties })
   )
   resource_id               = "${var.parent_id}/portalsettings/${var.name}"
-  validation_key_is_managed = var.name == "delegation" && !contains(local.ignored_paths, "properties") && !contains(local.ignored_paths, "properties.validationKey")
+  validation_key_is_managed = var.name == "delegation" && var.validation_key != null && !contains(local.ignored_paths, "properties") && !contains(local.ignored_paths, "properties.validationKey")
   validation_key_version    = local.validation_key_is_managed ? sha256(jsonencode(var.validation_key)) : null
   validation_key_write_only_body = local.validation_key_is_managed ? {
     properties = {

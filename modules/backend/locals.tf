@@ -24,21 +24,31 @@ locals {
     ] : null
   }
 
-  sensitive_body = {
-    properties = {
+  sensitive_properties = merge(
+    var.credentials == null ? {} : {
       credentials = local.credentials_body
-      proxy = var.proxy == null ? null : {
+    },
+    var.proxy == null ? {} : {
+      proxy = {
         password = var.proxy.password
         url      = var.proxy.url
         username = var.proxy.username
       }
-    }
+    },
+  )
+
+  sensitive_body = length(local.sensitive_properties) == 0 ? null : {
+    properties = local.sensitive_properties
   }
 
-  sensitive_body_version = {
-    "properties.credentials" = sha256(jsonencode(var.credentials))
-    "properties.proxy"       = sha256(jsonencode(var.proxy))
-  }
+  sensitive_body_version = length(local.sensitive_properties) == 0 ? null : merge(
+    var.credentials == null ? {} : {
+      "properties.credentials" = sha256(jsonencode(var.credentials))
+    },
+    var.proxy == null ? {} : {
+      "properties.proxy" = sha256(jsonencode(var.proxy))
+    },
+  )
 
   resource_body = {
     properties = {

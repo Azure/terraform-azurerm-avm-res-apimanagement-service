@@ -19,23 +19,3 @@ resource "azapi_update_resource" "this" {
     }
   }
 }
-
-data "azapi_resource_action" "secrets" {
-  action                           = "listSecrets"
-  method                           = "POST"
-  resource_id                      = local.resource_id
-  type                             = var.resource_types.apimanagement_service_tenant
-  response_export_values           = ["id"]
-  retry                            = var.retry
-  sensitive_response_export_values = ["primaryKey", "secondaryKey"]
-
-  dynamic "timeouts" {
-    for_each = var.timeouts == null ? [] : [var.timeouts]
-
-    content {
-      read = timeouts.value.read
-    }
-  }
-
-  depends_on = [azapi_update_resource.this]
-}
