@@ -126,7 +126,6 @@ output "backends" {
 
 output "certificates" {
   description = "Configured certificates for the API Management Service (input echo; computed certificate metadata is not exported by AzAPI)."
-  sensitive   = true
   value       = var.certificate
 }
 
@@ -155,7 +154,6 @@ output "gateway_regional_url" {
 
 output "hostname_configuration" {
   description = "Configured hostname configuration for the API Management Service (input echo)."
-  sensitive   = true
   value       = var.hostname_configuration
 }
 
@@ -215,14 +213,7 @@ output "portal_url" {
 
 output "private_endpoints" {
   description = "A map of the private endpoints created."
-  value = {
-    for k, v in azapi_resource.private_endpoints : k => {
-      id                 = v.id
-      name               = v.name
-      custom_dns_configs = try(v.output.properties.customDnsConfigs, [])
-      network_interfaces = try(v.output.properties.networkInterfaces, [])
-    }
-  }
+  value       = azapi_resource.private_endpoints
 }
 
 output "private_ip_addresses" {
@@ -255,6 +246,12 @@ output "products" {
 output "public_ip_addresses" {
   description = "The Public IP addresses of the API Management Service."
   value       = try(azapi_resource.this.output.properties.publicIPAddresses, [])
+}
+
+output "resource" {
+  description = "The API Management service AzAPI resource."
+  sensitive   = true
+  value       = azapi_resource.this
 }
 
 output "resource_id" {
@@ -296,11 +293,12 @@ output "sign_up_id" {
 
 output "subscription_ids" {
   description = "A map of subscription keys to their resource IDs."
+  sensitive   = true
   value       = { for k, v in module.subscription : k => v.resource_id }
 }
 
 output "subscription_keys" {
-  description = "Subscription primary/secondary keys are not exported by AzAPI; use the listSecrets data-plane operation if required. Values supplied via `var.subscriptions` primary_key/secondary_key are write-only."
+  description = "Subscription keys are intentionally not read into Terraform state. Custom keys supplied through `var.subscriptions` are write-only."
   sensitive   = true
   value = {
     for k, v in module.subscription : k => {
@@ -313,6 +311,7 @@ output "subscription_keys" {
 # Subscriptions outputs
 output "subscriptions" {
   description = "A map of subscriptions created in the API Management service."
+  sensitive   = true
   value = {
     for k, v in module.subscription : k => {
       id              = v.resource_id
@@ -325,12 +324,12 @@ output "subscriptions" {
 }
 
 output "tenant_access" {
-  description = "The tenant access information. Access keys are retrieved through the tenant/listSecrets action and stored in Terraform state as sensitive values."
+  description = "The tenant access information. Access keys are intentionally not read into Terraform state."
   sensitive   = true
   value = {
     tenant_id     = try(module.tenant_access[0].tenant_id, null)
-    primary_key   = try(module.tenant_access[0].primary_key, null)
-    secondary_key = try(module.tenant_access[0].secondary_key, null)
+    primary_key   = null
+    secondary_key = null
   }
 }
 

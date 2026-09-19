@@ -21,10 +21,14 @@ resource "azapi_resource" "this" {
     "properties.scmUrl",
     "properties.targetProvisioningState",
   ]
-  retry                  = var.retry
-  sensitive_body         = local.sensitive_body
-  sensitive_body_version = local.sensitive_body_version
-  tags                   = var.tags
+  retry = var.retry
+  sensitive_body = length(local.sensitive_certificates) > 0 || length(local.sensitive_hostname_configurations) > 0 ? {
+    properties = merge(
+      length(local.sensitive_certificates) > 0 ? { certificates = local.sensitive_certificates } : {},
+      length(local.sensitive_hostname_configurations) > 0 ? { hostnameConfigurations = local.sensitive_hostname_configurations } : {}
+    )
+  } : null
+  tags = var.tags
 
   dynamic "identity" {
     for_each = local.managed_identities.system_assigned_user_assigned

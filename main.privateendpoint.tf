@@ -3,13 +3,13 @@ resource "azapi_resource" "private_endpoints" {
 
   location               = coalesce(try(var.private_endpoints[each.key].location, null), var.location)
   name                   = each.value.name
-  parent_id              = local.private_endpoint_parent_ids[each.key]
-  type                   = var.resource_types.network_private_endpoints
+  parent_id              = var.parent_id
+  type                   = coalesce(try(each.value.type, null), var.resource_types.network_private_endpoints)
   body                   = each.value.body
   ignore_body_changes    = length(var.ignore_body_changes.network_private_endpoints) > 0 ? var.ignore_body_changes.network_private_endpoints : null
   response_export_values = ["properties.networkInterfaces", "properties.customDnsConfigs"]
   retry                  = var.retry
-  tags                   = var.tags
+  tags                   = try(each.value.tags, null)
 
   dynamic "timeouts" {
     for_each = var.timeouts == null ? [] : [var.timeouts]
@@ -27,7 +27,7 @@ resource "azapi_resource" "private_dns_zone_groups" {
 
   name                   = each.value.name
   parent_id              = azapi_resource.private_endpoints[each.key].id
-  type                   = var.resource_types.network_private_dns_zone_groups
+  type                   = coalesce(try(each.value.type, null), var.resource_types.network_private_dns_zone_groups)
   body                   = each.value.body
   ignore_body_changes    = length(var.ignore_body_changes.network_private_dns_zone_groups) > 0 ? var.ignore_body_changes.network_private_dns_zone_groups : null
   response_export_values = []
@@ -49,9 +49,8 @@ resource "azapi_resource" "private_endpoint_locks" {
 
   name                   = each.value.name
   parent_id              = azapi_resource.private_endpoints[each.value.pe_key].id
-  type                   = var.resource_types.authorization_locks
+  type                   = each.value.type
   body                   = each.value.body
-  ignore_body_changes    = length(var.ignore_body_changes.authorization_locks) > 0 ? var.ignore_body_changes.authorization_locks : null
   response_export_values = []
   retry                  = var.retry
 
@@ -76,9 +75,8 @@ resource "azapi_resource" "private_endpoint_role_assignments" {
 
   name                   = each.value.name
   parent_id              = azapi_resource.private_endpoints[each.value.pe_key].id
-  type                   = var.resource_types.authorization_role_assignments
+  type                   = each.value.type
   body                   = each.value.body
-  ignore_body_changes    = length(var.ignore_body_changes.authorization_role_assignments) > 0 ? var.ignore_body_changes.authorization_role_assignments : null
   response_export_values = []
   retry                  = var.retry
 

@@ -1,3 +1,10 @@
+# required AVM interfaces
+# remove only if not supported by the resource
+# tflint-ignore: terraform_unused_declarations
+
+# Below AI generated
+
+
 variable "location" {
   type        = string
   description = "Azure region where the resource should be deployed."
@@ -632,7 +639,6 @@ variable "certificate" {
   default     = []
   description = "Certificate configurations for the API Management service."
   nullable    = false
-  sensitive   = true
 
   validation {
     condition     = length(var.certificate) <= 10
@@ -672,11 +678,6 @@ Developer portal delegation settings for the API Management service.
 - `url` - Optional delegation endpoint URL.
 - `validation_key` - Optional base64-encoded validation key. The module sends this value through AzAPI's write-only body and stores only a SHA-256 change token on the resource.
 DESCRIPTION
-
-  validation {
-    condition     = var.delegation == null || !can(regex("^(Consumption|BasicV2|StandardV2|PremiumV2)_", var.sku_name))
-    error_message = "delegation is not supported for Consumption or V2 SKU tiers."
-  }
 }
 
 variable "diagnostic_settings" {
@@ -694,7 +695,7 @@ variable "diagnostic_settings" {
   }))
   default     = {}
   description = <<DESCRIPTION
-A map of diagnostic settings to create on the API Management service. The map key is deliberately arbitrary to avoid issues where map keys may be unknown at plan time.
+A map of diagnostic settings to create on the Key Vault. The map key is deliberately arbitrary to avoid issues where map keys maybe unknown at plan time.
 
 - `name` - (Optional) The name of the diagnostic setting. One will be generated if not set, however this will not be unique if you want to create multiple diagnostic setting resources.
 - `log_categories` - (Optional) A set of log categories to send to the log analytics workspace. Defaults to `[]`.
@@ -793,7 +794,6 @@ variable "hostname_configuration" {
   })
   default     = null
   description = "Hostname configuration for the API Management service."
-  sensitive   = true
 }
 
 variable "ignore_body_changes" {
@@ -865,9 +865,8 @@ DESCRIPTION
 
 variable "lock" {
   type = object({
-    kind  = string
-    name  = optional(string, null)
-    notes = optional(string, null)
+    kind = string
+    name = optional(string, null)
   })
   default     = null
   description = <<DESCRIPTION
@@ -875,7 +874,6 @@ Controls the Resource Lock configuration for this resource. The following proper
 
 - `kind` - (Required) The type of lock. Possible values are `\"CanNotDelete\"` and `\"ReadOnly\"`.
 - `name` - (Optional) The name of the lock. If not specified, a name will be generated based on the `kind` value. Changing this forces the creation of a new resource.
-- `notes` - (Optional) Notes stored on the lock.
 DESCRIPTION
 
   validation {
@@ -884,6 +882,7 @@ DESCRIPTION
   }
 }
 
+# tflint-ignore: terraform_unused_declarations
 variable "managed_identities" {
   type = object({
     system_assigned            = optional(bool, false)
@@ -922,10 +921,10 @@ variable "named_values" {
 Named values for the API Management service. Named values are a collection of key/value pairs that can be referenced in policies and API configurations.
 
 - `display_name` - (Required) The display name of the named value. Must be unique within the API Management service.
-- `value` - (Optional) The value of the named value. Exactly one of `value` or `value_from_key_vault` is required.
+- `value` - (Optional) The value of the named value. Conflicts with `value_from_key_vault`. If neither is specified, the named value must be set through other means.
 - `secret` - (Optional) Whether the value is a secret and should be encrypted. Defaults to `false`.
 - `tags` - (Optional) A list of tags that can be used to filter the named values list.
-- `value_from_key_vault` - (Optional) A Key Vault configuration for secret values. Exactly one of `value` or `value_from_key_vault` is required, and `secret` must be `true`.
+- `value_from_key_vault` - (Optional) A Key Vault configuration for secret values. Conflicts with `value`, and `secret` must be `true`.
   - `secret_id` - (Required) The secret ID from Key Vault. An unversioned ID enables APIM automatic refresh; a versioned ID pins the named value to that version.
   - `identity_client_id` - (Optional) The client ID of a user-assigned managed identity to use for Key Vault access. If not specified, the system-assigned identity will be used.
 
@@ -962,9 +961,9 @@ DESCRIPTION
   validation {
     condition = alltrue([
       for k, v in var.named_values :
-      (v.value != null) != (v.value_from_key_vault != null)
+      !(v.value != null && v.value_from_key_vault != null)
     ])
-    error_message = "Each named value must specify exactly one of `value` or `value_from_key_vault`."
+    error_message = "Each named value can specify `value` or `value_from_key_vault`, but not both."
   }
   validation {
     condition = alltrue([
@@ -1092,7 +1091,6 @@ variable "private_endpoints" {
   type = map(object({
     name = optional(string, null)
     role_assignments = optional(map(object({
-      name                                   = optional(string, null)
       role_definition_id_or_name             = string
       principal_id                           = string
       description                            = optional(string, null)
@@ -1103,13 +1101,11 @@ variable "private_endpoints" {
       principal_type                         = optional(string, null)
     })), {})
     lock = optional(object({
-      kind  = string
-      name  = optional(string, null)
-      notes = optional(string, null)
+      kind = string
+      name = optional(string, null)
     }), null)
     tags                                    = optional(map(string), null)
     subnet_resource_id                      = string
-    subresource_name                        = optional(string, null)
     private_dns_zone_group_name             = optional(string, "default")
     private_dns_zone_resource_ids           = optional(set(string), [])
     application_security_group_associations = optional(map(string), {})
@@ -1120,7 +1116,6 @@ variable "private_endpoints" {
     ip_configurations = optional(map(object({
       name               = string
       private_ip_address = string
-      member_name        = optional(string)
     })), {})
   }))
   default     = {}
@@ -1130,9 +1125,8 @@ A map of private endpoints to create on this resource. The map key is deliberate
 - `name` - (Optional) The name of the private endpoint. One will be generated if not set.
 - `role_assignments` - (Optional) A map of role assignments to create on the private endpoint. The map key is deliberately arbitrary to avoid issues where map keys maybe unknown at plan time. See `var.role_assignments` for more information.
 - `lock` - (Optional) The lock level to apply to the private endpoint. Default is `None`. Possible values are `None`, `CanNotDelete`, and `ReadOnly`.
-- `tags` - Reserved by the standard private endpoint interface. Private endpoints inherit the module-level `tags`.
+- `tags` - (Optional) A mapping of tags to assign to the private endpoint.
 - `subnet_resource_id` - The resource ID of the subnet to deploy the private endpoint in.
-- `subresource_name` - (Optional) APIM private-link subresource name. Defaults to `Gateway`.
 - `private_dns_zone_group_name` - (Optional) The name of the private DNS zone group. One will be generated if not set.
 - `private_dns_zone_resource_ids` - (Optional) A set of resource IDs of private DNS zones to associate with the private endpoint. If not set, no zone groups will be created and the private endpoint will not be associated with any private DNS zones. DNS records must be managed external to this module.
 - `application_security_group_resource_ids` - (Optional) A map of resource IDs of application security groups to associate with the private endpoint. The map key is deliberately arbitrary to avoid issues where map keys maybe unknown at plan time.
@@ -1143,7 +1137,6 @@ A map of private endpoints to create on this resource. The map key is deliberate
 - `ip_configurations` - (Optional) A map of IP configurations to create on the private endpoint. If not specified the platform will create one. The map key is deliberately arbitrary to avoid issues where map keys maybe unknown at plan time.
   - `name` - The name of the IP configuration.
   - `private_ip_address` - The private IP address of the IP configuration.
-  - `member_name` - (Optional) Private-link member name. Defaults to `default`.
 DESCRIPTION
   nullable    = false
 
@@ -1158,6 +1151,7 @@ DESCRIPTION
 # or if it is to be managed externally, e.g. using Azure Policy.
 # https://github.com/Azure/terraform-azurerm-avm-res-keyvault-vault/issues/32
 # Alternatively you can use AzAPI, which does not have this issue.
+#TODO: add DNS zone if enabled
 variable "private_endpoints_manage_dns_zone_group" {
   type        = bool
   default     = true
@@ -1334,9 +1328,11 @@ DESCRIPTION
 
 variable "retry" {
   type = object({
-    error_message_regex  = optional(list(string))
-    interval_seconds     = optional(number)
-    max_interval_seconds = optional(number)
+    error_message_regex  = optional(list(string), null)
+    interval_seconds     = optional(number, null)
+    max_interval_seconds = optional(number, null)
+    multiplier           = optional(number, null)
+    randomization_factor = optional(number, null)
   })
   default     = null
   description = "Retry configuration for AzAPI resources. See AzAPI provider `retry` documentation."
@@ -1357,7 +1353,6 @@ variable "role_assignment_definition_scope" {
 
 variable "role_assignments" {
   type = map(object({
-    name                                   = optional(string, null)
     role_definition_id_or_name             = string
     principal_id                           = string
     description                            = optional(string, null)
@@ -1370,9 +1365,8 @@ variable "role_assignments" {
   default     = {}
   description = <<DESCRIPTION
 A map of role assignments to create on this resource. The map key is deliberately arbitrary to avoid issues where map keys maybe unknown at plan time.
-
 - `role_definition_id_or_name` - The ID or name of the role definition to assign to the principal.
-- `name` - Optional deterministic role assignment GUID. A random UUID is generated when omitted.
+- `role_definition_id_or_name` - The ID or name of the role definition to assign to the principal.
 - `principal_id` - The ID of the principal to assign the role to.
 - `description` - The description of the role assignment.
 - `skip_service_principal_aad_check` - If set to true, skips the Azure Active Directory check for the service principal in the tenant. Defaults to false.
@@ -1427,11 +1421,6 @@ variable "sign_in" {
   })
   default     = null
   description = "Sign-in settings for the API Management service. When enabled, anonymous users will be redirected to the sign-in page."
-
-  validation {
-    condition     = var.sign_in == null || !can(regex("^(Consumption|BasicV2|StandardV2|PremiumV2)_", var.sku_name))
-    error_message = "sign_in is not supported for Consumption or V2 SKU tiers."
-  }
 }
 
 variable "sign_up" {
@@ -1445,11 +1434,6 @@ variable "sign_up" {
   })
   default     = null
   description = "Sign-up settings for the API Management service."
-
-  validation {
-    condition     = var.sign_up == null || !can(regex("^(Consumption|BasicV2|StandardV2|PremiumV2)_", var.sku_name))
-    error_message = "sign_up is not supported for Consumption or V2 SKU tiers."
-  }
 }
 
 variable "sku_name" {
@@ -1560,6 +1544,7 @@ DESCRIPTION
   }
 }
 
+# tflint-ignore: terraform_unused_declarations
 variable "tags" {
   type        = map(string)
   default     = null
@@ -1571,12 +1556,7 @@ variable "tenant_access" {
     enabled = bool
   })
   default     = null
-  description = "Controls whether direct access to the management API is enabled. The sensitive `tenant_access` output contains the generated primary and secondary keys when this input is configured."
-
-  validation {
-    condition     = var.tenant_access == null || !can(regex("^(Consumption|BasicV2|StandardV2|PremiumV2)_", var.sku_name))
-    error_message = "tenant_access is not supported for Consumption or V2 SKU tiers."
-  }
+  description = "Controls whether direct access to the management API is enabled. Access keys are intentionally not read into Terraform state."
 }
 
 variable "timeouts" {

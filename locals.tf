@@ -6,13 +6,13 @@ locals {
     capacity = tonumber(local.sku_parts[1])
   }
 
-  # Flatten hostname_configuration into the ARM hostnameConfigurations list.
+  # Flatten nested azurerm-style hostname_configuration into ARM hostnameConfigurations list
   hostname_configurations = var.hostname_configuration == null ? null : concat(
     [for item in coalesce(var.hostname_configuration.management, []) : {
       type                       = "Management"
       hostName                   = item.host_name
       encodedCertificate         = item.certificate
-      certificatePassword        = item.certificate_password
+      certificatePassword        = null # moved to sensitive_body
       keyVaultId                 = item.key_vault_id
       negotiateClientCertificate = item.negotiate_client_certificate
       identityClientId           = item.ssl_keyvault_identity_client_id
@@ -22,7 +22,7 @@ locals {
       type                       = "Portal"
       hostName                   = item.host_name
       encodedCertificate         = item.certificate
-      certificatePassword        = item.certificate_password
+      certificatePassword        = null
       keyVaultId                 = item.key_vault_id
       negotiateClientCertificate = item.negotiate_client_certificate
       identityClientId           = item.ssl_keyvault_identity_client_id
@@ -32,7 +32,7 @@ locals {
       type                       = "DeveloperPortal"
       hostName                   = item.host_name
       encodedCertificate         = item.certificate
-      certificatePassword        = item.certificate_password
+      certificatePassword        = null
       keyVaultId                 = item.key_vault_id
       negotiateClientCertificate = item.negotiate_client_certificate
       identityClientId           = item.ssl_keyvault_identity_client_id
@@ -42,7 +42,7 @@ locals {
       type                       = "Proxy"
       hostName                   = item.host_name
       encodedCertificate         = item.certificate
-      certificatePassword        = item.certificate_password
+      certificatePassword        = null
       keyVaultId                 = item.key_vault_id
       negotiateClientCertificate = item.negotiate_client_certificate
       identityClientId           = item.ssl_keyvault_identity_client_id
@@ -52,7 +52,7 @@ locals {
       type                       = "Scm"
       hostName                   = item.host_name
       encodedCertificate         = item.certificate
-      certificatePassword        = item.certificate_password
+      certificatePassword        = null
       keyVaultId                 = item.key_vault_id
       negotiateClientCertificate = item.negotiate_client_certificate
       identityClientId           = item.ssl_keyvault_identity_client_id
@@ -60,29 +60,27 @@ locals {
     }],
   )
 
-  certificates = [
+  sensitive_hostname_configurations = var.hostname_configuration == null ? [] : concat(
+    [for item in coalesce(var.hostname_configuration.management, []) : { certificatePassword = item.certificate_password } if item.certificate_password != null],
+    [for item in coalesce(var.hostname_configuration.portal, []) : { certificatePassword = item.certificate_password } if item.certificate_password != null],
+    [for item in coalesce(var.hostname_configuration.developer_portal, []) : { certificatePassword = item.certificate_password } if item.certificate_password != null],
+    [for item in coalesce(var.hostname_configuration.proxy, []) : { certificatePassword = item.certificate_password } if item.certificate_password != null],
+    [for item in coalesce(var.hostname_configuration.scm, []) : { certificatePassword = item.certificate_password } if item.certificate_password != null],
+  )
+
+  certificates = length(var.certificate) == 0 ? null : [
     for item in var.certificate : {
       encodedCertificate  = item.encoded_certificate
       storeName           = item.store_name
-      certificatePassword = item.certificate_password
+      certificatePassword = null # moved to sensitive_body when set
     }
   ]
 
-  sensitive_body = length(local.certificates) == 0 && local.hostname_configurations == null ? null : {
-    properties = merge(
-      length(local.certificates) == 0 ? {} : { certificates = local.certificates },
-      local.hostname_configurations == null ? {} : { hostnameConfigurations = local.hostname_configurations },
-    )
-  }
-
-  sensitive_body_version = local.sensitive_body == null ? null : merge(
-    length(local.certificates) == 0 ? {} : {
-      "properties.certificates" = sha256(jsonencode(var.certificate))
-    },
-    local.hostname_configurations == null ? {} : {
-      "properties.hostnameConfigurations" = sha256(jsonencode(var.hostname_configuration))
-    },
-  )
+  sensitive_certificates = [
+    for item in var.certificate : {
+      certificatePassword = item.certificate_password
+    } if item.certificate_password != null
+  ]
 
   # Map security + protocols into customProperties (ARM)
   custom_properties = merge(
@@ -147,8 +145,8 @@ locals {
           }
         }
       ]
-      certificates           = null
-      hostnameConfigurations = null
+      certificates           = local.certificates
+      hostnameConfigurations = local.hostname_configurations
       customProperties       = length(local.custom_properties) == 0 ? null : local.custom_properties
     }
     sku   = local.sku
@@ -176,21 +174,19 @@ locals {
   }
 
   single_backend_keys = toset([
-    for k, v in nonsensitive(var.backends) : k
-    if v.type == "Single"
+    for k in nonsensitive(keys(var.backends)) : k
+    if nonsensitive(var.backends[k].type) == "Single"
   ])
 
   backend_pool_keys = toset([
-    for k, v in nonsensitive(var.backends) : k
-    if v.type == "Pool"
+    for k in nonsensitive(keys(var.backends)) : k
+    if nonsensitive(var.backends[k].type) == "Pool"
   ])
-
-  api_keys = toset(nonsensitive(keys(var.apis)))
 
   # Flatten API operations into a single map for resource creation
   api_operations = merge([
-    for api_key in local.api_keys : {
-      for operation_key, operation in nonsensitive(coalesce(var.apis[api_key].operations, {})) : "${api_key}-${operation_key}" => merge(operation, {
+    for api_key, api in var.apis : {
+      for operation_key, operation in coalesce(api.operations, {}) : "${api_key}-${operation_key}" => merge(operation, {
         api_key       = api_key
         operation_key = operation_key
       })
@@ -199,8 +195,8 @@ locals {
 
   # Flatten operation-level policies into a single map
   operation_policies = merge([
-    for api_key in local.api_keys : {
-      for operation_key, operation in nonsensitive(coalesce(var.apis[api_key].operations, {})) : "${api_key}-${operation_key}" => {
+    for api_key, api in var.apis : {
+      for operation_key, operation in coalesce(api.operations, {}) : "${api_key}-${operation_key}" => {
         api_key     = api_key
         xml_content = operation.policy != null ? operation.policy.xml_content : null
         xml_link    = operation.policy != null ? operation.policy.xml_link : null
@@ -208,7 +204,18 @@ locals {
     }
   ]...)
 
-  # Transform diagnostic_settings into the avm-utl-interfaces shape.
+  # Private endpoint application security group associations.
+  private_endpoint_application_security_group_associations = { for assoc in flatten([
+    for pe_k, pe_v in var.private_endpoints : [
+      for asg_k, asg_v in pe_v.application_security_group_associations : {
+        asg_key         = asg_k
+        pe_key          = pe_k
+        asg_resource_id = asg_v
+      }
+    ]
+  ]) : "${assoc.pe_key}-${assoc.asg_key}" => assoc }
+
+  # Transform legacy diagnostic_settings shape → diagnostic_settings_v2 for avm-utl-interfaces
   diagnostic_settings_v2 = {
     for k, v in var.diagnostic_settings : k => {
       name                                     = v.name
@@ -226,25 +233,16 @@ locals {
     }
   }
 
-  private_endpoint_parent_ids = {
-    for k, v in var.private_endpoints : k => v.resource_group_name == null ? var.parent_id : format(
-      "/subscriptions/%s/resourceGroups/%s",
-      provider::azapi::parse_resource_id("Microsoft.Resources/resourceGroups", var.parent_id).subscription_id,
-      v.resource_group_name,
-    )
-  }
-
-  # Use Gateway as the APIM private-link subresource unless explicitly overridden.
+  # Inject Gateway subresource for PE interface (APIM default)
   private_endpoints_for_interfaces = {
     for k, v in var.private_endpoints : k => merge(v, {
-      subresource_name = coalesce(v.subresource_name, "Gateway")
+      subresource_name = "Gateway"
     })
   }
 
   # API-level policies (apis with policy set)
   api_policies = {
-    for k in local.api_keys : k => nonsensitive(var.apis[k].policy)
-    if nonsensitive(var.apis[k].policy != null)
+    for k, v in var.apis : k => v.policy if v.policy != null
   }
 
   # Product-API associations
@@ -275,9 +273,9 @@ locals {
 
   # Subscription ARM scopes for AzAPI subscription submodule
   subscription_scopes = {
-    for k, v in nonsensitive(var.subscriptions) : k => (
-      v.scope_type == "product" ? "/products/${v.scope_identifier}" :
-      v.scope_type == "api" ? "/apis/${v.scope_identifier}" :
+    for k in nonsensitive(keys(var.subscriptions)) : k => (
+      nonsensitive(var.subscriptions[k].scope_type) == "product" ? "/products/${nonsensitive(var.subscriptions[k].scope_identifier)}" :
+      nonsensitive(var.subscriptions[k].scope_type) == "api" ? "/apis/${nonsensitive(var.subscriptions[k].scope_identifier)}" :
       "/apis"
     )
   }

@@ -58,10 +58,10 @@ resource "azurerm_resource_group" "this" {
 resource "azurerm_key_vault" "this" {
   location                 = azurerm_resource_group.this.location
   name                     = module.naming.key_vault.name_unique
-  resource_group_name      = azurerm_resource_group.this.name
   sku_name                 = "standard"
   tenant_id                = data.azurerm_client_config.current.tenant_id
   purge_protection_enabled = true
+  resource_group_name = azurerm_resource_group.this.name
 }
 
 resource "azurerm_key_vault_access_policy" "deployer" {
@@ -82,28 +82,27 @@ resource "azurerm_storage_account" "this" {
   account_tier                    = "Standard"
   location                        = azurerm_resource_group.this.location
   name                            = module.naming.storage_account.name_unique
-  resource_group_name             = azurerm_resource_group.this.name
   allow_nested_items_to_be_public = false
   shared_access_key_enabled       = false
+  resource_group_name = azurerm_resource_group.this.name
 }
 
 resource "azurerm_ai_services" "this" {
-  location            = azurerm_resource_group.this.location
-  name                = "${module.naming.cognitive_account.name_unique}-ais"
+  location  = azurerm_resource_group.this.location
+  name      = "${module.naming.cognitive_account.name_unique}-ais"
+  sku_name  = "S0"
   resource_group_name = azurerm_resource_group.this.name
-  sku_name            = "S0"
 }
 
 # =================================================================
 # AI Foundry Hub
 # =================================================================
 resource "azurerm_ai_foundry" "this" {
-  key_vault_id        = azurerm_key_vault.this.id
-  location            = azurerm_resource_group.this.location
-  name                = "${module.naming.cognitive_account.name_unique}-hub"
+  key_vault_id       = azurerm_key_vault.this.id
+  location           = azurerm_resource_group.this.location
+  name               = "${module.naming.cognitive_account.name_unique}-hub"
+  storage_account_id = azurerm_storage_account.this.id
   resource_group_name = azurerm_resource_group.this.name
-  storage_account_id  = azurerm_storage_account.this.id
-
   identity {
     type = "SystemAssigned"
   }
