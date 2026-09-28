@@ -119,7 +119,6 @@ locals {
       publisherEmail          = var.publisher_email
       publisherName           = var.publisher_name
       notificationSenderEmail = var.notification_sender_email
-      disableGateway          = var.gateway_disabled
       publicIpAddressId       = var.public_ip_address_id
       publicNetworkAccess     = var.public_network_access_enabled == null ? null : (var.public_network_access_enabled ? "Enabled" : "Disabled")
       virtualNetworkType      = var.virtual_network_type
@@ -130,9 +129,8 @@ locals {
         minApiVersion = var.min_api_version
       }
       additionalLocations = length(var.additional_location) == 0 ? null : [
-        for loc in var.additional_location : {
+        for loc in var.additional_location : merge({
           location          = loc.location
-          disableGateway    = loc.gateway_disabled
           publicIpAddressId = loc.public_ip_address_id
           zones             = loc.zones
           sku = loc.capacity == null ? null : {
@@ -142,12 +140,15 @@ locals {
           virtualNetworkConfiguration = loc.virtual_network_configuration == null ? null : {
             subnetResourceId = loc.virtual_network_configuration.subnet_id
           }
-        }
+        }, loc.gateway_disabled == null ? {} : { disableGateway = loc.gateway_disabled })
       ]
       certificates           = local.certificates
       hostnameConfigurations = local.hostname_configurations
       customProperties       = length(local.custom_properties) == 0 ? null : local.custom_properties
       },
+      # Omitted when null so Azure keeps its own value; see the variable descriptions for per-tier persistence.
+      var.gateway_disabled == null ? {} : { disableGateway = var.gateway_disabled },
+      var.developer_portal_status == null ? {} : { developerPortalStatus = var.developer_portal_status },
       startswith(local.sku.name, "Consumption") ? {
         enableClientCertificate = var.client_certificate_enabled
     } : {})

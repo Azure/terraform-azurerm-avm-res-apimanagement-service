@@ -147,6 +147,13 @@ output "developer_portal_url" {
   value       = try(azapi_resource.this.output.properties.developerPortalUrl, null)
 }
 
+output "diagnostic_ids" {
+  description = "A map of service-level diagnostic names to their resource IDs."
+  value = {
+    for k, v in module.diagnostic : k => v.resource_id
+  }
+}
+
 output "gateway_regional_url" {
   description = "The Region URL for the Gateway of the API Management Service."
   value       = try(azapi_resource.this.output.properties.gatewayRegionalUrl, null)
@@ -155,6 +162,13 @@ output "gateway_regional_url" {
 output "hostname_configuration" {
   description = "Configured hostname configuration for the API Management Service (input echo)."
   value       = var.hostname_configuration
+}
+
+output "logger_ids" {
+  description = "A map of logger names to their resource IDs."
+  value = {
+    for k, v in module.logger : k => v.resource_id
+  }
 }
 
 output "name" {

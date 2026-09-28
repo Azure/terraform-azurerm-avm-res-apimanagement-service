@@ -43,7 +43,12 @@ variable "format" {
   description = <<DESCRIPTION
 Format of the policy content. Valid values: `xml`, `xml-link`, `rawxml`, `rawxml-link`.
 Defaults to `xml` for inline XML content (maps from AzureRM `xml_content`).
+
+The resource is read back with `?format=` set to the written format (`xml` or `rawxml`; link formats are read back as their inline equivalent), so the `format` property and rawxml escaping do not drift.
+APIM still normalises whitespace on read (CRLF line endings and tab indentation), so write policy content in that canonical form to avoid a whitespace-only diff.
+With `xml-link` or `rawxml-link`, the GET returns the inline policy content rather than the link, so the value drifts; add `properties.format` and `properties.value` to `ignore_body_changes` if needed.
 DESCRIPTION
+  nullable    = false
 
   validation {
     condition     = contains(["xml", "xml-link", "rawxml", "rawxml-link"], var.format)

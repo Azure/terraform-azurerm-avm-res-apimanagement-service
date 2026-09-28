@@ -10,6 +10,7 @@ The module manages the API Management service and its common control-plane child
 | --- | --- | --- |
 | APIs, operations, and API/operation policies | `apis` | `api_ids`, `api_operation_ids`, `apis`, `api_operations` |
 | Backends and backend pools | `backends` (`type = "Single"` or `"Pool"`) | `backend_ids`, `backend_pool_ids`, `backends` |
+| Loggers and service-level diagnostics (gateway request telemetry) | `loggers`, `diagnostics` | `logger_ids`, `diagnostic_ids` |
 | Named values, including Key Vault references | `named_values` | `named_value_ids`, `named_values` |
 | Products and API/group associations | `products` | `product_ids`, `products` |
 | Service policy and reusable policy fragments | `policy`, `policy_fragments` | `policy`, `policy_fragment_ids`, `policy_fragments` |
@@ -19,9 +20,47 @@ The module manages the API Management service and its common control-plane child
 
 Backend pools can reference another `Single` entry in `backends` by `backend_name`, or an existing API Management backend resource ID by `backend_id`. The module orders in-module backends before pools and orders named values, fragments, and backends before policies that may reference them.
 
+Service-level `diagnostics` reference a `loggers` entry by `logger_name`, or an existing APIM logger by `logger_id`. They control APIM gateway request telemetry (for example the `applicationinsights` diagnostic) and are distinct from the Azure Monitor `diagnostic_settings` interface.
+
+### Tier-dependent service properties
+
+Some service properties are accepted in a PUT but not persisted on every tier. With AzAPI's `ignore_missing_property`, a value Azure drops shows no drift, so the control would be silently absent. The module therefore omits these properties when the input is null and rejects values on tiers where Azure is documented or observed not to apply them:
+
+| Input | Omitted when null | Rejected on |
+| --- | --- | --- |
+| `developer_portal_status` | `properties.developerPortalStatus` | `Consumption` (no developer portal) |
+| `gateway_disabled`, `additional_location[*].gateway_disabled` | `properties.disableGateway` | `BasicV2`, `StandardV2`, `PremiumV2` (no multi-region deployment); main-region value also requires `additional_location` |
+| `min_api_version` | `properties.apiVersionConstraint` | `BasicV2`, `StandardV2`, `PremiumV2` |
+
+Each variable description records the evidence and any tiers that were not verified by deployment.
+
+### Policy read-back format
+
+The service policy, API policies, and operation policies are read back with `?format=` matching the written `format` (`rawxml-link` and `xml-link` read back as `rawxml` and `xml`), as policy fragments already are. A default GET returns escaped `xml`, which would otherwise diff against a `rawxml` body. APIM normalises policy whitespace and line endings on every read, so keep policy documents in APIM's canonical formatting or add `properties.value` to `ignore_body_changes`. A `*-link` format always reads back inline content, so add `properties.format` and `properties.value` to `ignore_body_changes` for linked policies.
+
+### Migrating raw loggers and diagnostics
+
+A logger and service diagnostic managed as raw `azapi_resource` blocks move into this module without replacement when the map keys match the resource names:
+
+```hcl
+moved {
+  from = azapi_resource.logger
+  to   = module.apim.module.logger["gateway-appinsights"].azapi_resource.this
+}
+
+moved {
+  from = azapi_resource.diagnostic
+  to   = module.apim.module.diagnostic["applicationinsights"].azapi_resource.this
+}
+```
+
+Expect one in-place logger update after the move: `properties.credentials` leaves the stored body and is written through `sensitive_body`. A diagnostic whose inputs reproduce the raw body at the same API version moves with no changes.
+
 ### Sensitive values and Terraform state
 
 Backend credentials and proxy configuration, the delegation validation key, secret named-value values, and custom subscription keys are sent through AzAPI write-only `sensitive_body`. Those child resources store only SHA-256 change tokens through `sensitive_body_version`, not the supplied raw secret values.
+
+Logger credentials (`loggers[*].connection_string` and `identity_client_id`) are also sent through `sensitive_body`, but without `sensitive_body_version`, because the logger PUT replaces the whole resource and the credentials must accompany every write. AzAPI detects credential changes from a SHA-256 hash in the resource's private state. The `loggers` variable is sensitive, and the module never reads logger credentials back.
 
 Key Vault-backed named values store the secret identifier and optional managed-identity client ID in state, but this module never reads the Key Vault secret value. Use an unversioned secret identifier for APIM automatic refresh or a versioned identifier to pin a version.
 

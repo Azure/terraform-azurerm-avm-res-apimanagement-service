@@ -49,7 +49,17 @@ variable "additional_location" {
     }), null)
   }))
   default     = []
-  description = "Additional datacenter locations where the API Management service should be provisioned."
+  description = <<DESCRIPTION
+Additional datacenter locations where the API Management service should be provisioned. Multi-region deployment requires the classic Premium tier.
+
+- `location` - (Required) The Azure region of the additional location.
+- `capacity` - (Optional) The number of units in the additional location.
+- `zones` - (Optional) Availability zones for the additional location.
+- `public_ip_address_id` - (Optional) The public IP address resource ID for the additional location.
+- `gateway_disabled` - (Optional) Disable the gateway in this location. When null, `disableGateway` is not sent for the location.
+- `virtual_network_configuration` - (Optional) Virtual network configuration for the additional location.
+  - `subnet_id` - (Required) The subnet resource ID.
+DESCRIPTION
   nullable    = false
 }
 
@@ -690,6 +700,27 @@ Developer portal delegation settings for the API Management service.
 DESCRIPTION
 }
 
+variable "developer_portal_status" {
+  type        = string
+  default     = null
+  description = <<DESCRIPTION
+Status of the developer portal. Valid values: `Enabled`, `Disabled`.
+When null, `developerPortalStatus` is not sent and Azure keeps its current value (the REST API default is `Enabled`; new v2-tier instances report `Disabled`).
+
+- v2 tiers - `BasicV2` verified: ARM GET returns `developerPortalStatus: "Disabled"` both for an instance that sent `Disabled` and for one that never sent the property (API versions 2024-05-01, 2024-10-01-preview and 2025-03-01-preview). An `Enabled` round-trip has not been verified by deployment; Microsoft documents enabling the developer portal on the v2 tiers (<https://learn.microsoft.com/azure/api-management/api-management-howto-developer-portal-customize>).
+- `Consumption` - rejected: the developer portal is not available in the Consumption tier (<https://learn.microsoft.com/azure/api-management/api-management-features>), so the value would have no effect.
+DESCRIPTION
+
+  validation {
+    condition     = var.developer_portal_status == null ? true : contains(["Enabled", "Disabled"], var.developer_portal_status)
+    error_message = "`developer_portal_status` must be `Enabled` or `Disabled`."
+  }
+  validation {
+    condition     = var.developer_portal_status == null || !startswith(var.sku_name, "Consumption_")
+    error_message = "`developer_portal_status` is not supported on the Consumption tier, which has no developer portal. Leave `developer_portal_status` null for this SKU."
+  }
+}
+
 variable "diagnostic_settings" {
   type = map(object({
     name                                     = optional(string, null)
@@ -735,6 +766,135 @@ DESCRIPTION
   }
 }
 
+variable "diagnostics" {
+  type = map(object({
+    logger_name = optional(string)
+    logger_id   = optional(string)
+    always_log  = optional(string)
+    backend = optional(object({
+      request = optional(object({
+        headers    = optional(list(string))
+        body_bytes = optional(number)
+        data_masking = optional(object({
+          headers = optional(list(object({
+            mode  = string
+            value = string
+          })))
+          query_params = optional(list(object({
+            mode  = string
+            value = string
+          })))
+        }))
+      }))
+      response = optional(object({
+        headers    = optional(list(string))
+        body_bytes = optional(number)
+        data_masking = optional(object({
+          headers = optional(list(object({
+            mode  = string
+            value = string
+          })))
+          query_params = optional(list(object({
+            mode  = string
+            value = string
+          })))
+        }))
+      }))
+    }))
+    frontend = optional(object({
+      request = optional(object({
+        headers    = optional(list(string))
+        body_bytes = optional(number)
+        data_masking = optional(object({
+          headers = optional(list(object({
+            mode  = string
+            value = string
+          })))
+          query_params = optional(list(object({
+            mode  = string
+            value = string
+          })))
+        }))
+      }))
+      response = optional(object({
+        headers    = optional(list(string))
+        body_bytes = optional(number)
+        data_masking = optional(object({
+          headers = optional(list(object({
+            mode  = string
+            value = string
+          })))
+          query_params = optional(list(object({
+            mode  = string
+            value = string
+          })))
+        }))
+      }))
+    }))
+    http_correlation_protocol = optional(string)
+    log_client_ip             = optional(bool)
+    metrics                   = optional(bool)
+    operation_name_format     = optional(string)
+    sampling = optional(object({
+      percentage    = number
+      sampling_type = optional(string, "fixed")
+    }))
+    verbosity = optional(string)
+  }))
+  default     = {}
+  description = <<DESCRIPTION
+Service-level API Management diagnostics (`Microsoft.ApiManagement/service/diagnostics`), keyed by diagnostic name, for example `applicationinsights` or `azuremonitor`.
+These control gateway request telemetry sent to an APIM logger. They are distinct from Azure Monitor `diagnostic_settings`.
+Every optional field is omitted from the request body when null, so Azure keeps its defaults.
+
+- `logger_name` - (Optional) Key of a `loggers` entry that receives the telemetry. Exactly one of `logger_name` or `logger_id` is required.
+- `logger_id` - (Optional) Resource ID of an existing APIM logger. Exactly one of `logger_name` or `logger_id` is required.
+- `always_log` - (Optional) Message types for which sampling does not apply. Valid value: `allErrors`.
+- `backend` / `frontend` - (Optional) Settings for HTTP messages between the gateway and the backend, or between the client and the gateway.
+  - `request` / `response` - (Optional) Settings for the request or response message.
+    - `headers` - (Optional) HTTP header names to log.
+    - `body_bytes` - (Optional) Number of body bytes to log (0 to 8192).
+    - `data_masking` - (Optional) `headers` and `query_params` lists of `{ mode, value }` entries, where `mode` is `Mask` or `Hide`.
+- `http_correlation_protocol` - (Optional) `None`, `Legacy` or `W3C`.
+- `log_client_ip` - (Optional) Whether to log the client IP address.
+- `metrics` - (Optional) Whether to emit custom metrics through the `emit-metric` and `llm-emit-token-metric` policies. Applies only to Application Insights diagnostics.
+- `operation_name_format` - (Optional) `Name` or `Url`.
+- `sampling` - (Optional) `percentage` (0 to 100) and `sampling_type` (`fixed`, the default).
+- `verbosity` - (Optional) `verbose`, `information` or `error`.
+
+Example:
+```terraform
+diagnostics = {
+  applicationinsights = {
+    logger_name               = "gateway-appinsights"
+    always_log                = "allErrors"
+    http_correlation_protocol = "W3C"
+    metrics                   = true
+    operation_name_format     = "Url"
+    verbosity                 = "information"
+    sampling                  = { percentage = 100 }
+  }
+}
+```
+DESCRIPTION
+  nullable    = false
+
+  validation {
+    condition = alltrue([
+      for _, diagnostic in var.diagnostics :
+      (diagnostic.logger_name == null) != (diagnostic.logger_id == null)
+    ])
+    error_message = "Each diagnostic must set exactly one of `logger_name` or `logger_id`."
+  }
+  validation {
+    condition = alltrue([
+      for _, diagnostic in var.diagnostics :
+      diagnostic.logger_name == null ? true : contains(nonsensitive(keys(var.loggers)), diagnostic.logger_name)
+    ])
+    error_message = "Each diagnostic `logger_name` must identify an entry in `loggers`."
+  }
+}
+
 variable "enable_telemetry" {
   type        = bool
   default     = true
@@ -748,13 +908,24 @@ DESCRIPTION
 
 variable "gateway_disabled" {
   type        = bool
-  default     = false
-  description = "Disable the gateway in the main region? This is only supported when additional_location is set."
-  nullable    = false
+  default     = null
+  description = <<DESCRIPTION
+Disable the gateway in the main region. Only valid when `additional_location` is set.
+When null, `disableGateway` is not sent and Azure keeps its default (gateway enabled).
+
+This setting is rejected for the v2 tiers (`BasicV2`, `StandardV2`, `PremiumV2`). Azure documents `disableGateway` as valid only for a service deployed in multiple locations, and multi-region deployment is unavailable in the v2 tiers (<https://learn.microsoft.com/azure/api-management/v2-service-tiers-overview#currently-unavailable-features>):
+
+- `BasicV2` - verified: ARM GET returns `disableGateway: null` both for an instance that sent `disableGateway = false` and for one that never sent the property (API versions 2024-05-01, 2024-10-01-preview and 2025-03-01-preview).
+- `StandardV2` and `PremiumV2` - documented but not verified by deployment.
+DESCRIPTION
 
   validation {
-    condition     = var.gateway_disabled == false || length(var.additional_location) > 0
+    condition     = var.gateway_disabled != true || length(var.additional_location) > 0
     error_message = "Gateway can only be disabled in the main region when at least one additional location is configured."
+  }
+  validation {
+    condition     = var.gateway_disabled == null || !can(regex("^(BasicV2|StandardV2|PremiumV2)_", var.sku_name))
+    error_message = "`gateway_disabled` is not supported on the v2 tiers (BasicV2, StandardV2, PremiumV2): they do not support multi-region deployment and Azure does not persist `disableGateway`. Leave `gateway_disabled` null for these SKUs."
   }
 }
 
@@ -817,6 +988,12 @@ variable "ignore_body_changes" {
 
     apimanagement_service_backends = optional(object({
       apimanagement_service_backends = optional(list(string), [])
+    }), {})
+    apimanagement_service_diagnostics = optional(object({
+      apimanagement_service_diagnostics = optional(list(string), [])
+    }), {})
+    apimanagement_service_loggers = optional(object({
+      apimanagement_service_loggers = optional(list(string), [])
     }), {})
     apimanagement_service_named_values = optional(object({
       apimanagement_service_named_values = optional(list(string), [])
@@ -889,6 +1066,51 @@ DESCRIPTION
   validation {
     condition     = var.lock != null ? contains(["CanNotDelete", "ReadOnly"], var.lock.kind) : true
     error_message = "The lock level must be one of: 'None', 'CanNotDelete', or 'ReadOnly'."
+  }
+}
+
+variable "loggers" {
+  type = map(object({
+    connection_string  = optional(string)
+    description        = optional(string)
+    identity_client_id = optional(string)
+    is_buffered        = optional(bool)
+    logger_type        = optional(string, "applicationInsights")
+    resource_id        = optional(string)
+  }))
+  default     = {}
+  description = <<DESCRIPTION
+API Management loggers (`Microsoft.ApiManagement/service/loggers`), keyed by logger name. Service-level `diagnostics` reference them through `logger_name`.
+The variable is sensitive because it carries the Application Insights connection string.
+
+- `connection_string` - (Optional) Application Insights connection string. Required when `logger_type` is `applicationInsights`. Sent only through AzAPI's write-only `sensitive_body`, so it is not stored in the AzAPI resource state or read back. Terraform re-sends it when its hash changes.
+- `description` - (Optional) Logger description.
+- `identity_client_id` - (Optional) Client ID of the user-assigned managed identity that APIM uses for Microsoft Entra authentication to Application Insights. Sent with the connection string through `sensitive_body`.
+- `is_buffered` - (Optional) Whether records are buffered before publishing.
+- `logger_type` - (Optional) `applicationInsights` (default) or `azureMonitor`. An `azureMonitor` logger takes no credentials or `resource_id`.
+- `resource_id` - (Optional) Resource ID of the Application Insights component.
+
+Example:
+```terraform
+loggers = {
+  gateway-appinsights = {
+    connection_string  = azapi_resource.appi.output.properties.ConnectionString
+    identity_client_id = azapi_resource.gateway_identity.output.properties.clientId
+    is_buffered        = true
+    resource_id        = azapi_resource.appi.id
+  }
+}
+```
+DESCRIPTION
+  nullable    = false
+  sensitive   = true
+
+  validation {
+    condition = alltrue([
+      for k in nonsensitive(keys(var.loggers)) :
+      length(k) >= 1 && length(k) <= 256 && can(regex("^[^*#&+:<>?]+$", k))
+    ])
+    error_message = "Logger keys must be 1 to 256 characters and cannot contain `*`, `#`, `&`, `+`, `:`, `<`, `>`, or `?`."
   }
 }
 
@@ -1277,6 +1499,12 @@ variable "resource_types" {
     apimanagement_service_backends = optional(object({
       apimanagement_service_backends = optional(string)
     }), {})
+    apimanagement_service_diagnostics = optional(object({
+      apimanagement_service_diagnostics = optional(string)
+    }), {})
+    apimanagement_service_loggers = optional(object({
+      apimanagement_service_loggers = optional(string)
+    }), {})
     apimanagement_service_named_values = optional(object({
       apimanagement_service_named_values = optional(string)
     }), {})
@@ -1331,6 +1559,8 @@ AzAPI resource types and API versions used by the module.
 - `network_private_endpoints` - Private endpoints.
 - `network_private_dns_zone_groups` - Private DNS zone groups on private endpoints.
 - `apimanagement_service_backends` - Overrides for the backend submodule.
+- `apimanagement_service_diagnostics` - Overrides for the diagnostic submodule.
+- `apimanagement_service_loggers` - Overrides for the logger submodule.
 - `apimanagement_service_named_values` - Overrides for the named_value submodule.
 - `apimanagement_service_policies` - Overrides for the policy submodule.
 - `apimanagement_service_policy_fragments` - Overrides for the policy_fragment submodule.

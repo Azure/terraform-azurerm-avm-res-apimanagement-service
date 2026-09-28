@@ -12,6 +12,7 @@ The module manages the API Management service and its common control-plane child
 | --- | --- | --- |
 | APIs, operations, and API/operation policies | `apis` | `api_ids`, `api_operation_ids`, `apis`, `api_operations` |
 | Backends and backend pools | `backends` (`type = "Single"` or `"Pool"`) | `backend_ids`, `backend_pool_ids`, `backends` |
+| Loggers and service-level diagnostics (gateway request telemetry) | `loggers`, `diagnostics` | `logger_ids`, `diagnostic_ids` |
 | Named values, including Key Vault references | `named_values` | `named_value_ids`, `named_values` |
 | Products and API/group associations | `products` | `product_ids`, `products` |
 | Service policy and reusable policy fragments | `policy`, `policy_fragments` | `policy`, `policy_fragment_ids`, `policy_fragments` |
@@ -21,9 +22,47 @@ The module manages the API Management service and its common control-plane child
 
 Backend pools can reference another `Single` entry in `backends` by `backend_name`, or an existing API Management backend resource ID by `backend_id`. The module orders in-module backends before pools and orders named values, fragments, and backends before policies that may reference them.
 
+Service-level `diagnostics` reference a `loggers` entry by `logger_name`, or an existing APIM logger by `logger_id`. They control APIM gateway request telemetry (for example the `applicationinsights` diagnostic) and are distinct from the Azure Monitor `diagnostic_settings` interface.
+
+### Tier-dependent service properties
+
+Some service properties are accepted in a PUT but not persisted on every tier. With AzAPI's `ignore_missing_property`, a value Azure drops shows no drift, so the control would be silently absent. The module therefore omits these properties when the input is null and rejects values on tiers where Azure is documented or observed not to apply them:
+
+| Input | Omitted when null | Rejected on |
+| --- | --- | --- |
+| `developer_portal_status` | `properties.developerPortalStatus` | `Consumption` (no developer portal) |
+| `gateway_disabled`, `additional_location[*].gateway_disabled` | `properties.disableGateway` | `BasicV2`, `StandardV2`, `PremiumV2` (no multi-region deployment); main-region value also requires `additional_location` |
+| `min_api_version` | `properties.apiVersionConstraint` | `BasicV2`, `StandardV2`, `PremiumV2` |
+
+Each variable description records the evidence and any tiers that were not verified by deployment.
+
+### Policy read-back format
+
+The service policy, API policies, and operation policies are read back with `?format=` matching the written `format` (`rawxml-link` and `xml-link` read back as `rawxml` and `xml`), as policy fragments already are. A default GET returns escaped `xml`, which would otherwise diff against a `rawxml` body. APIM normalises policy whitespace and line endings on every read, so keep policy documents in APIM's canonical formatting or add `properties.value` to `ignore_body_changes`. A `*-link` format always reads back inline content, so add `properties.format` and `properties.value` to `ignore_body_changes` for linked policies.
+
+### Migrating raw loggers and diagnostics
+
+A logger and service diagnostic managed as raw `azapi_resource` blocks move into this module without replacement when the map keys match the resource names:
+
+```hcl
+moved {
+  from = azapi_resource.logger
+  to   = module.apim.module.logger["gateway-appinsights"].azapi_resource.this
+}
+
+moved {
+  from = azapi_resource.diagnostic
+  to   = module.apim.module.diagnostic["applicationinsights"].azapi_resource.this
+}
+```
+
+Expect one in-place logger update after the move: `properties.credentials` leaves the stored body and is written through `sensitive_body`. A diagnostic whose inputs reproduce the raw body at the same API version moves with no changes.
+
 ### Sensitive values and Terraform state
 
 Backend credentials and proxy configuration, the delegation validation key, secret named-value values, and custom subscription keys are sent through AzAPI write-only `sensitive_body`. Those child resources store only SHA-256 change tokens through `sensitive_body_version`, not the supplied raw secret values.
+
+Logger credentials (`loggers[*].connection_string` and `identity_client_id`) are also sent through `sensitive_body`, but without `sensitive_body_version`, because the logger PUT replaces the whole resource and the credentials must accompany every write. AzAPI detects credential changes from a SHA-256 hash in the resource's private state. The `loggers` variable is sensitive, and the module never reads logger credentials back.
 
 Key Vault-backed named values store the secret identifier and optional managed-identity client ID in state, but this module never reads the Key Vault secret value. Use an unversioned secret identifier for APIM automatic refresh or a versioned identifier to pin a version.
 
@@ -116,7 +155,15 @@ The following input variables are optional (have default values):
 
 ### <a name="input_additional_location"></a> [additional\_location](#input\_additional\_location)
 
-Description: Additional datacenter locations where the API Management service should be provisioned.
+Description: Additional datacenter locations where the API Management service should be provisioned. Multi-region deployment requires the classic Premium tier.
+
+- `location` - (Required) The Azure region of the additional location.
+- `capacity` - (Optional) The number of units in the additional location.
+- `zones` - (Optional) Availability zones for the additional location.
+- `public_ip_address_id` - (Optional) The public IP address resource ID for the additional location.
+- `gateway_disabled` - (Optional) Disable the gateway in this location. When null, `disableGateway` is not sent for the location.
+- `virtual_network_configuration` - (Optional) Virtual network configuration for the additional location.
+  - `subnet_id` - (Required) The subnet resource ID.
 
 Type:
 
@@ -554,6 +601,18 @@ object({
 
 Default: `null`
 
+### <a name="input_developer_portal_status"></a> [developer\_portal\_status](#input\_developer\_portal\_status)
+
+Description: Status of the developer portal. Valid values: `Enabled`, `Disabled`.  
+When null, `developerPortalStatus` is not sent and Azure keeps its current value (the REST API default is `Enabled`; new v2-tier instances report `Disabled`).
+
+- v2 tiers - `BasicV2` verified: ARM GET returns `developerPortalStatus: "Disabled"` both for an instance that sent `Disabled` and for one that never sent the property (API versions 2024-05-01, 2024-10-01-preview and 2025-03-01-preview). An `Enabled` round-trip has not been verified by deployment; Microsoft documents enabling the developer portal on the v2 tiers (<https://learn.microsoft.com/azure/api-management/api-management-howto-developer-portal-customize>).
+- `Consumption` - rejected: the developer portal is not available in the Consumption tier (<https://learn.microsoft.com/azure/api-management/api-management-features>), so the value would have no effect.
+
+Type: `string`
+
+Default: `null`
+
 ### <a name="input_diagnostic_settings"></a> [diagnostic\_settings](#input\_diagnostic\_settings)
 
 Description: A map of diagnostic settings to create on the Key Vault. The map key is deliberately arbitrary to avoid issues where map keys maybe unknown at plan time.
@@ -588,6 +647,123 @@ map(object({
 
 Default: `{}`
 
+### <a name="input_diagnostics"></a> [diagnostics](#input\_diagnostics)
+
+Description: Service-level API Management diagnostics (`Microsoft.ApiManagement/service/diagnostics`), keyed by diagnostic name, for example `applicationinsights` or `azuremonitor`.  
+These control gateway request telemetry sent to an APIM logger. They are distinct from Azure Monitor `diagnostic_settings`.  
+Every optional field is omitted from the request body when null, so Azure keeps its defaults.
+
+- `logger_name` - (Optional) Key of a `loggers` entry that receives the telemetry. Exactly one of `logger_name` or `logger_id` is required.
+- `logger_id` - (Optional) Resource ID of an existing APIM logger. Exactly one of `logger_name` or `logger_id` is required.
+- `always_log` - (Optional) Message types for which sampling does not apply. Valid value: `allErrors`.
+- `backend` / `frontend` - (Optional) Settings for HTTP messages between the gateway and the backend, or between the client and the gateway.
+  - `request` / `response` - (Optional) Settings for the request or response message.
+    - `headers` - (Optional) HTTP header names to log.
+    - `body_bytes` - (Optional) Number of body bytes to log (0 to 8192).
+    - `data_masking` - (Optional) `headers` and `query_params` lists of `{ mode, value }` entries, where `mode` is `Mask` or `Hide`.
+- `http_correlation_protocol` - (Optional) `None`, `Legacy` or `W3C`.
+- `log_client_ip` - (Optional) Whether to log the client IP address.
+- `metrics` - (Optional) Whether to emit custom metrics through the `emit-metric` and `llm-emit-token-metric` policies. Applies only to Application Insights diagnostics.
+- `operation_name_format` - (Optional) `Name` or `Url`.
+- `sampling` - (Optional) `percentage` (0 to 100) and `sampling_type` (`fixed`, the default).
+- `verbosity` - (Optional) `verbose`, `information` or `error`.
+
+Example:
+```terraform
+diagnostics = {
+  applicationinsights = {
+    logger_name               = "gateway-appinsights"
+    always_log                = "allErrors"
+    http_correlation_protocol = "W3C"
+    metrics                   = true
+    operation_name_format     = "Url"
+    verbosity                 = "information"
+    sampling                  = { percentage = 100 }
+  }
+}
+```
+
+Type:
+
+```hcl
+map(object({
+    logger_name = optional(string)
+    logger_id   = optional(string)
+    always_log  = optional(string)
+    backend = optional(object({
+      request = optional(object({
+        headers    = optional(list(string))
+        body_bytes = optional(number)
+        data_masking = optional(object({
+          headers = optional(list(object({
+            mode  = string
+            value = string
+          })))
+          query_params = optional(list(object({
+            mode  = string
+            value = string
+          })))
+        }))
+      }))
+      response = optional(object({
+        headers    = optional(list(string))
+        body_bytes = optional(number)
+        data_masking = optional(object({
+          headers = optional(list(object({
+            mode  = string
+            value = string
+          })))
+          query_params = optional(list(object({
+            mode  = string
+            value = string
+          })))
+        }))
+      }))
+    }))
+    frontend = optional(object({
+      request = optional(object({
+        headers    = optional(list(string))
+        body_bytes = optional(number)
+        data_masking = optional(object({
+          headers = optional(list(object({
+            mode  = string
+            value = string
+          })))
+          query_params = optional(list(object({
+            mode  = string
+            value = string
+          })))
+        }))
+      }))
+      response = optional(object({
+        headers    = optional(list(string))
+        body_bytes = optional(number)
+        data_masking = optional(object({
+          headers = optional(list(object({
+            mode  = string
+            value = string
+          })))
+          query_params = optional(list(object({
+            mode  = string
+            value = string
+          })))
+        }))
+      }))
+    }))
+    http_correlation_protocol = optional(string)
+    log_client_ip             = optional(bool)
+    metrics                   = optional(bool)
+    operation_name_format     = optional(string)
+    sampling = optional(object({
+      percentage    = number
+      sampling_type = optional(string, "fixed")
+    }))
+    verbosity = optional(string)
+  }))
+```
+
+Default: `{}`
+
 ### <a name="input_enable_telemetry"></a> [enable\_telemetry](#input\_enable\_telemetry)
 
 Description: This variable controls whether or not telemetry is enabled for the module.  
@@ -600,11 +776,17 @@ Default: `true`
 
 ### <a name="input_gateway_disabled"></a> [gateway\_disabled](#input\_gateway\_disabled)
 
-Description: Disable the gateway in the main region? This is only supported when additional\_location is set.
+Description: Disable the gateway in the main region. Only valid when `additional_location` is set.  
+When null, `disableGateway` is not sent and Azure keeps its default (gateway enabled).
+
+This setting is rejected for the v2 tiers (`BasicV2`, `StandardV2`, `PremiumV2`). Azure documents `disableGateway` as valid only for a service deployed in multiple locations, and multi-region deployment is unavailable in the v2 tiers (<https://learn.microsoft.com/azure/api-management/v2-service-tiers-overview#currently-unavailable-features>):
+
+- `BasicV2` - verified: ARM GET returns `disableGateway: null` both for an instance that sent `disableGateway = false` and for one that never sent the property (API versions 2024-05-01, 2024-10-01-preview and 2025-03-01-preview).
+- `StandardV2` and `PremiumV2` - documented but not verified by deployment.
 
 Type: `bool`
 
-Default: `false`
+Default: `null`
 
 ### <a name="input_hostname_configuration"></a> [hostname\_configuration](#input\_hostname\_configuration)
 
@@ -683,6 +865,12 @@ object({
     apimanagement_service_backends = optional(object({
       apimanagement_service_backends = optional(list(string), [])
     }), {})
+    apimanagement_service_diagnostics = optional(object({
+      apimanagement_service_diagnostics = optional(list(string), [])
+    }), {})
+    apimanagement_service_loggers = optional(object({
+      apimanagement_service_loggers = optional(list(string), [])
+    }), {})
     apimanagement_service_named_values = optional(object({
       apimanagement_service_named_values = optional(list(string), [])
     }), {})
@@ -747,6 +935,45 @@ object({
 ```
 
 Default: `null`
+
+### <a name="input_loggers"></a> [loggers](#input\_loggers)
+
+Description: API Management loggers (`Microsoft.ApiManagement/service/loggers`), keyed by logger name. Service-level `diagnostics` reference them through `logger_name`.  
+The variable is sensitive because it carries the Application Insights connection string.
+
+- `connection_string` - (Optional) Application Insights connection string. Required when `logger_type` is `applicationInsights`. Sent only through AzAPI's write-only `sensitive_body`, so it is not stored in the AzAPI resource state or read back. Terraform re-sends it when its hash changes.
+- `description` - (Optional) Logger description.
+- `identity_client_id` - (Optional) Client ID of the user-assigned managed identity that APIM uses for Microsoft Entra authentication to Application Insights. Sent with the connection string through `sensitive_body`.
+- `is_buffered` - (Optional) Whether records are buffered before publishing.
+- `logger_type` - (Optional) `applicationInsights` (default) or `azureMonitor`. An `azureMonitor` logger takes no credentials or `resource_id`.
+- `resource_id` - (Optional) Resource ID of the Application Insights component.
+
+Example:
+```terraform
+loggers = {
+  gateway-appinsights = {
+    connection_string  = azapi_resource.appi.output.properties.ConnectionString
+    identity_client_id = azapi_resource.gateway_identity.output.properties.clientId
+    is_buffered        = true
+    resource_id        = azapi_resource.appi.id
+  }
+}
+```
+
+Type:
+
+```hcl
+map(object({
+    connection_string  = optional(string)
+    description        = optional(string)
+    identity_client_id = optional(string)
+    is_buffered        = optional(bool)
+    logger_type        = optional(string, "applicationInsights")
+    resource_id        = optional(string)
+  }))
+```
+
+Default: `{}`
 
 ### <a name="input_managed_identities"></a> [managed\_identities](#input\_managed\_identities)
 
@@ -1070,6 +1297,8 @@ Description: AzAPI resource types and API versions used by the module.
 - `network_private_endpoints` - Private endpoints.
 - `network_private_dns_zone_groups` - Private DNS zone groups on private endpoints.
 - `apimanagement_service_backends` - Overrides for the backend submodule.
+- `apimanagement_service_diagnostics` - Overrides for the diagnostic submodule.
+- `apimanagement_service_loggers` - Overrides for the logger submodule.
 - `apimanagement_service_named_values` - Overrides for the named\_value submodule.
 - `apimanagement_service_policies` - Overrides for the policy submodule.
 - `apimanagement_service_policy_fragments` - Overrides for the policy\_fragment submodule.
@@ -1099,6 +1328,12 @@ object({
     # Child submodule slots (no string defaults on parent — children own defaults)
     apimanagement_service_backends = optional(object({
       apimanagement_service_backends = optional(string)
+    }), {})
+    apimanagement_service_diagnostics = optional(object({
+      apimanagement_service_diagnostics = optional(string)
+    }), {})
+    apimanagement_service_loggers = optional(object({
+      apimanagement_service_loggers = optional(string)
     }), {})
     apimanagement_service_named_values = optional(object({
       apimanagement_service_named_values = optional(string)
@@ -1473,6 +1708,10 @@ Description: The resource ID of the developer portal delegation setting.
 
 Description: The publisher URL of the API Management service.
 
+### <a name="output_diagnostic_ids"></a> [diagnostic\_ids](#output\_diagnostic\_ids)
+
+Description: A map of service-level diagnostic names to their resource IDs.
+
 ### <a name="output_gateway_regional_url"></a> [gateway\_regional\_url](#output\_gateway\_regional\_url)
 
 Description: The Region URL for the Gateway of the API Management Service.
@@ -1480,6 +1719,10 @@ Description: The Region URL for the Gateway of the API Management Service.
 ### <a name="output_hostname_configuration"></a> [hostname\_configuration](#output\_hostname\_configuration)
 
 Description: Configured hostname configuration for the API Management Service (input echo).
+
+### <a name="output_logger_ids"></a> [logger\_ids](#output\_logger\_ids)
+
+Description: A map of logger names to their resource IDs.
 
 ### <a name="output_name"></a> [name](#output\_name)
 
@@ -1624,6 +1867,18 @@ Version:
 ### <a name="module_delegation"></a> [delegation](#module\_delegation)
 
 Source: ./modules/portal_setting
+
+Version:
+
+### <a name="module_diagnostic"></a> [diagnostic](#module\_diagnostic)
+
+Source: ./modules/diagnostic
+
+Version:
+
+### <a name="module_logger"></a> [logger](#module\_logger)
+
+Source: ./modules/logger
 
 Version:
 

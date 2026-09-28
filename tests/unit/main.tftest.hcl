@@ -342,7 +342,6 @@ run "omits_api_version_constraint_by_default_on_v2_sku" {
         apiVersionConstraint        = null
         certificates                = null
         customProperties            = null
-        disableGateway              = false
         hostnameConfigurations      = null
         notificationSenderEmail     = null
         publicIpAddressId           = null
@@ -412,5 +411,284 @@ run "rejects_min_api_version_on_premium_v2" {
 
   expect_failures = [
     var.min_api_version,
+  ]
+}
+
+run "omits_gateway_disabled_by_default" {
+  command = plan
+
+  variables {
+    additional_location = [
+      {
+        location = "westus"
+      },
+      {
+        gateway_disabled = true
+        location         = "centralus"
+      },
+    ]
+    sku_name = "Premium_1"
+  }
+
+  assert {
+    condition     = !contains(keys(azapi_resource.this.body.properties), "disableGateway")
+    error_message = "A null gateway_disabled must not send disableGateway."
+  }
+
+  assert {
+    condition = (
+      !contains(keys(azapi_resource.this.body.properties.additionalLocations[0]), "disableGateway") &&
+      azapi_resource.this.body.properties.additionalLocations[1].disableGateway == true
+    )
+    error_message = "Additional locations must send disableGateway only when gateway_disabled is set."
+  }
+}
+
+run "sends_gateway_disabled_on_classic_multi_region" {
+  command = plan
+
+  variables {
+    additional_location = [
+      {
+        location = "westus"
+      },
+    ]
+    gateway_disabled = true
+    sku_name         = "Premium_1"
+  }
+
+  assert {
+    condition     = azapi_resource.this.body.properties.disableGateway == true
+    error_message = "Classic multi-region services must send the configured disableGateway value."
+  }
+}
+
+run "rejects_gateway_disabled_without_additional_location" {
+  command = plan
+
+  variables {
+    gateway_disabled = true
+    sku_name         = "Premium_1"
+  }
+
+  expect_failures = [
+    var.gateway_disabled,
+  ]
+}
+
+run "rejects_gateway_disabled_on_basic_v2" {
+  command = plan
+
+  variables {
+    gateway_disabled = false
+    sku_name         = "BasicV2_1"
+  }
+
+  expect_failures = [
+    var.gateway_disabled,
+  ]
+}
+
+run "rejects_gateway_disabled_on_standard_v2" {
+  command = plan
+
+  variables {
+    gateway_disabled = false
+    sku_name         = "StandardV2_1"
+  }
+
+  expect_failures = [
+    var.gateway_disabled,
+  ]
+}
+
+run "rejects_gateway_disabled_on_premium_v2" {
+  command = plan
+
+  variables {
+    gateway_disabled = false
+    sku_name         = "PremiumV2_1"
+  }
+
+  expect_failures = [
+    var.gateway_disabled,
+  ]
+}
+
+run "omits_developer_portal_status_by_default" {
+  command = plan
+
+  variables {
+    sku_name = "BasicV2_1"
+  }
+
+  assert {
+    condition     = !contains(keys(azapi_resource.this.body.properties), "developerPortalStatus")
+    error_message = "A null developer_portal_status must not send developerPortalStatus."
+  }
+}
+
+run "sends_developer_portal_status_on_v2_sku" {
+  command = plan
+
+  variables {
+    developer_portal_status = "Disabled"
+    sku_name                = "BasicV2_1"
+  }
+
+  assert {
+    condition     = azapi_resource.this.body.properties.developerPortalStatus == "Disabled"
+    error_message = "The configured developer portal status must be sent."
+  }
+}
+
+run "rejects_invalid_developer_portal_status" {
+  command = plan
+
+  variables {
+    developer_portal_status = "Off"
+    sku_name                = "BasicV2_1"
+  }
+
+  expect_failures = [
+    var.developer_portal_status,
+  ]
+}
+
+run "rejects_developer_portal_status_on_consumption" {
+  command = plan
+
+  variables {
+    developer_portal_status = "Disabled"
+    sku_name                = "Consumption_0"
+  }
+
+  expect_failures = [
+    var.developer_portal_status,
+  ]
+}
+
+run "creates_no_loggers_or_diagnostics_by_default" {
+  command = plan
+
+  assert {
+    condition     = length(output.logger_ids) == 0 && length(output.diagnostic_ids) == 0
+    error_message = "Loggers and service diagnostics must not be created unless configured."
+  }
+}
+
+run "wires_service_diagnostic_to_managed_logger" {
+  command = apply
+
+  variables {
+    loggers = {
+      gateway-appinsights = {
+        connection_string  = "InstrumentationKey=00000000-0000-0000-0000-000000000000;IngestionEndpoint=https://example.invalid/"
+        description        = "Gateway Application Insights"
+        identity_client_id = "00000000-0000-0000-0000-000000000004"
+        is_buffered        = true
+        resource_id        = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-test/providers/Microsoft.Insights/components/appi-test"
+      }
+    }
+    diagnostics = {
+      applicationinsights = {
+        logger_name               = "gateway-appinsights"
+        always_log                = "allErrors"
+        http_correlation_protocol = "W3C"
+        log_client_ip             = false
+        metrics                   = true
+        operation_name_format     = "Url"
+        sampling                  = { percentage = 100 }
+        verbosity                 = "information"
+      }
+    }
+  }
+
+  override_resource {
+    target = azapi_resource.this
+    values = {
+      id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-test/providers/Microsoft.ApiManagement/service/apim-preview-test"
+    }
+  }
+
+  # The diagnostic submodule validates logger_id as an APIM logger ID, so this
+  # apply only succeeds when logger_name resolves to the managed logger.
+  override_resource {
+    target = module.logger["gateway-appinsights"].azapi_resource.this
+    values = {
+      id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-test/providers/Microsoft.ApiManagement/service/apim-preview-test/loggers/gateway-appinsights"
+    }
+  }
+
+  override_resource {
+    target = module.diagnostic["applicationinsights"].azapi_resource.this
+    values = {
+      id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-test/providers/Microsoft.ApiManagement/service/apim-preview-test/diagnostics/applicationinsights"
+    }
+  }
+
+  assert {
+    condition     = output.logger_ids["gateway-appinsights"] == "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-test/providers/Microsoft.ApiManagement/service/apim-preview-test/loggers/gateway-appinsights"
+    error_message = "Logger IDs must be keyed by logger name without a sensitive mark from the connection string."
+  }
+
+  assert {
+    condition     = output.diagnostic_ids["applicationinsights"] == "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-test/providers/Microsoft.ApiManagement/service/apim-preview-test/diagnostics/applicationinsights"
+    error_message = "Diagnostic IDs must be keyed by diagnostic name."
+  }
+}
+
+run "accepts_diagnostic_with_existing_logger_id" {
+  command = plan
+
+  variables {
+    diagnostics = {
+      azuremonitor = {
+        logger_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-test/providers/Microsoft.ApiManagement/service/apim-preview-test/loggers/azuremonitor"
+      }
+    }
+  }
+
+  assert {
+    condition     = length(output.logger_ids) == 0 && contains(keys(output.diagnostic_ids), "azuremonitor")
+    error_message = "A diagnostic must be able to target an existing logger without creating one."
+  }
+}
+
+run "rejects_diagnostic_with_unknown_logger_name" {
+  command = plan
+
+  variables {
+    diagnostics = {
+      applicationinsights = {
+        logger_name = "missing"
+      }
+    }
+  }
+
+  expect_failures = [
+    var.diagnostics,
+  ]
+}
+
+run "rejects_diagnostic_with_both_logger_references" {
+  command = plan
+
+  variables {
+    loggers = {
+      gateway-appinsights = {
+        connection_string = "InstrumentationKey=00000000-0000-0000-0000-000000000000"
+      }
+    }
+    diagnostics = {
+      applicationinsights = {
+        logger_name = "gateway-appinsights"
+        logger_id   = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-test/providers/Microsoft.ApiManagement/service/apim-preview-test/loggers/gateway-appinsights"
+      }
+    }
+  }
+
+  expect_failures = [
+    var.diagnostics,
   ]
 }
