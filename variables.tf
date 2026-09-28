@@ -911,7 +911,20 @@ DESCRIPTION
 variable "min_api_version" {
   type        = string
   default     = null
-  description = "The version which the control plane API calls to API Management service are limited with version equal to or newer than."
+  description = <<DESCRIPTION
+The version which the control plane API calls to API Management service are limited with version equal to or newer than.
+When null, `apiVersionConstraint` is not sent.
+
+This setting is rejected for the v2 tiers (`BasicV2`, `StandardV2`, `PremiumV2`). Azure accepts `properties.apiVersionConstraint.minApiVersion` on those tiers but does not persist it, so the control would be silently absent:
+
+- `BasicV2` - verified: ARM GET returns `minApiVersion: null` after a successful PUT (API versions 2024-05-01, 2024-10-01-preview and 2025-03-01-preview).
+- `StandardV2` and `PremiumV2` - documented but not verified by deployment: Microsoft states that v2 tiers use a centralized management API whose minimum version is controlled by the service (<https://learn.microsoft.com/answers/questions/1664224/unable-to-set-api-management-min-api-version>), and the minimum API version guidance applies only to the classic tiers (<https://learn.microsoft.com/azure/api-management/breaking-changes/api-version-retirement-sep-2023>).
+DESCRIPTION
+
+  validation {
+    condition     = var.min_api_version == null || !can(regex("^(BasicV2|StandardV2|PremiumV2)_", var.sku_name))
+    error_message = "`min_api_version` is not supported on the v2 tiers (BasicV2, StandardV2, PremiumV2): Azure accepts `apiVersionConstraint.minApiVersion` but does not persist it, so the minimum API version would not be enforced. Leave `min_api_version` null for these SKUs."
+  }
 }
 
 # Named Values for configuration and secrets management

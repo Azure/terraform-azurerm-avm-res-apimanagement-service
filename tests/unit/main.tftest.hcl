@@ -322,3 +322,95 @@ run "rejects_key_vault_reference_without_secret_flag" {
     var.named_values,
   ]
 }
+
+run "omits_api_version_constraint_by_default_on_v2_sku" {
+  command = plan
+
+  variables {
+    sku_name = "BasicV2_1"
+  }
+
+  assert {
+    condition     = azapi_resource.this.body.properties.apiVersionConstraint == null
+    error_message = "A null min_api_version must not send apiVersionConstraint."
+  }
+
+  assert {
+    condition = jsonencode(azapi_resource.this.body) == jsonencode({
+      properties = {
+        additionalLocations         = null
+        apiVersionConstraint        = null
+        certificates                = null
+        customProperties            = null
+        disableGateway              = false
+        hostnameConfigurations      = null
+        notificationSenderEmail     = null
+        publicIpAddressId           = null
+        publicNetworkAccess         = "Enabled"
+        publisherEmail              = "admin@example.com"
+        publisherName               = "Example"
+        virtualNetworkConfiguration = null
+        virtualNetworkType          = "None"
+      }
+      sku = {
+        capacity = 1
+        name     = "BasicV2"
+      }
+      zones = null
+    })
+    error_message = "The default v2 service body must remain unchanged."
+  }
+}
+
+run "sends_min_api_version_on_classic_skus" {
+  command = plan
+
+  variables {
+    min_api_version = "2021-08-01"
+    sku_name        = "Developer_1"
+  }
+
+  assert {
+    condition     = azapi_resource.this.body.properties.apiVersionConstraint.minApiVersion == "2021-08-01"
+    error_message = "Classic APIM SKUs must send the configured minimum API version."
+  }
+}
+
+run "rejects_min_api_version_on_basic_v2" {
+  command = plan
+
+  variables {
+    min_api_version = "2021-08-01"
+    sku_name        = "BasicV2_1"
+  }
+
+  expect_failures = [
+    var.min_api_version,
+  ]
+}
+
+run "rejects_min_api_version_on_standard_v2" {
+  command = plan
+
+  variables {
+    min_api_version = "2021-08-01"
+    sku_name        = "StandardV2_1"
+  }
+
+  expect_failures = [
+    var.min_api_version,
+  ]
+}
+
+run "rejects_min_api_version_on_premium_v2" {
+  command = plan
+
+  variables {
+    min_api_version = "2021-08-01"
+    sku_name        = "PremiumV2_1"
+  }
+
+  expect_failures = [
+    var.min_api_version,
+  ]
+}
