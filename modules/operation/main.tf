@@ -1,9 +1,10 @@
 resource "azapi_resource" "this" {
-  name                = var.name
-  parent_id           = var.parent_id
-  type                = var.resource_types.apimanagement_service_apis_operations
-  body                = local.resource_body
-  ignore_body_changes = length(var.ignore_body_changes.apimanagement_service_apis_operations) > 0 ? var.ignore_body_changes.apimanagement_service_apis_operations : null
+  name                 = var.name
+  parent_id            = var.parent_id
+  type                 = var.resource_types.apimanagement_service_apis_operations
+  body                 = local.resource_body
+  ignore_null_property = true
+  ignore_body_changes  = length(var.ignore_body_changes.apimanagement_service_apis_operations) > 0 ? var.ignore_body_changes.apimanagement_service_apis_operations : null
   response_export_values = [
     "properties.displayName",
     "properties.method",

@@ -1,9 +1,10 @@
 resource "azapi_resource" "this" {
-  name                = var.name
-  parent_id           = var.parent_id
-  type                = var.resource_types.apimanagement_service_policy_fragments
-  body                = local.resource_body
-  ignore_body_changes = length(var.ignore_body_changes.apimanagement_service_policy_fragments) > 0 ? var.ignore_body_changes.apimanagement_service_policy_fragments : null
+  name                 = var.name
+  parent_id            = var.parent_id
+  type                 = var.resource_types.apimanagement_service_policy_fragments
+  body                 = local.resource_body
+  ignore_null_property = true
+  ignore_body_changes  = length(var.ignore_body_changes.apimanagement_service_policy_fragments) > 0 ? var.ignore_body_changes.apimanagement_service_policy_fragments : null
   # Without ?format=, the GET returns XML-encoded content, so rawxml values would drift.
   read_query_parameters = {
     format = [var.format]

@@ -1,9 +1,10 @@
 resource "azapi_resource" "this" {
-  name                = var.name
-  parent_id           = var.parent_id
-  type                = var.resource_types.apimanagement_service_named_values
-  body                = local.resource_body
-  ignore_body_changes = length(var.ignore_body_changes.apimanagement_service_named_values) > 0 ? var.ignore_body_changes.apimanagement_service_named_values : null
+  name                 = var.name
+  parent_id            = var.parent_id
+  type                 = var.resource_types.apimanagement_service_named_values
+  body                 = local.resource_body
+  ignore_null_property = true
+  ignore_body_changes  = length(var.ignore_body_changes.apimanagement_service_named_values) > 0 ? var.ignore_body_changes.apimanagement_service_named_values : null
   response_export_values = [
     "properties.keyVault.lastStatus",
     "properties.provisioningState",

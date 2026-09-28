@@ -3,6 +3,7 @@ resource "azapi_resource" "this" {
   parent_id              = var.parent_id
   type                   = var.resource_types.apimanagement_service_diagnostics
   body                   = local.resource_body
+  ignore_null_property   = true
   ignore_body_changes    = length(var.ignore_body_changes.apimanagement_service_diagnostics) > 0 ? var.ignore_body_changes.apimanagement_service_diagnostics : null
   response_export_values = []
   retry                  = var.retry

@@ -1,10 +1,11 @@
 resource "azapi_resource" "this" {
-  location            = var.location
-  name                = var.name
-  parent_id           = var.parent_id
-  type                = var.resource_types.apimanagement_service
-  body                = local.resource_body
-  ignore_body_changes = length(var.ignore_body_changes.apimanagement_service) > 0 ? var.ignore_body_changes.apimanagement_service : null
+  location             = var.location
+  name                 = var.name
+  parent_id            = var.parent_id
+  type                 = var.resource_types.apimanagement_service
+  body                 = local.resource_body
+  ignore_null_property = true
+  ignore_body_changes  = length(var.ignore_body_changes.apimanagement_service) > 0 ? var.ignore_body_changes.apimanagement_service : null
   response_export_values = [
     "identity.principalId",
     "identity.tenantId",
