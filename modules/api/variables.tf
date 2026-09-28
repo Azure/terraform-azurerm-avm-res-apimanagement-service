@@ -28,12 +28,20 @@ variable "path" {
 
 variable "api_revision" {
   type        = string
-  default     = null
-  description = "Revision of the API. Defaults to `1` when omitted at the service."
+  default     = "1"
+  description = <<DESCRIPTION
+Revision of the API, sent as `properties.apiRevision`. Defaults to `1`, the revision Azure assigns when none is given.
+Changing it replaces the API. When `name` carries a `;rev={n}` suffix, `api_revision` must equal `{n}`.
+DESCRIPTION
+  nullable    = false
 
   validation {
-    condition     = var.api_revision == null || (length(var.api_revision) >= 1 && length(var.api_revision) <= 100)
+    condition     = length(var.api_revision) >= 1 && length(var.api_revision) <= 100
     error_message = "api_revision must be between 1 and 100 characters."
+  }
+  validation {
+    condition     = !strcontains(var.name, ";rev=") || endswith(var.name, ";rev=${var.api_revision}")
+    error_message = "api_revision must match the `;rev={n}` suffix of `name`."
   }
 }
 

@@ -4,37 +4,53 @@
 # submodules. Addresses change from `azurerm_api_management_api.this["key"]` to
 # `module.api["key"].azapi_resource.this` (and similarly for operations/policies).
 #
-# This AVM module cannot ship a reusable `moved` block that preserves arbitrary
-# consumer keys across that resource→module boundary. State continuity belongs in
-# the *calling* (solution) module, where keys are known:
+# This AVM module cannot ship state moves that preserve arbitrary consumer keys
+# across that resource->module boundary. State continuity belongs in the calling
+# module, where keys are known. azapi >= 2.0 moves azurerm state natively, but it
+# adopts the azurerm `id` verbatim as the ARM ID, and a `name` or `parent_id`
+# mismatch then forces replacement. Replace `module.apim` with the local module
+# label used to call this AVM.
 #
-#   # In the solution module that consumes this AVM (preferred for CI):
+# APIs: the azurerm ID is `.../apis/<name>;rev=<revision>`, which matches this
+# module's API name `<key>;rev=<revision>`, so `moved` is safe:
+#
 #   moved {
 #     from = module.apim.azurerm_api_management_api.this["petstore"]
 #     to   = module.apim.module.api["petstore"].azapi_resource.this
 #   }
-#   moved {
-#     from = module.apim.azurerm_api_management_api_operation.this["petstore-get"]
-#     to   = module.apim.module.operation["petstore-get"].azapi_resource.this
+#
+# Operations and policies: do NOT use `moved`.
+# - azurerm operation IDs omit `;rev=`, but this module parents operations on
+#   `module.api[...].resource_id`, which includes it, so a move plans a replace.
+# - azurerm API and operation policy IDs are the parent API or operation ID, not
+#   the policy ID. A move adopts the parent as the policy; the planned replace
+#   then deletes the parent API or operation.
+# Remove the azurerm state without destroying, then import the azapi resources:
+#
+#   removed {
+#     from = module.apim.azurerm_api_management_api_operation.this
+#     lifecycle {
+#       destroy = false
+#     }
 #   }
-#   moved {
-#     from = module.apim.azurerm_api_management_api_policy.this["petstore"]
-#     to   = module.apim.module.api_policy["petstore"].azapi_resource.this
+#   removed {
+#     from = module.apim.azurerm_api_management_api_policy.this
+#     lifecycle {
+#       destroy = false
+#     }
 #   }
-#   moved {
-#     from = module.apim.azurerm_api_management_api_operation_policy.this["petstore-get"]
-#     to   = module.apim.module.operation_policy["petstore-get"].azapi_resource.this
+#   import {
+#     to = module.apim.module.operation["petstore-get"].azapi_resource.this
+#     id = "<service id>/apis/petstore;rev=1/operations/get"
+#   }
+#   import {
+#     to = module.apim.module.api_policy["petstore"].azapi_resource.this
+#     id = "<service id>/apis/petstore;rev=1/policies/policy"
 #   }
 #
-# Equivalent imperative form (harder in CI; use when `moved` is impractical):
-#   terraform state mv \
-#     'module.apim.azurerm_api_management_api.this["petstore"]' \
-#     'module.apim.module.api["petstore"].azapi_resource.this'
-#
-# Replace `module.apim` with the local module label used to call this AVM.
-# Repeat per known for_each key. Provider-only address moves (same cardinality,
-# same module boundary) may still use `moved` inside this AVM where applicable
-# (see root `moved` for azurerm_api_management.this → azapi_resource.this).
+# Provider-only address moves (same cardinality, same module boundary) may still
+# use `moved` inside this AVM where the IDs match (see root `moved` for
+# azurerm_api_management.this -> azapi_resource.this).
 
 module "api" {
   source   = "./modules/api"

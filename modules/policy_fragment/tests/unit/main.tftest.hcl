@@ -31,3 +31,26 @@ run "creates_policy_fragment" {
     error_message = "The policy-fragment output must preserve the configured name."
   }
 }
+
+run "reads_back_in_configured_format" {
+  command = plan
+
+  assert {
+    condition     = azapi_resource.this.read_query_parameters == tomap({ format = tolist(["rawxml"]) })
+    error_message = "Policy fragments must be read back in the configured rawxml format."
+  }
+}
+
+run "reads_back_xml_format" {
+  command = plan
+
+  variables {
+    format = "xml"
+    value  = "<fragment><set-header name=\"X-Test\" exists-action=\"skip\"><value>test</value></set-header></fragment>"
+  }
+
+  assert {
+    condition     = azapi_resource.this.read_query_parameters == tomap({ format = tolist(["xml"]) })
+    error_message = "Policy fragments must be read back in the configured xml format."
+  }
+}

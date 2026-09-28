@@ -56,11 +56,12 @@ The following input variables are optional (have default values):
 
 ### <a name="input_api_revision"></a> [api\_revision](#input\_api\_revision)
 
-Description: Revision of the API. Defaults to `1` when omitted at the service.
+Description: Revision of the API, sent as `properties.apiRevision`. Defaults to `1`, the revision Azure assigns when none is given.  
+Changing it replaces the API. When `name` carries a `;rev={n}` suffix, `api_revision` must equal `{n}`.
 
 Type: `string`
 
-Default: `null`
+Default: `"1"`
 
 ### <a name="input_api_revision_description"></a> [api\_revision\_description](#input\_api\_revision\_description)
 
