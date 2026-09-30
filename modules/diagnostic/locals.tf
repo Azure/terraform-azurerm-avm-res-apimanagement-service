@@ -19,12 +19,22 @@ locals {
       ) if message != null
     } if settings != null
   }
+  large_language_model = var.large_language_model == null ? null : merge(
+    { logs = var.large_language_model.logs },
+    {
+      for direction, message in { requests = var.large_language_model.requests, responses = var.large_language_model.responses } : direction => merge(
+        message.messages == null ? {} : { messages = message.messages },
+        message.max_size_in_bytes == null ? {} : { maxSizeInBytes = message.max_size_in_bytes },
+      ) if message != null
+    },
+  )
   resource_body = {
     properties = merge(
       { loggerId = var.logger_id },
       local.pipelines,
       var.always_log == null ? {} : { alwaysLog = var.always_log },
       var.http_correlation_protocol == null ? {} : { httpCorrelationProtocol = var.http_correlation_protocol },
+      var.large_language_model == null ? {} : { largeLanguageModel = local.large_language_model },
       var.log_client_ip == null ? {} : { logClientIp = var.log_client_ip },
       var.metrics == null ? {} : { metrics = var.metrics },
       var.operation_name_format == null ? {} : { operationNameFormat = var.operation_name_format },

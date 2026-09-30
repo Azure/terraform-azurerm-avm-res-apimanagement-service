@@ -77,4 +77,7 @@ resource "azapi_resource" "diagnostic_settings" {
       delete = timeouts.value.delete
     }
   }
+
+  # APIM creates a default azuremonitor diagnostic with the first diagnostic setting, so managed diagnostics go first.
+  depends_on = [module.diagnostic]
 }

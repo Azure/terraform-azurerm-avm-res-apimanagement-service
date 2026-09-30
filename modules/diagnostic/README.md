@@ -241,6 +241,33 @@ object({
 
 Default: `{}`
 
+### <a name="input_large_language_model"></a> [large\_language\_model](#input\_large\_language\_model)
+
+Description: Language model (LLM) logging for the `azuremonitor` diagnostic, written to the `ApiManagementGatewayLlmLog` table. When null, `largeLanguageModel` is not sent.
+
+- `logs` - (Required) `enabled` or `disabled`. When enabled, token usage and the model name are logged for each request.
+- `requests` / `responses` - (Optional) Also log prompt or completion messages. Omit both to log token usage only.
+  - `messages` - (Optional) Messages to log. Valid value: `all`.
+  - `max_size_in_bytes` - (Optional) Maximum message size to log, 1 to 262144.
+
+Type:
+
+```hcl
+object({
+    logs = string
+    requests = optional(object({
+      messages          = optional(string)
+      max_size_in_bytes = optional(number)
+    }))
+    responses = optional(object({
+      messages          = optional(string)
+      max_size_in_bytes = optional(number)
+    }))
+  })
+```
+
+Default: `null`
+
 ### <a name="input_log_client_ip"></a> [log\_client\_ip](#input\_log\_client\_ip)
 
 Description: Whether to log the client IP address. When null, `logClientIp` is not sent and Azure defaults to `false`.
@@ -269,13 +296,13 @@ Default: `null`
 
 Description: AzAPI resource types and API versions used by the diagnostic submodule.
 
-- `apimanagement_service_diagnostics` - Resource type and API version for the diagnostic.
+- `apimanagement_service_diagnostics` - Resource type and API version for the diagnostic. Defaults to a preview API version because `largeLanguageModel` is not in a stable one.
 
 Type:
 
 ```hcl
 object({
-    apimanagement_service_diagnostics = optional(string, "Microsoft.ApiManagement/service/diagnostics@2024-05-01")
+    apimanagement_service_diagnostics = optional(string, "Microsoft.ApiManagement/service/diagnostics@2025-09-01-preview")
   })
 ```
 

@@ -200,6 +200,34 @@ DESCRIPTION
   nullable    = false
 }
 
+variable "large_language_model" {
+  type = object({
+    logs = string
+    requests = optional(object({
+      messages          = optional(string)
+      max_size_in_bytes = optional(number)
+    }))
+    responses = optional(object({
+      messages          = optional(string)
+      max_size_in_bytes = optional(number)
+    }))
+  })
+  default     = null
+  description = <<DESCRIPTION
+Language model (LLM) logging for the `azuremonitor` diagnostic, written to the `ApiManagementGatewayLlmLog` table. When null, `largeLanguageModel` is not sent.
+
+- `logs` - (Required) `enabled` or `disabled`. When enabled, token usage and the model name are logged for each request.
+- `requests` / `responses` - (Optional) Also log prompt or completion messages. Omit both to log token usage only.
+  - `messages` - (Optional) Messages to log. Valid value: `all`.
+  - `max_size_in_bytes` - (Optional) Maximum message size to log, 1 to 262144.
+DESCRIPTION
+
+  validation {
+    condition     = var.large_language_model == null ? true : contains(["enabled", "disabled"], var.large_language_model.logs)
+    error_message = "large_language_model.logs must be `enabled` or `disabled`."
+  }
+}
+
 variable "log_client_ip" {
   type        = bool
   default     = null
@@ -225,13 +253,13 @@ variable "operation_name_format" {
 
 variable "resource_types" {
   type = object({
-    apimanagement_service_diagnostics = optional(string, "Microsoft.ApiManagement/service/diagnostics@2024-05-01")
+    apimanagement_service_diagnostics = optional(string, "Microsoft.ApiManagement/service/diagnostics@2025-09-01-preview")
   })
   default     = {}
   description = <<DESCRIPTION
 AzAPI resource types and API versions used by the diagnostic submodule.
 
-- `apimanagement_service_diagnostics` - Resource type and API version for the diagnostic.
+- `apimanagement_service_diagnostics` - Resource type and API version for the diagnostic. Defaults to a preview API version because `largeLanguageModel` is not in a stable one.
 DESCRIPTION
   nullable    = false
 }

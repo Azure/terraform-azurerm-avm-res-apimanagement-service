@@ -33,6 +33,7 @@ module "diagnostic" {
   frontend                  = each.value.frontend
   http_correlation_protocol = each.value.http_correlation_protocol
   ignore_body_changes       = var.ignore_body_changes.apimanagement_service_diagnostics
+  large_language_model      = each.value.large_language_model
   log_client_ip             = each.value.log_client_ip
   metrics                   = each.value.metrics
   operation_name_format     = each.value.operation_name_format

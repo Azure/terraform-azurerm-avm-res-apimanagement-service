@@ -832,9 +832,20 @@ variable "diagnostics" {
       }))
     }))
     http_correlation_protocol = optional(string)
-    log_client_ip             = optional(bool)
-    metrics                   = optional(bool)
-    operation_name_format     = optional(string)
+    large_language_model = optional(object({
+      logs = string
+      requests = optional(object({
+        messages          = optional(string)
+        max_size_in_bytes = optional(number)
+      }))
+      responses = optional(object({
+        messages          = optional(string)
+        max_size_in_bytes = optional(number)
+      }))
+    }))
+    log_client_ip         = optional(bool)
+    metrics               = optional(bool)
+    operation_name_format = optional(string)
     sampling = optional(object({
       percentage    = number
       sampling_type = optional(string, "fixed")
@@ -856,6 +867,9 @@ Every optional field is omitted from the request body when null, so Azure keeps 
     - `body_bytes` - (Optional) Number of body bytes to log (0 to 8192).
     - `data_masking` - (Optional) `headers` and `query_params` lists of `{ mode, value }` entries, where `mode` is `Mask` or `Hide`.
 - `http_correlation_protocol` - (Optional) `None`, `Legacy` or `W3C`.
+- `large_language_model` - (Optional) LLM logging to `ApiManagementGatewayLlmLog`. Applies only to the `azuremonitor` diagnostic.
+  - `logs` - (Required) `enabled` or `disabled`. When enabled, token usage and the model name are logged.
+  - `requests` / `responses` - (Optional) Also log prompt or completion messages: `messages` (`all`) and `max_size_in_bytes` (1 to 262144). Omit both to log token usage only.
 - `log_client_ip` - (Optional) Whether to log the client IP address.
 - `metrics` - (Optional) Whether to emit custom metrics through the `emit-metric` and `llm-emit-token-metric` policies. Applies only to Application Insights diagnostics.
 - `operation_name_format` - (Optional) `Name` or `Url`.

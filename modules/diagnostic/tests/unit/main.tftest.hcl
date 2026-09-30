@@ -110,6 +110,27 @@ run "maps_partial_pipeline_and_data_masking" {
   }
 }
 
+run "maps_large_language_model_logging" {
+  command = plan
+
+  variables {
+    name      = "azuremonitor"
+    logger_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-test/providers/Microsoft.ApiManagement/service/apim-test/loggers/azuremonitor"
+    large_language_model = {
+      logs      = "enabled"
+      responses = { max_size_in_bytes = 1024 }
+    }
+  }
+
+  assert {
+    condition = jsonencode(azapi_resource.this.body.properties.largeLanguageModel) == jsonencode({
+      logs      = "enabled"
+      responses = { maxSizeInBytes = 1024 }
+    })
+    error_message = "Only configured LLM log settings may be sent, so omitting requests and responses logs token usage only."
+  }
+}
+
 run "rejects_logger_id_that_is_not_an_apim_logger" {
   command = plan
 
