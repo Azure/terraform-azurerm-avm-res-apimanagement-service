@@ -55,6 +55,7 @@ resource "azurerm_log_analytics_workspace" "diag2" {
   name                = "diag2${module.naming.log_analytics_workspace.name_unique}"
   resource_group_name = azurerm_resource_group.this.name
 }
+
 # This is the module call
 # Leaving location as `null` will cause the module to use the resource group location
 # with a data source.
@@ -89,7 +90,6 @@ module "test" {
   }
   zones = ["1", "2", "3"] # For compliance with WAF
 }
-
 ```
 
 <!-- markdownlint-disable MD033 -->

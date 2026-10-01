@@ -65,7 +65,6 @@ module "test" {
   }
   zones = ["1", "2", "3"] # For compliance with WAF
 }
-
 ```
 
 <!-- markdownlint-disable MD033 -->

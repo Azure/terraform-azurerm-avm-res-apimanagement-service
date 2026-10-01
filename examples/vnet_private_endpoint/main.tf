@@ -28,7 +28,6 @@ module "naming" {
   version = "0.3.0"
 }
 
-
 # Create a virtual network for testing if needed
 module "virtual_network" {
   source  = "Azure/avm-res-network-virtualnetwork/azurerm"
@@ -37,6 +36,7 @@ module "virtual_network" {
   address_space       = ["10.0.0.0/16"]
   location            = azurerm_resource_group.this.location
   resource_group_name = azurerm_resource_group.this.name
+  enable_telemetry    = var.enable_telemetry
   name                = module.naming.virtual_network.name_unique
   subnets = {
     default_subnet = {
@@ -52,7 +52,6 @@ module "virtual_network" {
     }
   }
 }
-
 
 # Create a Private DNS Zone for API Management
 module "private_dns_apim" {
@@ -71,7 +70,6 @@ module "private_dns_apim" {
     }
   }
 }
-
 
 # This is required for resource modules
 resource "azurerm_resource_group" "this" {
@@ -117,4 +115,3 @@ module "test" {
   virtual_network_type = "None"
   zones                = ["1", "2", "3"] # For compliance with WAF
 }
-
