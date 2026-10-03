@@ -1,5 +1,4 @@
 locals {
-  main_location = "unknown"
   # Null inputs are omitted so Azure keeps its defaults and the body matches a hand-written raw resource.
   pipelines = {
     for pipeline, settings in { backend   = var.backend, frontend = var.frontend } : pipeline => {

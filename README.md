@@ -879,9 +879,6 @@ object({
     apimanagement_service_backends = optional(object({
       apimanagement_service_backends = optional(list(string), [])
     }), {})
-    apimanagement_service_diagnostics = optional(object({
-      apimanagement_service_diagnostics = optional(list(string), [])
-    }), {})
     apimanagement_service_loggers = optional(object({
       apimanagement_service_loggers = optional(list(string), [])
     }), {})

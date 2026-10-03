@@ -29,10 +29,8 @@ module "diagnostic" {
   parent_id                 = azapi_resource.this.id
   always_log                = each.value.always_log
   backend                   = each.value.backend
-  enable_telemetry          = var.enable_telemetry
   frontend                  = each.value.frontend
   http_correlation_protocol = each.value.http_correlation_protocol
-  ignore_body_changes       = var.ignore_body_changes.apimanagement_service_diagnostics
   large_language_model      = each.value.large_language_model
   log_client_ip             = each.value.log_client_ip
   metrics                   = each.value.metrics

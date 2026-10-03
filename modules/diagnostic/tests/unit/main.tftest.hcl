@@ -1,12 +1,9 @@
 mock_provider "azapi" {}
-mock_provider "modtm" {}
-mock_provider "random" {}
 
 variables {
-  enable_telemetry = false
-  logger_id        = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-test/providers/Microsoft.ApiManagement/service/apim-test/loggers/gateway-appinsights"
-  name             = "applicationinsights"
-  parent_id        = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-test/providers/Microsoft.ApiManagement/service/apim-test"
+  logger_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-test/providers/Microsoft.ApiManagement/service/apim-test/loggers/gateway-appinsights"
+  name      = "applicationinsights"
+  parent_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-test/providers/Microsoft.ApiManagement/service/apim-test"
 }
 
 run "reproduces_raw_application_insights_diagnostic" {
@@ -33,7 +30,7 @@ run "reproduces_raw_application_insights_diagnostic" {
   }
 
   assert {
-    condition = jsonencode(azapi_resource.this.body) == jsonencode({
+    condition = jsonencode(azapi_resource_action.put.body) == jsonencode({
       properties = {
         loggerId                = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-test/providers/Microsoft.ApiManagement/service/apim-test/loggers/gateway-appinsights"
         alwaysLog               = "allErrors"
@@ -69,7 +66,7 @@ run "omits_unset_optional_properties" {
   command = plan
 
   assert {
-    condition = jsonencode(azapi_resource.this.body) == jsonencode({
+    condition = jsonencode(azapi_resource_action.put.body) == jsonencode({
       properties = {
         loggerId = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-test/providers/Microsoft.ApiManagement/service/apim-test/loggers/gateway-appinsights"
       }
@@ -93,7 +90,7 @@ run "maps_partial_pipeline_and_data_masking" {
   }
 
   assert {
-    condition = jsonencode(azapi_resource.this.body.properties.frontend) == jsonencode({
+    condition = jsonencode(azapi_resource_action.put.body.properties.frontend) == jsonencode({
       request = {
         dataMasking = {
           headers = [{ mode = "Hide", value = "Authorization" }]
@@ -105,7 +102,7 @@ run "maps_partial_pipeline_and_data_masking" {
   }
 
   assert {
-    condition     = !contains(keys(azapi_resource.this.body.properties), "backend")
+    condition     = !contains(keys(azapi_resource_action.put.body.properties), "backend")
     error_message = "A null backend must not be sent."
   }
 }
@@ -123,7 +120,7 @@ run "maps_large_language_model_logging" {
   }
 
   assert {
-    condition = jsonencode(azapi_resource.this.body.properties.largeLanguageModel) == jsonencode({
+    condition = jsonencode(azapi_resource_action.put.body.properties.largeLanguageModel) == jsonencode({
       logs      = "enabled"
       responses = { maxSizeInBytes = 1024 }
     })

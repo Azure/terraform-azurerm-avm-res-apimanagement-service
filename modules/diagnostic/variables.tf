@@ -103,17 +103,6 @@ DESCRIPTION
   }
 }
 
-variable "enable_telemetry" {
-  type        = bool
-  default     = true
-  description = <<DESCRIPTION
-This variable controls whether or not telemetry is enabled for the module.
-For more information see <https://aka.ms/avm/telemetryinfo>.
-If it is set to false, then no telemetry will be collected.
-DESCRIPTION
-  nullable    = false
-}
-
 variable "frontend" {
   type = object({
     request = optional(object({
@@ -184,20 +173,6 @@ variable "http_correlation_protocol" {
     condition     = var.http_correlation_protocol == null ? true : contains(["None", "Legacy", "W3C"], var.http_correlation_protocol)
     error_message = "http_correlation_protocol must be `None`, `Legacy` or `W3C`."
   }
-}
-
-variable "ignore_body_changes" {
-  type = object({
-    apimanagement_service_diagnostics = optional(list(string), [])
-  })
-  default     = {}
-  description = <<DESCRIPTION
-Body-relative paths ignored on the diagnostic resource. Paths use dot notation.
-Changes take effect only after apply. Ignored configuration is not sent to Azure.
-
-- `apimanagement_service_diagnostics` - Paths ignored on the diagnostic resource.
-DESCRIPTION
-  nullable    = false
 }
 
 variable "large_language_model" {
