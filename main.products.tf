@@ -25,13 +25,11 @@ module "product_api" {
   source   = "./modules/product_api"
   for_each = local.product_api_associations
 
-  name                = module.api[each.value.api_name].name
-  parent_id           = module.product[each.value.product_key].resource_id
-  enable_telemetry    = var.enable_telemetry
-  ignore_body_changes = var.ignore_body_changes.apimanagement_service_products_apis
-  resource_types      = var.resource_types.apimanagement_service_products_apis
-  retry               = var.retry
-  timeouts            = var.timeouts
+  name           = module.api[each.value.api_name].name
+  parent_id      = module.product[each.value.product_key].resource_id
+  resource_types = var.resource_types.apimanagement_service_products_apis
+  retry          = var.retry
+  timeouts       = var.timeouts
 
   depends_on = [module.api]
 }

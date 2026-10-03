@@ -1045,9 +1045,6 @@ variable "ignore_body_changes" {
     apimanagement_service_products = optional(object({
       apimanagement_service_products = optional(list(string), [])
     }), {})
-    apimanagement_service_products_apis = optional(object({
-      apimanagement_service_products_apis = optional(list(string), [])
-    }), {})
     apimanagement_service_products_groups = optional(object({
       apimanagement_service_products_groups = optional(list(string), [])
     }), {})
