@@ -32,19 +32,18 @@ provider "azurerm" {
 # This ensures we have unique CAF compliant names for our resources.
 module "naming" {
   source  = "Azure/naming/azurerm"
-  version = "0.3.0"
+  version = "0.4.3"
 }
 
 # Create a virtual network for testing if needed
 module "virtual_network" {
   source  = "Azure/avm-res-network-virtualnetwork/azurerm"
-  version = "0.9.2"
+  version = "0.22.2"
 
-  address_space       = ["10.0.0.0/16"]
-  location            = azurerm_resource_group.this.location
-  resource_group_name = azurerm_resource_group.this.name
-  enable_telemetry    = var.enable_telemetry
-  name                = module.naming.virtual_network.name_unique
+  location         = azurerm_resource_group.this.location
+  address_space    = ["10.0.0.0/16"]
+  enable_telemetry = var.enable_telemetry
+  name             = module.naming.virtual_network.name_unique
   subnets = {
     default_subnet = {
       name             = "default_subnet"
@@ -58,12 +57,13 @@ module "virtual_network" {
       # delegations       = {}
     }
   }
+  resource_group_name = azurerm_resource_group.this.name
 }
 
 # Create a Private DNS Zone for API Management
 module "private_dns_apim" {
   source  = "Azure/avm-res-network-privatednszone/azurerm"
-  version = "0.4.0"
+  version = "0.5.0"
 
   domain_name = "privatelink.azure-api.net"
   parent_id   = azurerm_resource_group.this.id
@@ -184,13 +184,13 @@ The following Modules are called:
 
 Source: Azure/naming/azurerm
 
-Version: 0.3.0
+Version: 0.4.3
 
 ### <a name="module_private_dns_apim"></a> [private\_dns\_apim](#module\_private\_dns\_apim)
 
 Source: Azure/avm-res-network-privatednszone/azurerm
 
-Version: 0.4.0
+Version: 0.5.0
 
 ### <a name="module_test"></a> [test](#module\_test)
 
@@ -202,7 +202,7 @@ Version:
 
 Source: Azure/avm-res-network-virtualnetwork/azurerm
 
-Version: 0.9.2
+Version: 0.22.2
 
 <!-- markdownlint-disable-next-line MD041 -->
 ## Data Collection
