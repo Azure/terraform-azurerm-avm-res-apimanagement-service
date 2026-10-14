@@ -50,5 +50,6 @@ avm.tflint_module.merged.hcl
 # MacOS
 .DS_Store
 examples/*/policy
+examples/*/.env
 *.mptfbackup
 .avm/managed-files.json

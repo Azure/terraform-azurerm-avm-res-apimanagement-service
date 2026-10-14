@@ -243,7 +243,7 @@ resource "azapi_update_resource" "tls13" {
   count = var.security != null && (var.security.enable_backend_tls13 != null || var.security.enable_frontend_tls13 != null) ? 1 : 0
 
   resource_id = azurerm_api_management.this.id
-  type        = "Microsoft.ApiManagement/service@2024-05-01"
+  type        = var.resource_types.apimanagement_service
   body = {
     properties = {
       customProperties = merge(
@@ -254,6 +254,18 @@ resource "azapi_update_resource" "tls13" {
           "Microsoft.WindowsAzure.ApiManagement.Gateway.Security.Protocols.Tls13" = tostring(var.security.enable_frontend_tls13)
         }
       )
+    }
+  }
+  response_export_values = []
+  retry                  = var.retry
+
+  dynamic "timeouts" {
+    for_each = var.timeouts == null ? [] : [var.timeouts]
+    content {
+      create = timeouts.value.create
+      read   = timeouts.value.read
+      update = timeouts.value.update
+      delete = timeouts.value.delete
     }
   }
 
@@ -279,6 +291,8 @@ resource "azurerm_role_assignment" "this" {
   condition                              = each.value.condition
   condition_version                      = each.value.condition_version
   delegated_managed_identity_resource_id = each.value.delegated_managed_identity_resource_id
+  description                            = each.value.description
+  principal_type                         = each.value.principal_type
   role_definition_id                     = strcontains(lower(each.value.role_definition_id_or_name), lower(local.role_definition_resource_substring)) ? each.value.role_definition_id_or_name : null
   role_definition_name                   = strcontains(lower(each.value.role_definition_id_or_name), lower(local.role_definition_resource_substring)) ? null : each.value.role_definition_id_or_name
   skip_service_principal_aad_check       = each.value.skip_service_principal_aad_check
