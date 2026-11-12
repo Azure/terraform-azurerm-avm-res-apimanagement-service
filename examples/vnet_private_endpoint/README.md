@@ -31,8 +31,8 @@ provider "azurerm" {
 
 # This ensures we have unique CAF compliant names for our resources.
 module "naming" {
-  source  = "Azure/naming/azurerm"
-  version = "0.3.0"
+  source  = "Azure/avm-utl-naming/azure"
+  version = "0.2.0"
 }
 
 # Create a virtual network for testing if needed
@@ -182,9 +182,9 @@ The following Modules are called:
 
 ### <a name="module_naming"></a> [naming](#module\_naming)
 
-Source: Azure/naming/azurerm
+Source: Azure/avm-utl-naming/azure
 
-Version: 0.3.0
+Version: 0.2.0
 
 ### <a name="module_private_dns_apim"></a> [private\_dns\_apim](#module\_private\_dns\_apim)
 

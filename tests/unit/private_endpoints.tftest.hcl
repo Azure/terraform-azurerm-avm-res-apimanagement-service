@@ -9,6 +9,11 @@ mock_provider "azapi" {
       }
     }
   }
+  mock_data "azapi_client_config" {
+    defaults = {
+      subscription_resource_id = "/subscriptions/00000000-0000-0000-0000-000000000000"
+    }
+  }
 }
 
 mock_provider "azurerm" {
@@ -23,8 +28,6 @@ mock_provider "azurerm" {
     }
   }
 }
-
-mock_provider "modtm" {}
 
 mock_provider "random" {
   mock_resource "random_uuid" {
@@ -47,8 +50,8 @@ run "defaults" {
   providers = {
     azapi   = azapi
     azurerm = azurerm
-    modtm   = modtm
-    random  = random
+
+    random = random
   }
 
   assert {
@@ -66,8 +69,8 @@ run "managed_dns_supported_fields" {
   providers = {
     azapi   = azapi
     azurerm = azurerm
-    modtm   = modtm
-    random  = random
+
+    random = random
   }
 
   variables {
@@ -160,8 +163,8 @@ run "unmanaged_dns_defaults_and_extensions" {
   providers = {
     azapi   = azapi
     azurerm = azurerm
-    modtm   = modtm
-    random  = random
+
+    random = random
   }
 
   variables {
@@ -210,8 +213,8 @@ run "service_assignment_supported_fields" {
   providers = {
     azapi   = azapi
     azurerm = azurerm
-    modtm   = modtm
-    random  = random
+
+    random = random
   }
   variables {
     role_assignments = {
@@ -234,8 +237,8 @@ run "azapi_controls_and_telemetry_mocked" {
   providers = {
     azapi   = azapi
     azurerm = azurerm
-    modtm   = modtm
-    random  = random
+
+    random = random
   }
   variables {
     enable_telemetry = true
@@ -265,8 +268,8 @@ run "invalid_subnet" {
   providers = {
     azapi   = azapi
     azurerm = azurerm
-    modtm   = modtm
-    random  = random
+
+    random = random
   }
   variables {
     private_endpoints = {
