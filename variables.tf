@@ -747,13 +747,12 @@ Service-level (global) policy for the API Management service. This policy applie
 
 - `xml_content` - (Required) The XML content of the policy.
 
-Example:
+Example (the global scope is the root of the policy hierarchy, so it must not contain `<base />`):
 ```terraform
 policy = {
   xml_content = <<XML
 <policies>
   <inbound>
-    <base />
     <cors allow-credentials="true">
       <allowed-origins>
         <origin>https://example.com</origin>
@@ -766,15 +765,12 @@ policy = {
     <rate-limit-by-key calls="100" renewal-period="60" counter-key="@(context.Subscription.Id)" />
   </inbound>
   <backend>
-    <base />
+    <forward-request />
   </backend>
   <outbound>
-    <base />
     <set-header name="X-Powered-By" exists-action="delete" />
   </outbound>
-  <on-error>
-    <base />
-  </on-error>
+  <on-error />
 </policies>
 XML
 }
