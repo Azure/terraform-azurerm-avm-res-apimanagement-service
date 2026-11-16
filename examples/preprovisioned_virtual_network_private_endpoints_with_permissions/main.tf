@@ -77,6 +77,7 @@ module "private_dns_apim" {
   domain_name      = "privatelink.azure-api.net"
   parent_id        = azurerm_resource_group.this.id
   enable_telemetry = var.enable_telemetry
+  location         = var.location
   virtual_network_links = {
     dnslink = {
       name         = "dnslink-azure-apim"

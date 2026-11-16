@@ -33,11 +33,10 @@ module "virtual_network" {
   source  = "Azure/avm-res-network-virtualnetwork/azurerm"
   version = "0.23.0"
 
-  address_space       = ["10.0.0.0/16"]
-  location            = azurerm_resource_group.this.location
-  resource_group_name = azurerm_resource_group.this.name
-  enable_telemetry    = var.enable_telemetry
-  name                = module.naming.virtual_network.name_unique
+  location         = azurerm_resource_group.this.location
+  address_space    = ["10.0.0.0/16"]
+  enable_telemetry = var.enable_telemetry
+  name             = module.naming.virtual_network.name_unique
   subnets = {
     default_subnet = {
       name             = "default_subnet"
@@ -51,6 +50,7 @@ module "virtual_network" {
       # delegations       = {}
     }
   }
+  resource_group_name = azurerm_resource_group.this.name
 }
 
 # Create a Private DNS Zone for API Management
@@ -62,6 +62,7 @@ module "private_dns_apim" {
   parent_id   = azurerm_resource_group.this.id
   # tags             = var.tags
   enable_telemetry = var.enable_telemetry
+  location         = var.location
   virtual_network_links = {
     dnslink = {
       name         = "dnslink-azure-apim"
