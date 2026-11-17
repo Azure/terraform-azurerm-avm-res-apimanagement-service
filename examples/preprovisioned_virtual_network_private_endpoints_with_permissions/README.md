@@ -79,11 +79,12 @@ resource "azurerm_subnet" "default" {
 # Private DNS Zone for API Management
 module "private_dns_apim" {
   source  = "Azure/avm-res-network-privatednszone/azurerm"
-  version = "0.4.0"
+  version = "0.6.0"
 
   domain_name      = "privatelink.azure-api.net"
   parent_id        = azurerm_resource_group.this.id
   enable_telemetry = var.enable_telemetry
+  location         = azurerm_resource_group.this.location
   virtual_network_links = {
     dnslink = {
       name         = "dnslink-azure-apim"
@@ -119,7 +120,7 @@ module "test" {
 
       # Link to the private DNS zone we created
       private_dns_zone_resource_ids = [
-        module.private_dns_apim.resource.id
+        module.private_dns_apim.resource_id
       ]
 
       tags = {
@@ -288,7 +289,7 @@ Version: 0.2.0
 
 Source: Azure/avm-res-network-privatednszone/azurerm
 
-Version: 0.4.0
+Version: 0.6.0
 
 ### <a name="module_test"></a> [test](#module\_test)
 

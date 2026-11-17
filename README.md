@@ -8,6 +8,8 @@ Private endpoint resource-group overrides, static IP member names, role assignme
 
 Example preparation maps a configured `TF_VAR_PUBLISHER_EMAIL` to Terraform's case-sensitive `TF_VAR_publisher_email` through an ignored `.env` file. Explicit lowercase inputs are preserved; no publisher email is supplied by default.
 
+Telemetry uses an empty subscription-scoped Azure deployment instead of the ModTM provider. When upgrading an existing state, keep the old providers available for one final initialization so the declarative `removed` blocks can forget the old telemetry resources without destroying them. Telemetry is enabled by default and requires subscription-scoped deployment read, write, and delete permissions; set `enable_telemetry = false` to disable it. Review plans before applying, including any example dependency upgrades.
+
 > [!IMPORTANT]
 > As the overall AVM framework is not GA (generally available) yet - the CI framework and test automation is not fully functional and implemented across all supported languages yet - breaking changes are expected, and additional customer feedback is yet to be gathered and incorporated. Hence, modules **MUST NOT** be published at version `1.0.0` or higher at this time.
 >
