@@ -21,7 +21,7 @@ provider "azurerm" {
 # This allows us to randomize the region for the resource group, or use a specified region.
 module "regions" {
   source  = "Azure/regions/azurerm"
-  version = "0.8.1"
+  version = "0.8.2"
 }
 
 # Use specified region or random one if not provided
@@ -40,7 +40,7 @@ resource "random_integer" "region_index" {
 # This ensures we have unique CAF compliant names for our resources.
 module "naming" {
   source  = "Azure/avm-utl-naming/azure"
-  version = "0.2.0"
+  version = "0.3.0"
 }
 
 # This is required for resource modules

@@ -26,7 +26,7 @@ provider "azurerm" {
 # This ensures we have unique CAF compliant names for our resources.
 module "naming" {
   source  = "Azure/avm-utl-naming/azure"
-  version = "0.2.0"
+  version = "0.3.0"
 }
 
 data "azurerm_client_config" "current" {}
@@ -72,11 +72,12 @@ resource "azurerm_subnet" "default" {
 # Private DNS Zone for API Management
 module "private_dns_apim" {
   source  = "Azure/avm-res-network-privatednszone/azurerm"
-  version = "0.4.0"
+  version = "0.6.0"
 
   domain_name      = "privatelink.azure-api.net"
   parent_id        = azurerm_resource_group.this.id
   enable_telemetry = var.enable_telemetry
+  location         = var.location
   virtual_network_links = {
     dnslink = {
       name         = "dnslink-azure-apim"
